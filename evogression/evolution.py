@@ -103,4 +103,10 @@ class CreatureEvolution():
             '''
             Mate creatures to generate new creatures.
             '''
-            pass
+            new_creatures = []
+            for i in range(0, len(self.creatures), 2):
+                creature_group = self.creatures[i: i + 1]
+                new_creature = creature_group[0] + creature_group[1]
+                if new_creature:
+                    new_creatures.append(new_creature)
+            self.creatures.extend(new_creatures)
