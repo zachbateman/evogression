@@ -46,7 +46,7 @@ class TestLinearRegressionLayers(unittest.TestCase):
 
     @classmethod
     def setUpClass(TestFile):
-        TestLinearRegressionLayers.creatures =[evogression.EvogressionCreature({'x': None, 'y': None}, 'y', layers=3) for _ in range(100000)]
+        TestLinearRegressionLayers.creatures = [evogression.EvogressionCreature({'x': None, 'y': None}, 'y', layers=3) for _ in range(100000)]
 
     def test_best_creature_linear_regression_1_layer(self):
         best_error = 10000

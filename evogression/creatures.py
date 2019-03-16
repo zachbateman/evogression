@@ -8,15 +8,18 @@ class EvogressionCreature():
 
 
     def __init__(self,
-                        full_parameter_example: dict,
                         target_parameter: str,
-                        layers: int=1) -> None:
+                        layers: int=1,
+                        generation: int=1,
+                        full_parameter_example: dict={},
+                        modifiers: dict={}) -> None:
 
         # hunger decreases over time proportional to this creature's regression complexity
         # successfully "eating" a sample will increase self.hunger
         # creature dies when self.hunger == 0
         self.hunger = 100
         self.layers = layers
+        self.generation = generation
         self.mutability = 5
 
         self.target_parameter = target_parameter
@@ -27,7 +30,12 @@ class EvogressionCreature():
         # C_1 * (B_1 * a + Z_1) ** X_1 + C_2 * (B_2 * b + Z_2) ** X_2 + ...  + N_1 = T_1
         # T_1 = target (17.9) in single layer, else, feed T_1 as additional arg into next layer, etc.
 
-        self.modifiers = self.create_initial_modifiers(full_parameter_example)
+        if modifiers != {}:
+            if full_parameter_example == {}:
+                print('Warning!  No modifiers or parameters provided to create EvogressionCreature!')
+            self.modifiers = self.create_initial_modifiers(full_parameter_example)
+        else:
+            self.modifiers = modifiers
 
 
 
@@ -77,6 +85,18 @@ class EvogressionCreature():
         T += self.modifiers[layer_name]['N']
         return T
 
+    @property
+    def complexity_cost(self):
+        '''
+        Calculate an int to reduce hunger by based on the complexity of this creature.
+        The idea is to penalize more complex models and thereby create a tendancy
+        to develop a simpler model.
+        '''
+        cost = 0
+        cost += 5 * self.layers
+        for layer, layer_dict in self.modifiers.items():
+            cost += len(layer_dict)
+        return cost
 
     def __lt__(self, other):
         pass
@@ -86,6 +106,9 @@ class EvogressionCreature():
 
     def __add__(self, other):
         pass
+
+    def __copy__(self):
+        return EvogressionCreature(self.target_parameter, layers=self.layers, generation=self.generation, modifiers=self.modifiers)
 
     def __repr__(self) -> str:
         return 'EvogressionCreature'
