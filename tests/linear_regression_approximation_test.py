@@ -42,6 +42,41 @@ class TestLinearRegression(unittest.TestCase):
         plt.show()
 
 
+class TestLinearRegressionLayers(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(TestFile):
+        TestLinearRegressionLayers.creatures =[evogression.EvogressionCreature({'x': None, 'y': None}, 'y', layers=3) for _ in range(100000)]
+
+    def test_best_creature_linear_regression_1_layer(self):
+        best_error = 10000
+        best_creature = None
+        for cr_index, creature in enumerate(self.creatures):
+            error = 0
+            for index, x in enumerate(linear_data['x']):
+                target_calc = creature.calc_target({'x': x})
+                error += abs(target_calc - linear_data['y'][index]) ** 2
+            if error < best_error:
+                best_error = error
+                best_creature = creature
+                print(f'New best creature found!  Index: {cr_index}')
+        # now have "best_creature"
+        calcuation_x_values = [i / 2 for i in range(6, 25)]
+        calculated_y_values = [best_creature.calc_target({'x': x}) for x in calcuation_x_values]
+
+        print('\nBest creature found!')
+        print(f'  linear regression error^2: 50.8')
+        print(f'  creature total error^2:    {round(best_error, 1)}')
+
+        print('\nModifiers:')
+        pp(best_creature.modifiers)
+        print('\n'*2)
+
+        plt.scatter(linear_data['x'], linear_data['y'])
+        plt.scatter(calcuation_x_values, calculated_y_values)
+        plt.show()
+
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -9,13 +9,14 @@ class EvogressionCreature():
 
     def __init__(self,
                         full_parameter_example: dict,
-                        target_parameter: str) -> None:
+                        target_parameter: str,
+                        layers: int=1) -> None:
 
         # hunger decreases over time proportional to this creature's regression complexity
         # successfully "eating" a sample will increase self.hunger
         # creature dies when self.hunger == 0
         self.hunger = 100
-        self.layers = 1
+        self.layers = layers
         self.mutability = 5
 
         self.target_parameter = target_parameter
