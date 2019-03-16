@@ -93,19 +93,40 @@ class EvogressionCreature():
         to develop a simpler model.
         '''
         cost = 0
-        cost += 5 * self.layers
+        cost += 5 * self.layers  # cost will be AT LEAST 5
         for layer, layer_dict in self.modifiers.items():
             cost += len(layer_dict)
         return cost
 
-    def __lt__(self, other):
-        pass
-
-    def __gt__(self, other):
-        pass
-
     def __add__(self, other):
-        pass
+        '''
+        Using the __add__ ('+') operator to mate the creatures and generate offspring.
+        Offspring will have a combination of modifiers from both parents that
+        also includes some mutation.
+        '''
+        combined_hunger = self.hunger + other.hunger
+        chance_of_mating = (combined_hunger - 25) / 100
+
+        if random.random() < (1 - chance_of_mating):
+            return None
+
+        # Generate new number of layers
+        if self.layers == other.layers:
+            new_layers = int(self.layers)
+        elif abs(self.layers - other.layers) < 1:
+            new_layers = int(self.layers) if random.random() < 0.5 else int(other.layers)
+
+        if random.random() < 0.05:  # mutation to number of layers
+            if random.random() < 0.5 and new_layers > 1:
+                new_layers -= 1
+            else:
+                new_layers += 1
+
+        # Generate new modifier layer(s)
+        # TODO
+
+
+
 
     def __copy__(self):
         return EvogressionCreature(self.target_parameter, layers=self.layers, generation=self.generation, modifiers=self.modifiers)
