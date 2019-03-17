@@ -94,10 +94,8 @@ class EvogressionCreature():
         The idea is to penalize more complex models and thereby create a tendancy
         to develop a simpler model.
         '''
-        cost = 0
-        cost += 5 * self.layers  # cost will be AT LEAST 5
-        for layer, layer_dict in self.modifiers.items():
-            cost += len(layer_dict)
+        cost = 5 * self.layers  # cost will be AT LEAST 5
+        cost += sum(len(layer_dict) for layer_dict in self.modifiers.values())
         return cost
 
     def __add__(self, other):
