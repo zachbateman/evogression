@@ -57,7 +57,7 @@ class EvogressionCreature():
 
         return modifiers
 
-    def generate_parameter_coefficients():
+    def generate_parameter_coefficients(self):
         C = 1 if random.random() < 0.8 else random.gauss(1, self.mutability)
         B = 1 if random.random() < 0.4 else random.gauss(1, 2 * self.mutability)
         Z = 0 if random.random() < 0.6 else random.gauss(0, 3 * self.mutability)
@@ -123,6 +123,8 @@ class EvogressionCreature():
             else:
                 new_layers += 1
 
+        new_generation = max(self.generation, other.generation) + 1
+
         def mutate_multiplier(mutability) -> float:
             return 1 + mutability * (random.random() - 0.5) / 100
 
@@ -164,10 +166,28 @@ class EvogressionCreature():
                             new_modifiers[layer_name][param][coef] = new_coef
 
         # Chance to add or remove parameter modifiers
+        remove_modifiers = []
+        add_modifiers = []
         for layer in range(1, new_layers + 1):
-            # TODO
-            pass
+            for param, values in new_modifiers[layer_name].items():
+                if random.random() < 0.01 * new_mutability:
+                    remove_modifiers.append((f'LAYER_{layer}', param))
+            for param in possible_parameters:
+                if param not in new_modifiers[layer_name]:
+                    if random.random() < 0.01 * new_mutability:
+                        add_modifiers.append((f'LAYER_{layer}', param))
 
+        for remove_tup in remove_modifiers:
+            del new_modifiers[remove_tup[0]][remove_tup[1]]
+
+        for add_tup in add_modifiers:
+            if add_tup[1] == 'N':
+                new_modifiers[add_tup[0]]['N'] = 0 if random.random() < 0.2 else random.gauss(0, new_mutability)
+            else:
+                C, B, Z, X = self.generate_parameter_coefficients()
+                new_modifiers[add_tup[0]][add_tup[1]] = {'C': C, 'B': B, 'Z': Z, 'X': X}
+
+        return EvogressionCreature(self.target_parameter, layers=new_layers, generation=new_generation, full_parameter_example=self.full_parameter_example, modifiers=new_modifiers)
 
 
 
