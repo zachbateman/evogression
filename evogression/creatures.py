@@ -23,6 +23,7 @@ class EvogressionCreature():
         self.mutability = 5
 
         self.target_parameter = target_parameter
+        self.full_parameter_example = full_parameter_example
 
         # for any given input, want to modify/evolve as following:
         # inputs = {'a': 5.7, 'b': 3.2, 'c': 4.3}
@@ -33,36 +34,36 @@ class EvogressionCreature():
         if modifiers == {}:
             if full_parameter_example == {}:
                 print('Warning!  No modifiers or parameters provided to create EvogressionCreature!')
-            self.modifiers = self.create_initial_modifiers(full_parameter_example)
+            self.modifiers = self.create_initial_modifiers()
         else:
             self.modifiers = modifiers
 
 
 
-    def create_initial_modifiers(self, full_parameter_example) -> dict:
+    def create_initial_modifiers(self) -> dict:
         # creates initial modifiers used with each given parameter
         modifiers = {}
         for layer in range(1, self.layers + 1):
             modifiers[f'LAYER_{layer}'] = {}
-            for param in full_parameter_example.keys():
+            for param in self.full_parameter_example.keys():
                 # resist using parameters if many of them
-                if random.random() < 1 / len(full_parameter_example) and param != self.target_parameter:
-                    mut = self.mutability
-                    C = 1 if random.random() < 0.8 else random.gauss(1, mut)
-                    B = 1 if random.random() < 0.4 else random.gauss(1, 2 * mut)
-                    Z = 0 if random.random() < 0.6 else random.gauss(0, 3 * mut)
-                    X = 1 if random.random() < 0.9 else random.gauss(1, 0.1 * mut)
+                if random.random() < 1 / len(self.full_parameter_example) and param != self.target_parameter:
+                    C, B, Z, X = self.generate_parameter_coefficients()
                     modifiers[f'LAYER_{layer}'][param] = {'C': C, 'B': B, 'Z': Z, 'X': X}
             if layer > 1:
-                mut = self.mutability
-                C = 1 if random.random() < 0.8 else random.gauss(1, mut)
-                B = 1 if random.random() < 0.4 else random.gauss(1, 2 * mut)
-                Z = 0 if random.random() < 0.6 else random.gauss(0, 3 * mut)
-                X = 1 if random.random() < 0.9 else random.gauss(1, 0.1 * mut)
+                C, B, Z, X = self.generate_parameter_coefficients()
                 modifiers[f'LAYER_{layer}']['T'] = {'C': C, 'B': B, 'Z': Z, 'X': X}
             modifiers[f'LAYER_{layer}']['N'] = 0 if random.random() < 0.2 else random.gauss(0, self.mutability)
 
         return modifiers
+
+    def generate_parameter_coefficients():
+        C = 1 if random.random() < 0.8 else random.gauss(1, self.mutability)
+        B = 1 if random.random() < 0.4 else random.gauss(1, 2 * self.mutability)
+        Z = 0 if random.random() < 0.6 else random.gauss(0, 3 * self.mutability)
+        X = 1 if random.random() < 0.9 else random.gauss(1, 0.1 * self.mutability)
+        return C, B, Z, X
+
 
     def calc_target(self, parameters: dict) -> float:
         '''Apply the creature's modifiers to the parameters to calculate an attempt at target'''
@@ -124,6 +125,12 @@ class EvogressionCreature():
 
         # Generate new modifier layer(s)
         # TODO
+
+        for layer in max(self.layers, other.layers):
+            pass
+
+
+
 
 
 
