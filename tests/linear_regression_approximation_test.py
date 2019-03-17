@@ -11,8 +11,8 @@ import matplotlib.pyplot as plt
 class TestLinearRegression(unittest.TestCase):
 
     @classmethod
-    def setUpClass(TestFile):
-        TestLinearRegression.creatures =[evogression.EvogressionCreature({'x': None, 'y': None}, 'y') for _ in range(50000)]
+    def setUpClass(TestLinearRegression):
+        TestLinearRegression.creatures =[evogression.EvogressionCreature('y', full_parameter_example={'x': None, 'y': None}) for _ in range(50000)]
 
     def test_best_creature_linear_regression_1_layer(self):
         best_error = 10000
@@ -45,10 +45,10 @@ class TestLinearRegression(unittest.TestCase):
 class TestLinearRegressionLayers(unittest.TestCase):
 
     @classmethod
-    def setUpClass(TestFile):
-        TestLinearRegressionLayers.creatures = [evogression.EvogressionCreature({'x': None, 'y': None}, 'y', layers=3) for _ in range(100000)]
+    def setUpClass(TestLinearRegressionLayers):
+        TestLinearRegressionLayers.creatures = [evogression.EvogressionCreature('y', full_parameter_example={'x': None, 'y': None}, layers=3) for _ in range(100000)]
 
-    def test_best_creature_linear_regression_1_layer(self):
+    def test_best_creature_linear_regression_layers(self):
         best_error = 10000
         best_creature = None
         for cr_index, creature in enumerate(self.creatures):

@@ -30,7 +30,7 @@ class EvogressionCreature():
         # C_1 * (B_1 * a + Z_1) ** X_1 + C_2 * (B_2 * b + Z_2) ** X_2 + ...  + N_1 = T_1
         # T_1 = target (17.9) in single layer, else, feed T_1 as additional arg into next layer, etc.
 
-        if modifiers != {}:
+        if modifiers == {}:
             if full_parameter_example == {}:
                 print('Warning!  No modifiers or parameters provided to create EvogressionCreature!')
             self.modifiers = self.create_initial_modifiers(full_parameter_example)
@@ -61,6 +61,7 @@ class EvogressionCreature():
                 X = 1 if random.random() < 0.9 else random.gauss(1, 0.1 * mut)
                 modifiers[f'LAYER_{layer}']['T'] = {'C': C, 'B': B, 'Z': Z, 'X': X}
             modifiers[f'LAYER_{layer}']['N'] = 0 if random.random() < 0.2 else random.gauss(0, self.mutability)
+
         return modifiers
 
     def calc_target(self, parameters: dict) -> float:
@@ -78,6 +79,7 @@ class EvogressionCreature():
             if param in self.modifiers[layer_name]:
                 mods = self.modifiers[layer_name][param]
                 T += mods['C'] * (mods['B'] * value + mods['Z']) ** mods['X']
+
         if previous_T and 'T' in self.modifiers[layer_name]:
             mods = self.modifiers[layer_name]['T']
             T += mods['C'] * (mods['B'] * previous_T + mods['Z']) ** mods['X']

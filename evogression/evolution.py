@@ -7,10 +7,8 @@ import random
 from .creatures import EvogressionCreature
 
 
-all_data = [{}, {}, ...]  # actual data provided in list of dicts
-
-training_data
-initial_creatures = [EvogressionCreature({'x': None, 'y': None}, 'y', layers=3) for _ in range(10000)]
+# all_data = [{}, {}, ...]  # actual data provided in list of dicts
+# initial_creatures = [EvogressionCreature({'x': None, 'y': None}, 'y', layers=3) for _ in range(10000)]
 
 
 class CreatureEvolution():
@@ -25,7 +23,7 @@ class CreatureEvolution():
         self.testing_data = self.all_data[int(round(len(self.all_data) * 0.75)):]
         self.initial_num_creatures = initial_num_creatures
 
-        self.creatures = [EvogressionCreature(target_parameter, s{'x': None, 'y': None}, 'y', layers=3) for _ in range(initial_num_creatures)]
+        self.creatures = [EvogressionCreature(target_parameter, {'x': None, 'y': None}, 'y', layers=3) for _ in range(initial_num_creatures)]
         self.current_generation = 1
 
         self.feast_num_food = 15
