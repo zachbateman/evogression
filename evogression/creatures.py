@@ -8,16 +8,17 @@ class EvogressionCreature():
 
 
     def __init__(self,
-                        target_parameter: str,
-                        layers: int=1,
-                        generation: int=1,
-                        full_parameter_example: dict={},
-                        modifiers: dict={}) -> None:
+                       target_parameter: str,
+                       layers: int=1,
+                       hunger: int=100,
+                       generation: int=1,
+                       full_parameter_example: dict={},
+                       modifiers: dict={}) -> None:
 
         # hunger decreases over time proportional to this creature's regression complexity
         # successfully "eating" a sample will increase self.hunger
         # creature dies when self.hunger == 0
-        self.hunger = 100
+        self.hunger = hunger
         self.layers = layers
         self.generation = generation
         self.mutability = 5
@@ -37,7 +38,6 @@ class EvogressionCreature():
             self.modifiers = self.create_initial_modifiers()
         else:
             self.modifiers = modifiers
-
 
 
     def create_initial_modifiers(self) -> dict:
@@ -79,13 +79,22 @@ class EvogressionCreature():
         for param, value in parameters.items():
             if param in self.modifiers[layer_name]:
                 mods = self.modifiers[layer_name][param]
-                T += mods['C'] * (mods['B'] * value + mods['Z']) ** mods['X']
+                try:
+                    T += mods['C'] * (mods['B'] * value + mods['Z']) ** mods['X']
+                except ZeroDivisionError:
+                    T += 0
 
         if previous_T and 'T' in self.modifiers[layer_name]:
             mods = self.modifiers[layer_name]['T']
-            T += mods['C'] * (mods['B'] * previous_T + mods['Z']) ** mods['X']
+            try:
+                T += mods['C'] * (mods['B'] * previous_T + mods['Z']) ** mods['X']
+            except ZeroDivisionError:
+                T += 0
+        try:
+            T += self.modifiers[layer_name]['N']
+        except KeyError:
+            T += 0
 
-        T += self.modifiers[layer_name]['N']
         return T
 
     @property
@@ -96,7 +105,7 @@ class EvogressionCreature():
         to develop a simpler model.
         '''
         cost = 5 * self.layers  # cost will be AT LEAST 5
-        cost += sum(len(layer_dict) for layer_dict in self.modifiers.values())
+        cost += int(round(sum(len(layer_dict) for layer_dict in self.modifiers.values()), 0))
         return cost
 
     def __add__(self, other):
@@ -106,7 +115,7 @@ class EvogressionCreature():
         also includes some mutation.
         '''
         combined_hunger = self.hunger + other.hunger
-        chance_of_mating = (combined_hunger - 25) / 100
+        chance_of_mating = (combined_hunger - 75) / 100
 
         if random.random() < (1 - chance_of_mating):
             return None
@@ -116,6 +125,8 @@ class EvogressionCreature():
             new_layers = int(self.layers)
         elif abs(self.layers - other.layers) < 1:
             new_layers = int(self.layers) if random.random() < 0.5 else int(other.layers)
+        else:
+            new_layers = int(round((self.layers + other.layers) / 2, 0))
 
         if random.random() < 0.05:  # mutation to number of layers
             if random.random() < 0.5 and new_layers > 1:
@@ -133,52 +144,99 @@ class EvogressionCreature():
         new_mutability *= mutate_multiplier(new_mutability)
 
         # Generate new modifier layer(s) based on self and other
-        possible_parameters = ['N', 'T'].extend(sorted(key for key in self.full_parameter_example if key != self.target_parameter))
+        def get_possible_parameters(full_param_example, target_parameter):
+            pos_params = ['N', 'T']
+            pos_params.extend(sorted(key for key in full_param_example if key != target_parameter))
+            return pos_params
+
+        possible_parameters = get_possible_parameters(self.full_parameter_example, self.target_parameter)
+        # possible_parameters = ['N', 'T'].extend(sorted([key for key in self.full_parameter_example if key != self.target_parameter]))
+        # breakpoint()
         coefficients = ['C', 'B', 'Z', 'X']
-        new_modifiers = {f'LAYER_{layer}': {} for layer in range(1, new_layers)}
+        new_modifiers = {f'LAYER_{layer}': {'N': 0} for layer in range(1, new_layers + 1)}
         for layer in range(1, new_layers + 1):
             layer_name = f'LAYER_{layer}'
             for param in possible_parameters:
                 if param == 'N':
-                    new_N = (self.modifiers[layer_name] + other.modifiers[layer_name]) / 2
-                    new_N *= mutate_multiplier(new_mutability)
-                    new_modifiers[layer_name]['N'] = new_N
+                    if layer_name in self.modifiers and layer_name in other.modifiers:
+                        if param in self.modifiers[layer_name] and param in other.modifiers[layer_name]:
+                            new_N = (self.modifiers[layer_name][param] + other.modifiers[layer_name][param]) / 2
+                            new_N *= mutate_multiplier(new_mutability)
+                            new_modifiers[layer_name]['N'] = new_N
+                        elif param in self.modifiers[layer_name]:
+                            new_N = self.modifiers[layer_name][param]
+                            new_N *= mutate_multiplier(new_mutability)
+                            new_modifiers[layer_name]['N'] = new_N
+                        elif param in other.modifiers[layer_name]:
+                            new_N = other.modifiers[layer_name][param]
+                            new_N *= mutate_multiplier(new_mutability)
+                            new_modifiers[layer_name]['N'] = new_N
+                    elif layer_name in self.modifiers:
+                        new_N = self.modifiers[layer_name][param]
+                        new_N *= mutate_multiplier(new_mutability)
+                        new_modifiers[layer_name]['N'] = new_N
+                    elif layer_name in other.modifiers:
+                        try:
+                            new_N = other.modifiers[layer_name][param]
+                        except KeyError:
+                            breakpoint()
+                        new_N *= mutate_multiplier(new_mutability)
+                        new_modifiers[layer_name]['N'] = new_N
+
+
                 else:  # param is one of ['T', 'B', 'C', 'X', 'Z']
-                    if param in self.modifiers[layer_name] and param in other.modifiers[layer_name]:
-                        new_modifiers[layer_name][param] = {}
-                        for coef in coefficients:
-                            new_coef = (self.modifiers[layer_name][param][coef] + other.modifiers[layer_name][param][coef]) / 2
-                            new_coef *= mutate_multiplier(new_mutability)
-                            new_modifiers[layer_name][param][coef] = new_coef
-
-                    elif param in self.modifiers[layer_name] and random.random() < 0.5:
-                        new_modifiers[layer_name][param] = {}
-                        for coef in coefficients:
-                            new_coef = self.modifiers[layer_name][param][coef]
-                            new_coef *= mutate_multiplier(new_mutability)
-                            new_modifiers[layer_name][param][coef] = new_coef
-
-                    elif param in other.modifiers[layer_name] and random.random() < 0.5:
-                        new_modifiers[layer_name][param] = {}
-                        for coef in coefficients:
-                            new_coef = other.modifiers[layer_name][param][coef]
-                            new_coef *= mutate_multiplier(new_mutability)
-                            new_modifiers[layer_name][param][coef] = new_coef
+                    if layer_name in self.modifiers and layer_name in other.modifiers:
+                        if param in self.modifiers[layer_name] and param in other.modifiers[layer_name]:
+                            new_modifiers[layer_name][param] = {}
+                            for coef in coefficients:
+                                new_coef = (self.modifiers[layer_name][param][coef] + other.modifiers[layer_name][param][coef]) / 2
+                                new_coef *= mutate_multiplier(new_mutability)
+                                new_modifiers[layer_name][param][coef] = new_coef
+                        elif param in self.modifiers[layer_name] and random.random() < 0.5:
+                            new_modifiers[layer_name][param] = {}
+                            for coef in coefficients:
+                                new_coef = self.modifiers[layer_name][param][coef]
+                                new_coef *= mutate_multiplier(new_mutability)
+                                new_modifiers[layer_name][param][coef] = new_coef
+                        elif param in other.modifiers[layer_name] and random.random() < 0.5:
+                            new_modifiers[layer_name][param] = {}
+                            for coef in coefficients:
+                                new_coef = other.modifiers[layer_name][param][coef]
+                                new_coef *= mutate_multiplier(new_mutability)
+                                new_modifiers[layer_name][param][coef] = new_coef
+                    elif layer_name in self.modifiers:
+                        if param in self.modifiers[layer_name] and random.random() < 0.5:
+                            new_modifiers[layer_name][param] = {}
+                            for coef in coefficients:
+                                new_coef = self.modifiers[layer_name][param][coef]
+                                new_coef *= mutate_multiplier(new_mutability)
+                                new_modifiers[layer_name][param][coef] = new_coef
+                    elif layer_name in other.modifiers:
+                        if param in other.modifiers[layer_name] and random.random() < 0.5:
+                            new_modifiers[layer_name][param] = {}
+                            for coef in coefficients:
+                                new_coef = other.modifiers[layer_name][param][coef]
+                                new_coef *= mutate_multiplier(new_mutability)
+                                new_modifiers[layer_name][param][coef] = new_coef
 
         # Chance to add or remove parameter modifiers
         remove_modifiers = []
         add_modifiers = []
         for layer in range(1, new_layers + 1):
+            layer_name = f'LAYER_{layer}'
             for param, values in new_modifiers[layer_name].items():
                 if random.random() < 0.01 * new_mutability:
-                    remove_modifiers.append((f'LAYER_{layer}', param))
+                    remove_modifiers.append((layer_name, param))
             for param in possible_parameters:
                 if param not in new_modifiers[layer_name]:
                     if random.random() < 0.01 * new_mutability:
-                        add_modifiers.append((f'LAYER_{layer}', param))
+                        add_modifiers.append((layer_name, param))
 
         for remove_tup in remove_modifiers:
-            del new_modifiers[remove_tup[0]][remove_tup[1]]
+            if remove_tup[1] != 'N':
+                del new_modifiers[remove_tup[0]][remove_tup[1]]
+            else:
+                new_modifiers[remove_tup[0]][remove_tup[1]] = 0
 
         for add_tup in add_modifiers:
             if add_tup[1] == 'N':
@@ -187,19 +245,21 @@ class EvogressionCreature():
                 C, B, Z, X = self.generate_parameter_coefficients()
                 new_modifiers[add_tup[0]][add_tup[1]] = {'C': C, 'B': B, 'Z': Z, 'X': X}
 
-        return EvogressionCreature(self.target_parameter, layers=new_layers, generation=new_generation, full_parameter_example=self.full_parameter_example, modifiers=new_modifiers)
-
-
-
-
-
-
+        # self.hunger -= 10
+        # other.hunger -= 10
+        return EvogressionCreature(self.target_parameter, layers=new_layers, hunger=combined_hunger/2, generation=new_generation, full_parameter_example=self.full_parameter_example, modifiers=new_modifiers)
 
     def __copy__(self):
-        return EvogressionCreature(self.target_parameter, layers=self.layers, generation=self.generation, modifiers=self.modifiers)
+        return EvogressionCreature(self.target_parameter, layers=self.layers, hunger=self.hunger, generation=self.generation, modifiers=self.modifiers)
 
     def __repr__(self) -> str:
-        return 'EvogressionCreature'
+        printout = f'EvogressionCreature - Generation: {self.generation}'
+        for layer in self.modifiers:
+            printout += f'\n  Modifiers {layer}'
+            for param, coeffs in self.modifiers[layer].items():
+                printout += f'\n     {param}: {coeffs}'
+        printout += '\n'
+        return printout
 
     def get_regression_func(self):
         return self.modifiers
