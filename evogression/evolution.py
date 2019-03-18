@@ -9,16 +9,12 @@ from pprint import pprint as pp
 from .creatures import EvogressionCreature
 
 
-# all_data = [{}, {}, ...]  # actual data provided in list of dicts
-# initial_creatures = [EvogressionCreature({'x': None, 'y': None}, 'y', layers=3) for _ in range(10000)]
-
-
 class CreatureEvolution():
 
     def __init__(self,
                          target_parameter: str,
                          all_data: typing.List[typing.Dict[str, float]],
-                         initial_num_creatures: int=5000) -> None:
+                         initial_num_creatures: int=50000) -> None:
 
         self.target_parameter = target_parameter
         self.all_data = all_data
@@ -27,11 +23,11 @@ class CreatureEvolution():
         self.testing_data = self.all_data[int(round(len(self.all_data) * 0.75)):]
         self.initial_num_creatures = initial_num_creatures
 
-        self.creatures = [EvogressionCreature(target_parameter, full_parameter_example=self.all_data[0], layers=3) for _ in range(initial_num_creatures)]
+        self.creatures = [EvogressionCreature(target_parameter, full_parameter_example=self.all_data[0], layers=3, hunger=150 * random.random() + 10) for _ in range(initial_num_creatures)]
         self.current_generation = 1
 
         self.feast_num_food = 30
-        self.famine_num_food = 3
+        self.famine_num_food = 10
 
         self.best_creatures = []
         self.evolve_creatures()
@@ -39,46 +35,58 @@ class CreatureEvolution():
 
     def evolve_creatures(self):
         feast_or_famine = 'famine'
-        counter = 0
+        counter = 1
+        best_creature = None
+        best_error = -1
         while True:
             print('-----------------------------------------')
+            print(f'Cycle - {counter} -')
             print(f'Current Phase: {feast_or_famine}')
-            for _ in range(3):
-                self.evolution_cycle(feast_or_famine)
-                if len(self.creatures) < 0.6 * self.initial_num_creatures or len(self.creatures) > 1.4 * self.initial_num_creatures:
-                    break
+            self.evolution_cycle(feast_or_famine)
 
             # feast_or_famine = 'feast' if feast_or_famine == 'famine' else 'famine'
-            if len(self.creatures) < 0.5 * self.initial_num_creatures:
+            if len(self.creatures) < 0.15 * self.initial_num_creatures:
                 feast_or_famine = 'feast'
-            elif len(self.creatures) > 1.5 * self.initial_num_creatures:
+            elif len(self.creatures) > 0.15 * self.initial_num_creatures:
                 feast_or_famine = 'famine'
 
-            best_creature, error = find_best_creature(self.creatures, self.target_parameter, self.training_data)
+            best_creature, error, avg_error = find_best_creature(self.creatures, self.target_parameter, self.training_data)
 
-
-            self.best_creatures.append([copy.copy(best_creature), error])
+            self.best_creatures.append([copy.deepcopy(best_creature), error])
             print(f'Total number of creatures:  {len(self.creatures)}')
             print(f'Average Hunger: {self.average_creature_hunger}')
-            print('Best Creatures:')
-            print(f'  Generation: {best_creature.generation}    error: {round(error, 0)}')
-            # pp(self.best_creatures)
-            # if random.random() < 0.08:
-                # pp(best_creature.modifiers)
+            print(f'Average error: ' + '{0:.2E}'.format(avg_error))
+            print('Best Creature:')
+            print(f'  Generation: {best_creature.generation}    error: ' + '{0:.2E}'.format(error))
             print()
+
+            for creature_list in self.best_creatures:
+                if creature_list[1] < best_error or best_error < 0:
+                    best_error = creature_list[1]
+                    best_creature = creature_list[0]
+
+            # sprinkle in additional best_creatures to enhance this behaviour
+            # also add in 3 of their offspring (mutated but close to latest best_creature)
+            additional_best_creatures = [copy.deepcopy(best_creature) for _ in range(3)]
+            additional_best_creatures.extend([additional_best_creatures[0] + additional_best_creatures[1] for _ in range(3)])
+            additional_best_creatures = [cr for cr in additional_best_creatures if cr is not None]  # due to chance of not mating
+            for cr in additional_best_creatures:
+                cr.hunger = 100
+            self.creatures.extend(additional_best_creatures)  # sprinkle in additional best_creatures to enhance this behaviour
+
             counter += 1
-            if counter % 10 == 0:
+            if counter % 20 == 0:
                 print('\n' * 3)
                 print(f'BEST CREATURE AFTER {counter} ITERATIONS...')
-                best_creature = None
-                best_error = 10 ** 20
-                for creature_list in self.best_creatures:
-                    if creature_list[1] < best_error:
-                        best_error = creature_list[1]
-                        best_creature = creature_list[0]
+
                 print(best_creature)
-                print(f'Total Error: {best_error}')
-                breakpoint()
+                print(f'Total Error: ' + '{0:.2E}'.format(best_error))
+
+                if counter > 50:
+                    self.best_creatures = self.best_creatures[20:]
+
+                if counter > 1000:
+                    breakpoint()
 
 
 
@@ -107,7 +115,7 @@ class CreatureEvolution():
                 best_creature.hunger += 1
 
         self.run_metabolism_creatures()
-        self.kill_0_hunger_creatures()
+        self.kill_weak_creatures()
         self.adjust_feast_famine_food_count(feast_or_famine)
         self.mate_creatures()
 
@@ -116,7 +124,7 @@ class CreatureEvolution():
         for creature in self.creatures:
             creature.hunger -= creature.complexity_cost
 
-    def kill_0_hunger_creatures(self):
+    def kill_weak_creatures(self):
         '''Remove all creatures whose hunger has dropped to 0 or below'''
         for index, creature in enumerate(self.creatures):
             if creature.hunger <= 0:
@@ -132,17 +140,21 @@ class CreatureEvolution():
         so that population grows in feasting and shrinks in famine.
         '''
         if feast_or_famine == 'feast':
-            if self.average_creature_hunger < 100:
+            if self.average_creature_hunger < 90:
                 self.feast_num_food += 1
-            if self.average_creature_hunger > 150:
+            if self.average_creature_hunger > 120:
                 self.feast_num_food -= 1
+            if len(self.creatures) < 0.1 * self.initial_num_creatures:
+                self.feast_num_food += 10
             if self.feast_num_food <= self.famine_num_food:
                 self.feast_num_food += 1
         elif feast_or_famine == 'famine':
-            if self.average_creature_hunger < 20:
+            if self.average_creature_hunger < 50:
                 self.famine_num_food += 1
             if self.average_creature_hunger > 80:
                 self.famine_num_food -= 1
+            if len(self.creatures) > 0.5 * self.initial_num_creatures:
+                self.famine_num_food -= 3
             if self.famine_num_food >= self.feast_num_food:
                 self.famine_num_food -= 1
             if self.famine_num_food < 1:
@@ -166,15 +178,18 @@ class CreatureEvolution():
 
 def find_best_creature(creatures: list, target_parameter: str, data: list) -> tuple:
 
-    best_error = 10 ** 15  # big number to start loop
+    best_error = -1  # to start loop
+    avg_error = 0
     best_creature = None
     for creature in creatures:
         error = 0
         for data_point in data:
             target_calc = creature.calc_target(data_point)
             error += abs(target_calc - data_point[target_parameter]) ** 2
-        if error < best_error:
+            avg_error += error
+        if error < best_error or best_error < 1:
             best_error = error
             best_creature = creature
-    return best_creature, error
+    avg_error /= len(creatures)
+    return best_creature, best_error, avg_error
 
