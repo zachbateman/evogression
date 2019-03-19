@@ -63,7 +63,7 @@ class EvogressionCreature():
         C = 1 if random.random() < 0.8 else random.gauss(1, self.mutability)
         B = 1 if random.random() < 0.4 else random.gauss(1, 2 * self.mutability)
         Z = 0 if random.random() < 0.6 else random.gauss(0, 3 * self.mutability)
-        X = 1 if random.random() < 0.9 else random.choice([-2, -1, 0, 2, 3])
+        X = 1 if random.random() < 0.6 else random.choice([-3, -2, -1, 0, 2, 3, 4])
         return C, B, Z, X
 
 
