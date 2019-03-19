@@ -15,16 +15,16 @@ class CreatureEvolution():
     def __init__(self,
                          target_parameter: str,
                          all_data: typing.List[typing.Dict[str, float]],
-                         initial_num_creatures: int=50000) -> None:
+                         target_num_creatures: int=50000) -> None:
 
         self.target_parameter = target_parameter
         self.all_data = all_data
         random.shuffle(self.all_data)
         self.training_data = self.all_data[:int(round(len(self.all_data) * 0.75))]
         self.testing_data = self.all_data[int(round(len(self.all_data) * 0.75)):]
-        self.initial_num_creatures = initial_num_creatures
+        self.target_num_creatures = target_num_creatures
 
-        self.creatures = [EvogressionCreature(target_parameter, full_parameter_example=self.all_data[0], layers=3, hunger=150 * random.random() + 10) for _ in range(initial_num_creatures)]
+        self.creatures = [EvogressionCreature(target_parameter, full_parameter_example=self.all_data[0], layers=3, hunger=150 * random.random() + 10) for _ in range(3 * target_num_creatures)]
         self.current_generation = 1
 
         self.feast_num_food = 30
@@ -46,9 +46,9 @@ class CreatureEvolution():
             self.evolution_cycle(feast_or_famine)
 
             # feast_or_famine = 'feast' if feast_or_famine == 'famine' else 'famine'
-            if len(self.creatures) < 0.15 * self.initial_num_creatures:
+            if len(self.creatures) < self.target_num_creatures:
                 feast_or_famine = 'feast'
-            elif len(self.creatures) > 0.15 * self.initial_num_creatures:
+            elif len(self.creatures) > self.target_num_creatures:
                 feast_or_famine = 'famine'
 
             result_data =  find_best_creature(self.creatures, self.target_parameter, self.training_data)
@@ -156,7 +156,7 @@ class CreatureEvolution():
                 self.feast_num_food += 1
             if self.average_creature_hunger > 120:
                 self.feast_num_food -= 1
-            if len(self.creatures) < 0.1 * self.initial_num_creatures:
+            if len(self.creatures) < 0.9 * self.target_num_creatures:
                 self.feast_num_food += 10
             if self.feast_num_food <= self.famine_num_food:
                 self.feast_num_food += 1
@@ -165,7 +165,7 @@ class CreatureEvolution():
                 self.famine_num_food += 1
             if self.average_creature_hunger > 80:
                 self.famine_num_food -= 1
-            if len(self.creatures) > 0.5 * self.initial_num_creatures:
+            if len(self.creatures) > 3 * self.target_num_creatures:
                 self.famine_num_food -= 3
             if self.famine_num_food >= self.feast_num_food:
                 self.famine_num_food -= 1
@@ -205,4 +205,3 @@ def _find_best_creature(creatures: list, target_parameter: str, data: list) -> t
     avg_error /= len(creatures)
     return [best_creature, best_error, avg_error]
 find_best_creature = easy_multip.decorators.use_multip(_find_best_creature)
-
