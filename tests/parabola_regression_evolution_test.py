@@ -8,7 +8,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 
 
-class TestLinearRegression(unittest.TestCase):
+class TestParabolaRegression(unittest.TestCase):
 
     def test_best_creature_linear_regression_1_layer(self):
         evolution = evogression.evolution.CreatureEvolution('y', parabola_data, initial_num_creatures=50000)

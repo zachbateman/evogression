@@ -6,6 +6,7 @@ import copy
 import random
 import tqdm
 from pprint import pprint as pp
+import easy_multip
 from .creatures import EvogressionCreature
 
 
@@ -50,7 +51,18 @@ class CreatureEvolution():
             elif len(self.creatures) > 0.15 * self.initial_num_creatures:
                 feast_or_famine = 'famine'
 
-            best_creature, error, avg_error = find_best_creature(self.creatures, self.target_parameter, self.training_data)
+            result_data =  find_best_creature(self.creatures, self.target_parameter, self.training_data)
+            best_creature_lists = [result_data[3 * i: 3 * i + 3] for i in range(int(len(result_data) / 3))]
+            # best_creature_lists is list with items of form [best_creature, error, avg_error]
+            error = -1
+            best_creature = None
+            for index, bc_list in enumerate(best_creature_lists):
+                if bc_list[1] < error or error < 0:
+                    error = bc_list[1]
+                    best_creature = bc_list[0]
+            avg_error = sum(bc_list[2] for bc_list in best_creature_lists) / len(best_creature_lists)
+
+            # best_creature, error, avg_error = find_best_creature(self.creatures, self.target_parameter, self.training_data)
 
             self.best_creatures.append([copy.deepcopy(best_creature), error])
             print(f'Total number of creatures:  {len(self.creatures)}')
@@ -75,7 +87,7 @@ class CreatureEvolution():
             self.creatures.extend(additional_best_creatures)  # sprinkle in additional best_creatures to enhance this behaviour
 
             counter += 1
-            if counter % 20 == 0:
+            if counter % 10 == 0:
                 print('\n' * 3)
                 print(f'BEST CREATURE AFTER {counter} ITERATIONS...')
 
@@ -83,11 +95,10 @@ class CreatureEvolution():
                 print(f'Total Error: ' + '{0:.2E}'.format(best_error))
 
                 if counter > 50:
-                    self.best_creatures = self.best_creatures[20:]
+                    self.best_creatures = self.best_creatures[10:]
 
-                if counter > 1000:
+                if counter >= 100:
                     breakpoint()
-
 
 
     def evolution_cycle(self, feast_or_famine: str):
@@ -176,12 +187,12 @@ class CreatureEvolution():
         self.creatures.extend(new_creatures)
 
 
-def find_best_creature(creatures: list, target_parameter: str, data: list) -> tuple:
+def _find_best_creature(creatures: list, target_parameter: str, data: list) -> tuple:
 
     best_error = -1  # to start loop
     avg_error = 0
     best_creature = None
-    for creature in creatures:
+    for creature in tqdm.tqdm(creatures):
         error = 0
         for data_point in data:
             target_calc = creature.calc_target(data_point)
@@ -191,5 +202,6 @@ def find_best_creature(creatures: list, target_parameter: str, data: list) -> tu
             best_error = error
             best_creature = creature
     avg_error /= len(creatures)
-    return best_creature, best_error, avg_error
+    return [best_creature, best_error, avg_error]
+find_best_creature = easy_multip.decorators.use_multip(_find_best_creature)
 
