@@ -24,7 +24,7 @@ class CreatureEvolution():
         self.testing_data = self.all_data[int(round(len(self.all_data) * 0.75)):]
         self.target_num_creatures = target_num_creatures
 
-        self.creatures = [EvogressionCreature(target_parameter, full_parameter_example=self.all_data[0], layers=3, hunger=150 * random.random() + 10) for _ in range(3 * target_num_creatures)]
+        self.creatures = [EvogressionCreature(target_parameter, full_parameter_example=self.all_data[0], layers=3, hunger=80 * random.random() + 10) for _ in range(3 * target_num_creatures)]
         self.current_generation = 1
 
         self.feast_num_food = 30
@@ -129,6 +129,10 @@ class CreatureEvolution():
         self.run_metabolism_creatures()
         self.kill_weak_creatures()
         self.adjust_feast_famine_food_count(feast_or_famine)
+
+        # Add random new creatures each cycle (2.5% of target_num_creatures each time)
+        self.creatures.extend([EvogressionCreature(self.target_parameter, full_parameter_example=self.all_data[0], layers=3, hunger=80 * random.random() + 10) for _ in range(int(round(0.025 * self.target_num_creatures, 0)))])
+
         self.mate_creatures()
 
     def run_metabolism_creatures(self):
