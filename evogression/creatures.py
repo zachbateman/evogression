@@ -48,7 +48,8 @@ class EvogressionCreature():
             modifiers[f'LAYER_{layer}'] = {}
             for param in self.full_parameter_example.keys():
                 # resist using parameters if many of them
-                if random.random() < 1 / len(self.full_parameter_example) and param != self.target_parameter:
+                # len(full_param_example) will always be >= 2
+                if random.random() < (1 / len(self.full_parameter_example)) + 0.3 and param != self.target_parameter:
                     C, B, Z, X = self.generate_parameter_coefficients()
                     modifiers[f'LAYER_{layer}'][param] = {'C': C, 'B': B, 'Z': Z, 'X': X}
             if layer > 1:
@@ -83,18 +84,18 @@ class EvogressionCreature():
                 try:
                     T += mods['C'] * (mods['B'] * value + mods['Z']) ** mods['X']
                 except ZeroDivisionError:
-                    T += 0
+                    pass
 
         if previous_T and 'T' in self.modifiers[layer_name]:
             mods = self.modifiers[layer_name]['T']
             try:
                 T += mods['C'] * (mods['B'] * previous_T + mods['Z']) ** mods['X']
             except ZeroDivisionError:
-                T += 0
+                pass
         try:
             T += self.modifiers[layer_name]['N']
         except KeyError:
-            T += 0
+            pass
 
         return T
 
@@ -105,8 +106,8 @@ class EvogressionCreature():
         The idea is to penalize more complex models and thereby create a tendancy
         to develop a simpler model.
         '''
-        cost = 5 * self.layers  # cost will be AT LEAST 5
-        cost += int(round(sum(len(layer_dict) for layer_dict in self.modifiers.values()), 0))
+        cost = 3 * self.layers  # cost will be AT LEAST 3
+        cost += int(round(sum(len(layer_dict) / 2 for layer_dict in self.modifiers.values()), 0))
         return cost
 
     def __add__(self, other):

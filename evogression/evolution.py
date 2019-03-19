@@ -97,8 +97,9 @@ class CreatureEvolution():
                 if counter > 50:
                     self.best_creatures = self.best_creatures[10:]
 
-                if counter >= 100:
-                    breakpoint()
+                breakpoint()
+                # if counter >= 100:
+                    # breakpoint()
 
 
     def evolution_cycle(self, feast_or_famine: str):
