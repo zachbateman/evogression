@@ -15,7 +15,8 @@ class CreatureEvolution():
     def __init__(self,
                          target_parameter: str,
                          all_data: typing.List[typing.Dict[str, float]],
-                         target_num_creatures: int=30000) -> None:
+                         target_num_creatures: int=30000,
+                         add_random_creatures_each_cycle: bool=True) -> None:
 
         self.target_parameter = target_parameter
         self.all_data = all_data
@@ -23,6 +24,7 @@ class CreatureEvolution():
         self.training_data = self.all_data[:int(round(len(self.all_data) * 0.75))]
         self.testing_data = self.all_data[int(round(len(self.all_data) * 0.75)):]
         self.target_num_creatures = target_num_creatures
+        self.add_random_creatures_each_cycle = add_random_creatures_each_cycle
 
         self.creatures = [EvogressionCreature(target_parameter, full_parameter_example=self.all_data[0], hunger=80 * random.random() + 10) for _ in range(int(round(1.1 * target_num_creatures, 0)))]
         self.current_generation = 1
@@ -88,7 +90,7 @@ class CreatureEvolution():
             self.creatures.extend(additional_best_creatures)  # sprinkle in additional best_creatures to enhance this behaviour
 
             counter += 1
-            if counter % 100 == 0:
+            if counter % 10 == 0:
                 print('\n' * 3)
                 print(f'BEST CREATURE AFTER {counter} ITERATIONS...')
 
@@ -98,7 +100,8 @@ class CreatureEvolution():
                 if counter > 10:
                     self.best_creatures = self.best_creatures[10:]
 
-                breakpoint()
+                if counter >= 150:
+                    breakpoint()
 
 
     def evolution_cycle(self, feast_or_famine: str):
@@ -130,8 +133,9 @@ class CreatureEvolution():
         self.kill_weak_creatures()
         # self.adjust_feast_famine_food_count(feast_or_famine)
 
-        # Add random new creatures each cycle (2.0% of target_num_creatures each time)
-        self.creatures.extend([EvogressionCreature(self.target_parameter, full_parameter_example=self.all_data[0], hunger=80 * random.random() + 10) for _ in range(int(round(0.02 * self.target_num_creatures, 0)))])
+        # Option to add random new creatures each cycle (2.0% of target_num_creatures each time)
+        if self.add_random_creatures_each_cycle:
+            self.creatures.extend([EvogressionCreature(self.target_parameter, full_parameter_example=self.all_data[0], hunger=80 * random.random() + 10) for _ in range(int(round(0.02 * self.target_num_creatures, 0)))])
 
         self.mate_creatures()
 

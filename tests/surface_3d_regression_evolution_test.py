@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 class Test3DSurfaceRegression(unittest.TestCase):
 
     def test_best_creature_3d(self):
-        evolution = evogression.evolution.CreatureEvolution('z', surface_3d_data, target_num_creatures=500)
+        evolution = evogression.evolution.CreatureEvolution('z', surface_3d_data, target_num_creatures=3000, add_random_creatures_each_cycle=False)
 
 
 
