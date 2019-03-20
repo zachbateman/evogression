@@ -55,10 +55,12 @@ class EvogressionCreature():
                 # len(full_param_example) will always be >= 2
                 if random.random() < (1 / len(self.full_parameter_example)) + 0.3 and param != self.target_parameter:
                     C, B, Z, X = self.generate_parameter_coefficients()
-                    modifiers[f'LAYER_{layer}'][param] = {'C': C, 'B': B, 'Z': Z, 'X': X}
+                    if X != 0:  # 0 exponent makes term overly complex for value added; don't include
+                        modifiers[f'LAYER_{layer}'][param] = {'C': C, 'B': B, 'Z': Z, 'X': X}
             if layer > 1:
                 C, B, Z, X = self.generate_parameter_coefficients()
-                modifiers[f'LAYER_{layer}']['T'] = {'C': C, 'B': B, 'Z': Z, 'X': X}
+                if X != 0:  # 0 exponent makes term overly complex for value added; don't include
+                    modifiers[f'LAYER_{layer}']['T'] = {'C': C, 'B': B, 'Z': Z, 'X': X}
             modifiers[f'LAYER_{layer}']['N'] = 0 if random.random() < 0.2 else random.gauss(0, self.mutability)
 
         return modifiers
