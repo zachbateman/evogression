@@ -51,8 +51,9 @@ class CreatureEvolution():
             elif len(self.creatures) > self.target_num_creatures:
                 feast_or_famine = 'famine'
 
+
             result_data =  find_best_creature(self.creatures, self.target_parameter, self.training_data)
-            best_creature_lists = [result_data[3 * i: 3 * i + 3] for i in range(int(len(result_data) / 3))]
+            best_creature_lists = [result_data[3 * i: 3 * (i + 1)] for i in range(int(len(result_data) / 3))]
             # best_creature_lists is list with items of form [best_creature, error, avg_error]
             error = -1
             best_creature = None
@@ -60,16 +61,16 @@ class CreatureEvolution():
                 if bc_list[1] < error or error < 0:
                     error = bc_list[1]
                     best_creature = bc_list[0]
-            avg_error = sum(bc_list[2] for bc_list in best_creature_lists) / len(best_creature_lists)
+            median_error = sum(bc_list[2] for bc_list in best_creature_lists) / len(best_creature_lists)  # mean of medians of big chunks...
 
-            # best_creature, error, avg_error = find_best_creature(self.creatures, self.target_parameter, self.training_data)
+            best_creature, error, median_error = find_best_creature(self.creatures, self.target_parameter, self.training_data)
 
             self.best_creatures.append([copy.deepcopy(best_creature), error])
             print(f'Total number of creatures:  {len(self.creatures)}')
             print(f'Average Hunger: {round(self.average_creature_hunger, 1)}')
-            print(f'Average error: ' + '{0:.2E}'.format(avg_error))
+            print(f'Median error: ' + '{0:.2E}'.format(median_error))
             print('Best Creature:')
-            print(f'  Generation: {best_creature.generation}    error: ' + '{0:.2E}'.format(error))
+            print(f'  Generation: {best_creature.generation}    Error: ' + '{0:.2E}'.format(error))
             print()
 
             for creature_list in self.best_creatures:
@@ -79,15 +80,15 @@ class CreatureEvolution():
 
             # sprinkle in additional best_creatures to enhance this behaviour
             # also add in 3 of their offspring (mutated but close to latest best_creature)
-            additional_best_creatures = [copy.deepcopy(best_creature) for _ in range(3)]
-            additional_best_creatures.extend([additional_best_creatures[0] + additional_best_creatures[1] for _ in range(3)])
+            additional_best_creatures = [copy.deepcopy(best_creature) for _ in range(int(round(0.005 * self.target_num_creatures, 0)))]
+            additional_best_creatures.extend([additional_best_creatures[0] + additional_best_creatures[1] for _ in range(int(round(0.005 * self.target_num_creatures, 0)))])
             additional_best_creatures = [cr for cr in additional_best_creatures if cr is not None]  # due to chance of not mating
             for cr in additional_best_creatures:
                 cr.hunger = 100
             self.creatures.extend(additional_best_creatures)  # sprinkle in additional best_creatures to enhance this behaviour
 
             counter += 1
-            if counter % 30 == 0:
+            if counter % 100 == 0:
                 print('\n' * 3)
                 print(f'BEST CREATURE AFTER {counter} ITERATIONS...')
 
@@ -106,7 +107,6 @@ class CreatureEvolution():
             group_size = self.feast_group_size
         elif feast_or_famine == 'famine':
             group_size = self.famine_group_size
-
 
         random.shuffle(self.creatures)
         # "feed" groups of creatures at a once.
@@ -150,31 +150,6 @@ class CreatureEvolution():
     def average_creature_hunger(self):
         return sum(c.hunger for c in self.creatures) / len(self.creatures)
 
-    # def adjust_feast_famine_food_count(self, feast_or_famine: str):
-        # '''
-        # Increase or decrease self.feast_num_food or self.famine_num_food
-        # so that population grows in feasting and shrinks in famine.
-        # '''
-        # if feast_or_famine == 'feast':
-            # if self.average_creature_hunger < 90:
-                # self.feast_num_food += 1
-            # if self.average_creature_hunger > 120:
-                # self.feast_num_food -= 1
-            # if len(self.creatures) < 0.9 * self.target_num_creatures:
-                # self.feast_num_food += 10
-            # if self.feast_num_food <= self.famine_num_food:
-                # self.feast_num_food += 1
-        # elif feast_or_famine == 'famine':
-            # if self.average_creature_hunger < 50:
-                # self.famine_num_food += 1
-            # if self.average_creature_hunger > 80:
-                # self.famine_num_food -= 1
-            # if len(self.creatures) > 3 * self.target_num_creatures:
-                # self.famine_num_food -= 3
-            # if self.famine_num_food >= self.feast_num_food:
-                # self.famine_num_food -= 1
-            # if self.famine_num_food < 1:
-                # self.famine_num_food = 1
 
     def mate_creatures(self):
         '''
@@ -193,19 +168,20 @@ class CreatureEvolution():
 
 
 def _find_best_creature(creatures: list, target_parameter: str, data: list) -> tuple:
-
     best_error = -1  # to start loop
-    avg_error = 0
+    errors = []
     best_creature = None
     for creature in tqdm.tqdm(creatures):
         error = 0
         for data_point in data:
             target_calc = creature.calc_target(data_point)
             error += abs(target_calc - data_point[target_parameter])
-            avg_error += error
+            # avg_error += error
+        error /= len(data)
         if error < best_error or best_error < 1:
             best_error = error
             best_creature = creature
-    avg_error /= len(creatures)
+        errors.append(error)
+    avg_error = sorted(errors)[len(errors)// 2]
     return [best_creature, best_error, avg_error]
 find_best_creature = easy_multip.decorators.use_multip(_find_best_creature)

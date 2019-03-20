@@ -13,7 +13,7 @@ class EvogressionCreature():
                        layers: int=0,
                        hunger: int=100,
                        generation: int=1,
-                       mutability: float=5,
+                       mutability: float=0,
                        full_parameter_example: dict={},
                        modifiers: dict={}) -> None:
 
@@ -23,7 +23,7 @@ class EvogressionCreature():
         self.hunger = hunger
         self.layers = layers
         self.generation = generation
-        self.mutability = mutability
+        self.mutability = 5 * (random.random() + 0.5) if mutability == 0 else mutability
 
         self.target_parameter = target_parameter
         self.full_parameter_example = full_parameter_example
@@ -91,6 +91,8 @@ class EvogressionCreature():
                     T += mods['C'] * (mods['B'] * value + mods['Z']) ** mods['X']
                 except ZeroDivisionError:
                     pass
+                except OverflowError:
+                    return 10 ** 150  # really big number should make this creature die if crazy bad calculations (overflow)
 
         if previous_T and 'T' in self.modifiers[layer_name]:
             mods = self.modifiers[layer_name]['T']
@@ -98,6 +100,9 @@ class EvogressionCreature():
                 T += mods['C'] * (mods['B'] * previous_T + mods['Z']) ** mods['X']
             except ZeroDivisionError:
                 pass
+            except OverflowError:
+                return 10 ** 150  # really big number should make this creature die if crazy bad calculations (overflow)
+
         try:
             T += self.modifiers[layer_name]['N']
         except KeyError:
@@ -150,7 +155,11 @@ class EvogressionCreature():
 
         # Generate new mutability
         new_mutability = (self.mutability + other.mutability) / 2
-        new_mutability *= mutate_multiplier(new_mutability)
+        new_mutability *= 3 * mutate_multiplier(new_mutability)
+        if new_mutability > 30:  # HAVE TO LIMIT MUTABILITY OR EVOLUTION BECOMES UNSTABLE AND THROWS ERRORS!!!
+            new_mutability = 30
+        elif new_mutability < 0:  # mutability can't be negative!!!
+            new_mutability = 0.01
 
         # Generate new modifier layer(s) based on self and other
         def get_possible_parameters(full_param_example, target_parameter):
@@ -191,7 +200,6 @@ class EvogressionCreature():
                             breakpoint()
                         new_N *= mutate_multiplier(new_mutability)
                         new_modifiers[layer_name]['N'] = new_N
-
 
                 else:  # param is one of ['T', 'B', 'C', 'X', 'Z']
                     if not (param == 'T' and layer == 1):
