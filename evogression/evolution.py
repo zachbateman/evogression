@@ -79,12 +79,18 @@ class CreatureEvolution():
             print(f'Median error: ' + '{0:.2E}'.format(median_error))
             print('Best Creature:')
             print(f'  Generation: {best_creature.generation}    Error: ' + '{0:.2E}'.format(error))
+            bc_error = 0
+            for data_point in self.testing_data:
+                target_calc = best_creature.calc_target(data_point)
+                bc_error += abs(target_calc - data_point[self.target_parameter])
+            bc_error /= len(self.testing_data)
+            print('  Testing Data Error:     ' + '{0:.2E}'.format(bc_error))
             print()
 
-            for creature_list in self.best_creatures:
-                if creature_list[1] < best_error or best_error < 0:
-                    best_error = creature_list[1]
-                    best_creature = creature_list[0]
+            # for creature_list in self.best_creatures:
+                # if creature_list[1] < best_error or best_error < 0:
+                    # best_error = creature_list[1]
+                    # best_creature = creature_list[0]
 
             # sprinkle in additional best_creatures to enhance this behaviour
             # also add in 3 of their offspring (mutated but close to latest best_creature)
@@ -95,17 +101,16 @@ class CreatureEvolution():
                 cr.hunger = 100
             self.creatures.extend(additional_best_creatures)  # sprinkle in additional best_creatures to enhance this behaviour
 
-            counter += 1
-            if counter % 10 == 0:
+            if counter == 1 or self.best_creatures[-1][0].modifiers != self.best_creatures[-2][0].modifiers:
                 print('\n' * 3)
-                print(f'BEST CREATURE AFTER {counter} ITERATIONS...')
-
+                print(f'NEW BEST CREATURE AFTER {counter} ITERATIONS...')
                 print(best_creature)
                 print(f'Total Error: ' + '{0:.2E}'.format(best_error))
 
+            counter += 1
+            if counter % 10 == 0:
                 if counter > 10:
                     self.best_creatures = self.best_creatures[10:]
-
                 if counter >= 150:
                     breakpoint()
 
