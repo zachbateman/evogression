@@ -63,7 +63,7 @@ class CreatureEvolution():
                     best_creature = bc_list[0]
             median_error = sum(bc_list[2] for bc_list in best_creature_lists) / len(best_creature_lists)  # mean of medians of big chunks...
 
-            best_creature, error, median_error = find_best_creature(self.creatures, self.target_parameter, self.training_data)
+            # best_creature, error, median_error = find_best_creature(self.creatures, self.target_parameter, self.training_data)
 
             self.best_creatures.append([copy.deepcopy(best_creature), error])
             print(f'Total number of creatures:  {len(self.creatures)}')
