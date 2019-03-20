@@ -5,6 +5,7 @@ import typing
 import copy
 import random
 import tqdm
+import numpy
 from pprint import pprint as pp
 import easy_multip
 from .creatures import EvogressionCreature
@@ -21,6 +22,11 @@ class CreatureEvolution():
         self.target_parameter = target_parameter
         self.all_data = all_data
         random.shuffle(self.all_data)
+        for i, d in enumerate(self.all_data):
+            for key, val in d.items():
+                if numpy.isnan(val):
+                    print('ERROR!  NAN values detected in all_data!')
+                    print(f'Index: {i}  data: {d}')
         self.training_data = self.all_data[:int(round(len(self.all_data) * 0.75))]
         self.testing_data = self.all_data[int(round(len(self.all_data) * 0.75)):]
         self.target_num_creatures = target_num_creatures
