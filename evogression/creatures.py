@@ -4,12 +4,13 @@ Module containing "creatures" that each represent a potential regression equatio
 import random
 
 
-class EvogressionCreature():
+layer_probabilities = [1] * 5 + [2] * 3 + [3] * 2 + [4] * 1 + [5] * 1
 
+class EvogressionCreature():
 
     def __init__(self,
                        target_parameter: str,
-                       layers: int=1,
+                       layers: int=0,
                        hunger: int=100,
                        generation: int=1,
                        mutability: float=5,
@@ -43,6 +44,9 @@ class EvogressionCreature():
 
     def create_initial_modifiers(self) -> dict:
         # creates initial modifiers used with each given parameter
+        if self.layers == 0:
+            self.layers = random.choice(layer_probabilities)
+
         modifiers = {}
         for layer in range(1, self.layers + 1):
             modifiers[f'LAYER_{layer}'] = {}
@@ -106,8 +110,9 @@ class EvogressionCreature():
         The idea is to penalize more complex models and thereby create a tendancy
         to develop a simpler model.
         '''
-        cost = 3 * self.layers  # cost will be AT LEAST 3
-        cost += int(round(sum(len(layer_dict) / 2 for layer_dict in self.modifiers.values()), 0))
+        cost = 5
+        cost += self.layers  # cost will be AT LEAST 3
+        cost += int(round(sum(len(layer_dict) / 5 for layer_dict in self.modifiers.values()), 0))
         return cost
 
     def __add__(self, other):
