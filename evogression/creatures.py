@@ -2,6 +2,7 @@
 Module containing "creatures" that each represent a potential regression equation.
 '''
 import random
+import copy
 
 
 layer_probabilities = [1] * 5 + [2] * 3 + [3] * 2 + [4] * 1 + [5] * 1
@@ -41,6 +42,8 @@ class EvogressionCreature():
         else:
             self.modifiers = modifiers
 
+        self.modifiers = self.simplify_modifiers()
+
 
     def create_initial_modifiers(self) -> dict:
         # creates initial modifiers used with each given parameter
@@ -50,6 +53,7 @@ class EvogressionCreature():
         modifiers = {}
         for layer in range(1, self.layers + 1):
             modifiers[f'LAYER_{layer}'] = {}
+            modifiers[f'LAYER_{layer}']['N'] = 0 if random.random() < 0.2 else random.gauss(0, self.mutability)
             for param in self.full_parameter_example.keys():
                 # resist using parameters if many of them
                 # len(full_param_example) will always be >= 2
@@ -57,20 +61,58 @@ class EvogressionCreature():
                     C, B, Z, X = self.generate_parameter_coefficients()
                     if X != 0:  # 0 exponent makes term overly complex for value added; don't include
                         modifiers[f'LAYER_{layer}'][param] = {'C': C, 'B': B, 'Z': Z, 'X': X}
+                    else:
+                        modifiers[f'LAYER_{layer}']['N'] += C
             if layer > 1:
                 C, B, Z, X = self.generate_parameter_coefficients()
                 if X != 0:  # 0 exponent makes term overly complex for value added; don't include
                     modifiers[f'LAYER_{layer}']['T'] = {'C': C, 'B': B, 'Z': Z, 'X': X}
-            modifiers[f'LAYER_{layer}']['N'] = 0 if random.random() < 0.2 else random.gauss(0, self.mutability)
+                else:
+                    modifiers[f'LAYER_{layer}']['N'] += C
 
         return modifiers
 
     def generate_parameter_coefficients(self):
-        C = 1 if random.random() < 0.8 else random.gauss(1, self.mutability)
-        B = 1 if random.random() < 0.4 else random.gauss(1, 2 * self.mutability)
-        Z = 0 if random.random() < 0.6 else random.gauss(0, 3 * self.mutability)
-        X = 1 if random.random() < 0.6 else random.choice([-3] + [-2] * 2 + [-1] * 5 + [0] * 5 + [2] * 5 + [3] * 2 + [4])
+        C = 1 if random.random() < 0.4 else random.gauss(1, self.mutability)
+        B = 1 if random.random() < 0.2 else random.gauss(1, 2 * self.mutability)
+        Z = 0 if random.random() < 0.4 else random.gauss(0, 3 * self.mutability)
+        X = 1 if random.random() < 0.6 else random.choice([-2] * 1 + [-1] * 5 + [0] * 5 + [2] * 5 + [3] * 1)
         return C, B, Z, X
+
+
+    def simplify_modifiers(self, modifiers: dict={}) -> dict:
+        '''Method looks at the mathematics of self.modifiers and simplifies if possible'''
+        if modifiers == {}:
+            old_modifiers = self.modifiers
+            new_modifiers = copy.deepcopy(self.modifiers)
+        else:
+            old_modifiers = modifiers
+            new_modifiers = copy.deepcopy(modifiers)
+
+        new_base_layer = False  # will be converted to the new LAYER_1 if any layers are deleted
+        for layer, layer_dict in old_modifiers.items():
+            current_layer_num = int(layer[-1])
+            for param, param_dict in layer_dict.items():
+
+                # don't want a 'T' parameter in first layer as no previous result to operate on
+                if layer == 'LAYER_1' and param == 'T':
+                    del new_modifiers[layer]['T']
+
+                # if 'T' element is raised to 0 power... previous layer(s) are not used.
+                # Rebuild the layers without the unused ones before the current layer
+                if current_layer_num > 1 and param == 'T' and param_dict['X'] == 0:
+                    new_base_layer = current_layer_num
+
+        # remove unused first layer(s)
+        if new_base_layer:
+            for i in range(1, new_base_layer):
+                del new_modifiers[f'LAYER_{i}']
+            for i in range(1, len(new_modifiers) + 1):
+                new_modifiers[f'LAYER_{i}'] = new_modifiers.pop(f'LAYER_{new_base_layer + i - 1}')
+        
+        self.layers = len(new_modifiers)
+        return new_modifiers
+
 
 
     def calc_target(self, parameters: dict) -> float:
@@ -284,6 +326,8 @@ class EvogressionCreature():
         elif combined_hunger > 100:
             self.hunger -= 10
             other.hunger -= 10
+
+        new_modifiers = self.simplify_modifiers(new_modifiers)
 
         return EvogressionCreature(self.target_parameter, layers=new_layers, hunger=100, generation=new_generation, mutability=new_mutability, full_parameter_example=self.full_parameter_example, modifiers=new_modifiers)
 
