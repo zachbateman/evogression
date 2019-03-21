@@ -46,7 +46,6 @@ class CreatureEvolution():
         feast_or_famine = 'famine'
         counter = 1
         best_creature = None
-        best_error = -1
         while True:
             print('-----------------------------------------')
             print(f'Cycle - {counter} -')
@@ -105,7 +104,7 @@ class CreatureEvolution():
                 print('\n' * 3)
                 print(f'NEW BEST CREATURE AFTER {counter} ITERATIONS...')
                 print(best_creature)
-                print(f'Total Error: ' + '{0:.2E}'.format(best_error))
+                print(f'Total Error: ' + '{0:.2E}'.format(error))
 
             counter += 1
             if counter % 10 == 0:
