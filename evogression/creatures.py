@@ -3,6 +3,7 @@ Module containing "creatures" that each represent a potential regression equatio
 '''
 import random
 import copy
+from pprint import pprint as pp
 
 
 layer_probabilities = [1] * 5 + [2] * 3 + [3] * 2 + [4] * 1 + [5] * 1
@@ -43,6 +44,10 @@ class EvogressionCreature():
             self.modifiers = modifiers
 
         self.modifiers = self.simplify_modifiers()
+        if len(self.modifiers) != self.layers:
+            print('ERROR!  self.modifiers and self.layers do not match!')
+            print(f'layers: {self.layers}')
+            pp(self.modifiers)
 
 
     def create_initial_modifiers(self) -> dict:
@@ -105,12 +110,27 @@ class EvogressionCreature():
 
         # remove unused first layer(s)
         if new_base_layer:
+            # RESET THIS CREATURES LAYERS!!!
+            self.layers = len(new_modifiers) - new_base_layer + 1
+
             for i in range(1, new_base_layer):
                 del new_modifiers[f'LAYER_{i}']
-            for i in range(1, len(new_modifiers) + 1):
+            for i in range(1, self.layers + 1):
                 new_modifiers[f'LAYER_{i}'] = new_modifiers.pop(f'LAYER_{new_base_layer + i - 1}')
-        
+
+        for i in range(self.layers + 1, len(old_modifiers) + 1):
+            try:
+                del new_modifiers[f'LAYER_{i}']
+            except KeyError:
+                pass
+
         self.layers = len(new_modifiers)
+        if new_modifiers != old_modifiers and self.layers != len(new_modifiers):
+            print(f'self.layers: {self.layers}   new_modifiers: {len(new_modifiers)}')
+            pp(old_modifiers)
+            pp(new_modifiers)
+
+
         return new_modifiers
 
 
@@ -118,7 +138,8 @@ class EvogressionCreature():
     def calc_target(self, parameters: dict) -> float:
         '''Apply the creature's modifiers to the parameters to calculate an attempt at target'''
         T = None  # has to be None on first layer
-        for layer in range(1, self.layers + 1):
+        # for layer in range(1, self.layers + 1):  # NOT SURE WHY SOMETIMES self.layers != len(self.modifers)!!!
+        for layer in range(1, len(self.modifiers) + 1):
             T = self._calc_single_layer_target(parameters, layer, previous_T=T)
         return T
 
@@ -127,6 +148,10 @@ class EvogressionCreature():
         T = 0
         layer_name = f'LAYER_{layer}'
         for param, value in parameters.items():
+            if layer_name not in self.modifiers:
+                print()
+                print(layer_name)
+                pp(self.modifiers)
             if param in self.modifiers[layer_name]:
                 mods = self.modifiers[layer_name][param]
                 try:
