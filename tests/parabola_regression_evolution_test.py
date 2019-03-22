@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 class TestParabolaRegression(unittest.TestCase):
 
     def test_best_creature_linear_regression_1_layer(self):
-        evolution = evogression.evolution.CreatureEvolution('y', parabola_data, target_num_creatures=50000, num_cycles=30)
+        evolution = evogression.evolution.CreatureEvolution('y', parabola_data, target_num_creatures=30000, num_cycles=30)
         best_creature, standardizer = evolution.return_best_creature()
 
         calculated_y_values = [standardizer.unstandardize_value('y', best_creature.calc_target(d)) for d in parabola_data]

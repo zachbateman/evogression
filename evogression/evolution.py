@@ -124,7 +124,7 @@ class CreatureEvolution():
             if counter % 10 == 0:
                 if counter > 10:
                     self.best_creatures = self.best_creatures[10:]
-                if counter >= 10:
+                if counter >= 10 and not self.num_cycles > 0:  # only pause if running indefinitely
                     breakpoint()
 
             counter += 1

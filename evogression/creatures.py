@@ -26,7 +26,7 @@ class EvogressionCreature():
         self.hunger = hunger
         self.layers = layers
         self.generation = generation
-        self.mutability = 5 * (random.random() + 0.5) if mutability == 0 else mutability
+        self.mutability = 1 * (random.random() + 0.5) if mutability == 0 else mutability
 
         self.no_negative_exponents = no_negative_exponents
         self.target_parameter = target_parameter
