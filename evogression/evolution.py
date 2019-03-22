@@ -9,6 +9,7 @@ import numpy
 from pprint import pprint as pp
 import easy_multip
 from .creatures import EvogressionCreature
+from .standardize import Standardizer
 
 
 class CreatureEvolution():
@@ -29,6 +30,10 @@ class CreatureEvolution():
                     print(f'Index: {i}  data: {d}')
         self.training_data = self.all_data[:int(round(len(self.all_data) * 0.75))]
         self.testing_data = self.all_data[int(round(len(self.all_data) * 0.75)):]
+
+        self.standardizer = Standardizer(self.training_data)  # only use training data for Standardizer!! (must be blind to consider test data)
+        self.standardized_training_data = self.standardizer.get_standardized_data()
+
         self.target_num_creatures = target_num_creatures
         self.add_random_creatures_each_cycle = add_random_creatures_each_cycle
 
@@ -46,6 +51,8 @@ class CreatureEvolution():
         feast_or_famine = 'famine'
         counter = 1
         best_creature = None
+        best_error = -1
+        new_best_creature = False
         while True:
             print('-----------------------------------------')
             print(f'Cycle - {counter} -')
@@ -59,7 +66,7 @@ class CreatureEvolution():
                 feast_or_famine = 'famine'
 
 
-            result_data =  find_best_creature(self.creatures, self.target_parameter, self.training_data)
+            result_data =  find_best_creature(self.creatures, self.target_parameter, self.standardized_training_data)
             best_creature_lists = [result_data[3 * i: 3 * (i + 1)] for i in range(int(len(result_data) / 3))]
             # best_creature_lists is list with items of form [best_creature, error, avg_error]
             error = -1
@@ -70,7 +77,7 @@ class CreatureEvolution():
                     best_creature = bc_list[0]
             median_error = sum(bc_list[2] for bc_list in best_creature_lists) / len(best_creature_lists)  # mean of medians of big chunks...
 
-            # best_creature, error, median_error = find_best_creature(self.creatures, self.target_parameter, self.training_data)
+            # best_creature, error, median_error = find_best_creature(self.creatures, self.target_parameter, self.standardized_training_data)
 
             self.best_creatures.append([copy.deepcopy(best_creature), error])
             print(f'Total number of creatures:  {len(self.creatures)}')
@@ -80,18 +87,20 @@ class CreatureEvolution():
             print(f'  Generation: {best_creature.generation}    Error: ' + '{0:.2E}'.format(error))
             bc_error = 0
             for data_point in self.testing_data:
-                target_calc = best_creature.calc_target(data_point)
-                bc_error += abs(target_calc - data_point[self.target_parameter])
+                st_data_point = self.standardizer.convert_parameter_dict_to_standardized(data_point)
+                target_calc = best_creature.calc_target(st_data_point)
+                bc_error += abs(target_calc - st_data_point[self.target_parameter])
             bc_error /= len(self.testing_data)
             print('  Testing Data Error:     ' + '{0:.2E}'.format(bc_error))
             print()
 
-            # for creature_list in self.best_creatures:
-                # if creature_list[1] < best_error or best_error < 0:
-                    # best_error = creature_list[1]
-                    # best_creature = creature_list[0]
+            for creature_list in self.best_creatures:
+                if creature_list[1] < best_error or best_error < 0:
+                    best_error = creature_list[1]
+                    best_creature = creature_list[0]
+                    new_best_creature = True
 
-            # sprinkle in additional best_creatures to enhance this behaviour
+            # sprinkle in additional best_creatures to enhance this behavior
             # also add in 3 of their offspring (mutated but close to latest best_creature)
             additional_best_creatures = [copy.deepcopy(best_creature) for _ in range(int(round(0.005 * self.target_num_creatures, 0)))]
             additional_best_creatures.extend([additional_best_creatures[0] + additional_best_creatures[1] for _ in range(int(round(0.005 * self.target_num_creatures, 0)))])
@@ -100,11 +109,12 @@ class CreatureEvolution():
                 cr.hunger = 100
             self.creatures.extend(additional_best_creatures)  # sprinkle in additional best_creatures to enhance this behaviour
 
-            if counter == 1 or self.best_creatures[-1][0].modifiers != self.best_creatures[-2][0].modifiers:
+            if counter == 1 or new_best_creature: #self.best_creatures[-1][0].modifiers != self.best_creatures[-2][0].modifiers:
                 print('\n' * 3)
                 print(f'NEW BEST CREATURE AFTER {counter} ITERATIONS...')
                 print(best_creature)
                 print(f'Total Error: ' + '{0:.2E}'.format(error))
+                new_best_creature = False
 
             counter += 1
             if counter % 10 == 0:
@@ -126,7 +136,7 @@ class CreatureEvolution():
         # creature with closest calc_target() to target gets to "eat" the data
         for i in range(0, len(self.creatures) // group_size):
             creature_group = self.creatures[group_size * i:group_size * (i + 1)]
-            for food_data in [random.choice(self.training_data) for _ in range(30)]:
+            for food_data in [random.choice(self.standardized_training_data) for _ in range(30)]:
 
                 best_error = None
                 best_creature = None
