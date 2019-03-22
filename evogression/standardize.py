@@ -21,10 +21,10 @@ class Standardizer():
         self.data_modifiers = {p: {'mean': 0, 'stdev': 0} for p in self.parameters}
 
         for param in self.parameters:
-            self.standardize_parameter(param)
+            self.fully_standardize_parameter(param)
 
 
-    def standardize_parameter(self, param):
+    def fully_standardize_parameter(self, param):
         '''Standardize one parameter/column of data'''
 
         values = [d[param] for d in self.all_data]
@@ -37,6 +37,16 @@ class Standardizer():
         new_values = [(v - mean) / stdev for v in values]
         for i in range(len(self.standardized_data)):
             self.standardized_data[i][param] = new_values[i]
+
+    def convert_parameter_dict_to_standardized(self, param_dict: dict) -> dict:
+        '''
+        Convert a data point to the standardized equivalent dict.
+        Used when testing new data points that have not been standardized as a whole.
+        '''
+        new_param_dict = {}
+        for param, value in param_dict.items():
+            new_param_dict[param] = (value - self.data_modifiers[param]['mean']) / self.data_modifiers[param]['stdev']
+        return new_param_dict
 
     def get_standardized_data(self):
         return self.standardized_data
