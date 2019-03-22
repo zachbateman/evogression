@@ -1,4 +1,5 @@
 import unittest
+import os
 import sys
 sys.path.insert(1, '..')
 import evogression
@@ -10,7 +11,7 @@ class TestCreatureCreation(unittest.TestCase):
 
     @classmethod
     def setUpClass(TestFile):
-        TestCreatureCreation.creature = evogression.EvogressionCreature({'x': None, 'y': None}, 'y')
+        TestCreatureCreation.creature = evogression.EvogressionCreature('y', full_parameter_example={'x': None, 'y': None})
 
     def test_asdict(self):
         pp(self.creature.get_regression_func())
@@ -21,6 +22,11 @@ class TestCreatureCreation(unittest.TestCase):
         for x in linear_data['x']:
             calculated_values += self.creature.calc_target({'x': x})
         self.assertTrue(type(calculated_values) == float)
+
+    def test_python_module_regression_func_output(self):
+        self.creature.output_python_regression_module(output_filename='test_reg_func.py')
+        self.assertTrue(os.path.exists('test_reg_func.py'))
+        os.remove('test_reg_func.py')
 
 
 
