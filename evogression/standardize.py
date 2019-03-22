@@ -1,0 +1,46 @@
+'''
+Module containing data standardization tools.
+'''
+import typing
+import statistics
+import copy
+
+
+class Standardizer():
+
+    def __init__(self,
+                      all_data: typing.List[typing.Dict[str, float]]) -> None:
+
+        self.all_data = all_data
+        # initially create self.standarized_data as copy of all_data
+        self.standardized_data: typing.List[typing.Dict[str, float]] = copy.deepcopy(all_data)
+
+        self.parameters = self.all_data[0].keys()
+
+        self.data_modifiers: typing.Dict[str, typing.Dict[str, float]] = {}
+        self.data_modifiers = {p: {'mean': 0, 'stdev': 0} for p in self.parameters}
+
+        for param in self.parameters:
+            self.standardize_parameter(param)
+
+
+    def standardize_parameter(self, param):
+        '''Standardize one parameter/column of data'''
+
+        values = [d[param] for d in self.all_data]
+        mean = statistics.mean(values)
+        stdev = statistics.stdev(values)
+
+        self.data_modifiers[param]['mean'] = mean
+        self.data_modifiers[param]['stdev'] = stdev
+
+        new_values = [(v - mean) / stdev for v in values]
+        for i in range(len(self.standardized_data)):
+            self.standardized_data[i][param] = new_values[i]
+
+    def get_standardized_data(self):
+        return self.standardized_data
+
+    def unstandardize_value(self, param, value) -> float:
+        '''Convert a single value back into what it was/would have been without standardization'''
+        return value * self.data_modifiers[param]['stdev'] + self.data_modifiers[param]['mean']
