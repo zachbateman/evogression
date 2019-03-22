@@ -18,7 +18,8 @@ class CreatureEvolution():
                          target_parameter: str,
                          all_data: typing.List[typing.Dict[str, float]],
                          target_num_creatures: int=30000,
-                         add_random_creatures_each_cycle: bool=True) -> None:
+                         add_random_creatures_each_cycle: bool=True,
+                         num_cycles: int=0) -> None:
 
         self.target_parameter = target_parameter
         self.all_data = all_data
@@ -36,6 +37,7 @@ class CreatureEvolution():
 
         self.target_num_creatures = target_num_creatures
         self.add_random_creatures_each_cycle = add_random_creatures_each_cycle
+        self.num_cycles = num_cycles
 
         self.creatures = [EvogressionCreature(target_parameter, full_parameter_example=self.all_data[0], hunger=80 * random.random() + 10) for _ in range(int(round(1.1 * target_num_creatures, 0)))]
         self.current_generation = 1
@@ -116,12 +118,16 @@ class CreatureEvolution():
                 print(f'Total Error: ' + '{0:.2E}'.format(error))
                 new_best_creature = False
 
-            counter += 1
+            if self.num_cycles > 0 and counter == self.num_cycles:
+                break
+
             if counter % 10 == 0:
                 if counter > 10:
                     self.best_creatures = self.best_creatures[10:]
                 if counter >= 10:
                     breakpoint()
+
+            counter += 1
 
 
     def evolution_cycle(self, feast_or_famine: str):
@@ -174,6 +180,14 @@ class CreatureEvolution():
     def average_creature_hunger(self):
         return sum(c.hunger for c in self.creatures) / len(self.creatures)
 
+    def return_best_creature(self):
+        '''Return current best creature and standardizer'''
+        error = -1
+        for creature_list in self.best_creatures:
+            if creature_list[1] < error or error < 0:
+                error = creature_list[1]
+                best_creature = creature_list[0]
+        return best_creature, self.standardizer
 
     def mate_creatures(self):
         '''
