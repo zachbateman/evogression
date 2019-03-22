@@ -17,6 +17,7 @@ class EvogressionCreature():
                        generation: int=1,
                        mutability: float=0,
                        full_parameter_example: dict={},
+                       no_negative_exponents: bool=True,
                        modifiers: dict={}) -> None:
 
         # hunger decreases over time proportional to this creature's regression complexity
@@ -27,6 +28,7 @@ class EvogressionCreature():
         self.generation = generation
         self.mutability = 5 * (random.random() + 0.5) if mutability == 0 else mutability
 
+        self.no_negative_exponents = no_negative_exponents
         self.target_parameter = target_parameter
         self.full_parameter_example = full_parameter_example
 
@@ -81,7 +83,10 @@ class EvogressionCreature():
         C = 1 if random.random() < 0.4 else random.gauss(1, self.mutability)
         B = 1 if random.random() < 0.2 else random.gauss(1, 2 * self.mutability)
         Z = 0 if random.random() < 0.4 else random.gauss(0, 3 * self.mutability)
-        X = 1 if random.random() < 0.6 else random.choice([-2] * 1 + [-1] * 5 + [0] * 5 + [2] * 5 + [3] * 1)
+        if self.no_negative_exponents:
+            X = 1 if random.random() < 0.6 else random.choice([0] * 4 + [2] * 5 + [3] * 2)
+        else:
+            X = 1 if random.random() < 0.6 else random.choice([-2] * 1 + [-1] * 5 + [0] * 4 + [2] * 5 + [3] * 1)
         return C, B, Z, X
 
 
@@ -110,7 +115,7 @@ class EvogressionCreature():
 
         # remove unused first layer(s)
         if new_base_layer:
-            # RESET THIS CREATURES LAYERS!!!
+            # RESET THIS CREATURE'S LAYERS!!!
             self.layers = len(new_modifiers) - new_base_layer + 1
 
             for i in range(1, new_base_layer):
@@ -249,16 +254,13 @@ class EvogressionCreature():
                             new_N *= mutate_multiplier(new_mutability)
                             new_modifiers[layer_name]['N'] = new_N
                         elif param in self.modifiers[layer_name]:
-                            new_N = self.modifiers[layer_name][param]
-                            new_N *= mutate_multiplier(new_mutability)
+                            new_N = self.modifiers[layer_name][param] * mutate_multiplier(new_mutability)
                             new_modifiers[layer_name]['N'] = new_N
                         elif param in other.modifiers[layer_name]:
-                            new_N = other.modifiers[layer_name][param]
-                            new_N *= mutate_multiplier(new_mutability)
+                            new_N = other.modifiers[layer_name][param] * mutate_multiplier(new_mutability)
                             new_modifiers[layer_name]['N'] = new_N
                     elif layer_name in self.modifiers:
-                        new_N = self.modifiers[layer_name][param]
-                        new_N *= mutate_multiplier(new_mutability)
+                        new_N = self.modifiers[layer_name][param] * mutate_multiplier(new_mutability)
                         new_modifiers[layer_name]['N'] = new_N
                     elif layer_name in other.modifiers:
                         try:
@@ -277,6 +279,8 @@ class EvogressionCreature():
                                     new_coef = (self.modifiers[layer_name][param][coef] + other.modifiers[layer_name][param][coef]) / 2
                                     if coef == 'X':
                                         new_coef = round(new_coef * mutate_multiplier(new_mutability), 0)
+                                        if self.no_negative_exponents and new_coef < 0:
+                                            new_coef = 0
                                     else:
                                         new_coef *= mutate_multiplier(new_mutability)
                                     new_modifiers[layer_name][param][coef] = new_coef
@@ -286,6 +290,8 @@ class EvogressionCreature():
                                     new_coef = self.modifiers[layer_name][param][coef]
                                     if coef == 'X':
                                         new_coef = round(new_coef * mutate_multiplier(new_mutability), 0)
+                                        if self.no_negative_exponents and new_coef < 0:
+                                            new_coef = 0
                                     else:
                                         new_coef *= mutate_multiplier(new_mutability)
                                     new_modifiers[layer_name][param][coef] = new_coef
@@ -295,6 +301,8 @@ class EvogressionCreature():
                                     new_coef = other.modifiers[layer_name][param][coef]
                                     if coef == 'X':
                                         new_coef = round(new_coef * mutate_multiplier(new_mutability), 0)
+                                        if self.no_negative_exponents and new_coef < 0:
+                                            new_coef = 0
                                     else:
                                         new_coef *= mutate_multiplier(new_mutability)
                                     new_modifiers[layer_name][param][coef] = new_coef
@@ -305,6 +313,8 @@ class EvogressionCreature():
                                     new_coef = self.modifiers[layer_name][param][coef]
                                     if coef == 'X':
                                         new_coef = round(new_coef * mutate_multiplier(new_mutability), 0)
+                                        if self.no_negative_exponents and new_coef < 0:
+                                            new_coef = 0
                                     else:
                                         new_coef *= mutate_multiplier(new_mutability)
                                     new_modifiers[layer_name][param][coef] = new_coef
@@ -315,6 +325,8 @@ class EvogressionCreature():
                                     new_coef = other.modifiers[layer_name][param][coef]
                                     if coef == 'X':
                                         new_coef = round(new_coef * mutate_multiplier(new_mutability), 0)
+                                        if self.no_negative_exponents and new_coef < 0:
+                                            new_coef = 0
                                     else:
                                         new_coef *= mutate_multiplier(new_mutability)
                                     new_modifiers[layer_name][param][coef] = new_coef
