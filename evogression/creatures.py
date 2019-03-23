@@ -6,7 +6,7 @@ import copy
 from pprint import pprint as pp
 
 
-layer_probabilities = [1] * 5 + [2] * 3 + [3] * 2 + [4] * 1 + [5] * 1
+layer_probabilities = [1] * 2 + [2] * 4 + [3] * 5 + [4] * 3 + [5] * 2 + [6] * 1
 
 class EvogressionCreature():
 
@@ -26,7 +26,7 @@ class EvogressionCreature():
         self.hunger = hunger
         self.layers = layers
         self.generation = generation
-        self.mutability = 1 * (random.random() + 0.5) if mutability == 0 else mutability
+        self.mutability = 0.1 * (random.random() + 0.5) if mutability == 0 else mutability
 
         self.no_negative_exponents = no_negative_exponents
         self.target_parameter = target_parameter
@@ -45,12 +45,6 @@ class EvogressionCreature():
         else:
             self.modifiers = modifiers
 
-        self.modifiers = self.simplify_modifiers()
-        if len(self.modifiers) != self.layers:
-            print('ERROR!  self.modifiers and self.layers do not match!')
-            print(f'layers: {self.layers}')
-            pp(self.modifiers)
-
 
     def create_initial_modifiers(self) -> dict:
         # creates initial modifiers used with each given parameter
@@ -60,7 +54,7 @@ class EvogressionCreature():
         modifiers = {}
         for layer in range(1, self.layers + 1):
             modifiers[f'LAYER_{layer}'] = {}
-            modifiers[f'LAYER_{layer}']['N'] = 0 if random.random() < 0.2 else random.gauss(0, self.mutability)
+            modifiers[f'LAYER_{layer}']['N'] = 0 if random.random() < 0.2 else random.gauss(0, 3 * self.mutability)
             for param in self.full_parameter_example.keys():
                 # resist using parameters if many of them
                 # len(full_param_example) will always be >= 2
@@ -72,21 +66,20 @@ class EvogressionCreature():
                         modifiers[f'LAYER_{layer}']['N'] += C
             if layer > 1:
                 C, B, Z, X = self.generate_parameter_coefficients()
-                if X != 0:  # 0 exponent makes term overly complex for value added; don't include
-                    modifiers[f'LAYER_{layer}']['T'] = {'C': C, 'B': B, 'Z': Z, 'X': X}
-                else:
-                    modifiers[f'LAYER_{layer}']['N'] += C
+                if X == 0:  # want every layer > 1 to include a T term!!
+                    X = 1
+                modifiers[f'LAYER_{layer}']['T'] = {'C': C, 'B': B, 'Z': Z, 'X': X}
 
         return modifiers
 
     def generate_parameter_coefficients(self):
         C = 1 if random.random() < 0.4 else random.gauss(1, self.mutability)
-        B = 1 if random.random() < 0.2 else random.gauss(1, 2 * self.mutability)
+        B = 1 if random.random() < 0.3 else random.gauss(1, 2 * self.mutability)
         Z = 0 if random.random() < 0.4 else random.gauss(0, 3 * self.mutability)
         if self.no_negative_exponents:
-            X = 1 if random.random() < 0.6 else random.choice([0] * 4 + [2] * 5 + [3] * 2)
+            X = 1 if random.random() < 0.4 else random.choice([0] * 1 + [2] * 5 + [3] * 2)
         else:
-            X = 1 if random.random() < 0.6 else random.choice([-2] * 1 + [-1] * 5 + [0] * 4 + [2] * 5 + [3] * 1)
+            X = 1 if random.random() < 0.4 else random.choice([-2] * 1 + [-1] * 5 + [0] * 3 + [2] * 5 + [3] * 1)
         return C, B, Z, X
 
 
@@ -111,6 +104,12 @@ class EvogressionCreature():
                 # if 'T' element is raised to 0 power... previous layer(s) are not used.
                 # Rebuild the layers without the unused ones before the current layer
                 if current_layer_num > 1 and param == 'T' and param_dict['X'] == 0:
+                    new_base_layer = current_layer_num
+
+            if current_layer_num > 1 and 'T' not in layer_dict:
+                if not new_base_layer:
+                    new_base_layer = current_layer_num
+                elif current_layer_num > new_base_layer:
                     new_base_layer = current_layer_num
 
         # remove unused first layer(s)
@@ -143,7 +142,7 @@ class EvogressionCreature():
     def calc_target(self, parameters: dict) -> float:
         '''Apply the creature's modifiers to the parameters to calculate an attempt at target'''
         T = None  # has to be None on first layer
-        # for layer in range(1, self.layers + 1):  # NOT SURE WHY SOMETIMES self.layers != len(self.modifers)!!!
+        # for layer in range(1, self.layers + 1):  # NOT SURE WHY SOMETIMES self.layers != len(self.modifiers)!!!
         for layer in range(1, len(self.modifiers) + 1):
             T = self._calc_single_layer_target(parameters, layer, previous_T=T)
         return T
@@ -231,7 +230,7 @@ class EvogressionCreature():
         if new_mutability > 30:  # HAVE TO LIMIT MUTABILITY OR EVOLUTION BECOMES UNSTABLE AND THROWS ERRORS!!!
             new_mutability = 30
         elif new_mutability < 0:  # mutability can't be negative!!!
-            new_mutability = 0.01
+            new_mutability = 0.001
 
         # Generate new modifier layer(s) based on self and other
         def get_possible_parameters(full_param_example, target_parameter):
@@ -364,8 +363,6 @@ class EvogressionCreature():
             self.hunger -= 10
             other.hunger -= 10
 
-        new_modifiers = self.simplify_modifiers(new_modifiers)
-
         return EvogressionCreature(self.target_parameter, layers=new_layers, hunger=100, generation=new_generation, mutability=new_mutability, full_parameter_example=self.full_parameter_example, modifiers=new_modifiers)
 
     def __copy__(self):
@@ -381,7 +378,7 @@ class EvogressionCreature():
         return printout
 
     def get_regression_func(self):
-        return self.modifiers
+        return self.simplify_modifiers(self.modifiers)
 
 
     def output_python_regression_module(self, output_filename: str='regression_function.py'):
@@ -395,23 +392,25 @@ class EvogressionCreature():
     def output_regression_func_as_python_module_string(self) -> str:
         '''Create a string which creates a Python module with callable regression function.'''
 
+        modifiers = self.simplify_modifiers(self.modifiers)
+
         s = "'''\nPython regression function module generated by Evogression.\n'''\n\n"
         s += "def regression_func(parameters: dict) -> float:\n"
         s += "    '''Generated by an Evogression creature'''\n\n"
         s += "    T = 0  # T is the value from the previous layer if multiple layers\n\n"
 
-        for layer in range(1, len(self.modifiers) + 1):
+        for layer in range(1, len(modifiers) + 1):
             layer_name = f'LAYER_{layer}'
 
             s += f"    # {layer_name}\n"
-            for param, mods in self.modifiers[layer_name].items():
+            for param, mods in modifiers[layer_name].items():
                 if param == 'N':
                     s += f"    T += {round(mods, 4)}\n"
                 elif param == 'T':
                     s += f"    T += {round(mods['C'], 4)} * ({round(mods['B'], 4)} * previous_T + {round(mods['Z'], 4)}) ** {round(mods['X'], 2)}\n"
                 else:
                     s += f"    T += {round(mods['C'], 4)} * ({round(mods['B'], 4)} * parameters['{param}'] + {round(mods['Z'], 4)}) ** {round(mods['X'], 2)}\n"
-            if layer < len(self.modifiers):
+            if layer < len(modifiers):
                 s += "    previous_T, T = T, 0\n"
             s += "\n"
         s += "    return T\n"
