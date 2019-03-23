@@ -19,9 +19,12 @@ class CreatureEvolution():
                          all_data: typing.List[typing.Dict[str, float]],
                          target_num_creatures: int=30000,
                          add_random_creatures_each_cycle: bool=True,
-                         num_cycles: int=0) -> None:
+                         num_cycles: int=0,
+                         force_num_layers: int=0,
+                         standardize: bool=True) -> None:
 
         self.target_parameter = target_parameter
+        self.standardize = standardize
         self.all_data = all_data
         random.shuffle(self.all_data)
         for i, d in enumerate(self.all_data):
@@ -32,14 +35,16 @@ class CreatureEvolution():
         self.training_data = self.all_data[:int(round(len(self.all_data) * 0.75))]
         self.testing_data = self.all_data[int(round(len(self.all_data) * 0.75)):]
 
-        self.standardizer = Standardizer(self.training_data)  # only use training data for Standardizer!! (must be blind to consider test data)
-        self.standardized_training_data = self.standardizer.get_standardized_data()
+        if self.standardize:
+            self.standardizer = Standardizer(self.training_data)  # only use training data for Standardizer!! (must be blind to consider test data)
+            self.standardized_training_data = self.standardizer.get_standardized_data()
 
         self.target_num_creatures = target_num_creatures
         self.add_random_creatures_each_cycle = add_random_creatures_each_cycle
         self.num_cycles = num_cycles
+        self.force_num_layers = force_num_layers
 
-        self.creatures = [EvogressionCreature(target_parameter, full_parameter_example=self.all_data[0], hunger=80 * random.random() + 10) for _ in range(int(round(1.1 * target_num_creatures, 0)))]
+        self.creatures = [EvogressionCreature(target_parameter, full_parameter_example=self.all_data[0], hunger=80 * random.random() + 10, layers=self.force_num_layers) for _ in range(int(round(1.1 * target_num_creatures, 0)))]
         self.current_generation = 1
 
         self.feast_group_size = 2
@@ -59,16 +64,11 @@ class CreatureEvolution():
             print('-----------------------------------------')
             print(f'Cycle - {counter} -')
             print(f'Current Phase: {feast_or_famine}')
-            self.evolution_cycle(feast_or_famine)
 
-            # feast_or_famine = 'feast' if feast_or_famine == 'famine' else 'famine'
-            if len(self.creatures) < self.target_num_creatures:
-                feast_or_famine = 'feast'
-            elif len(self.creatures) > self.target_num_creatures:
-                feast_or_famine = 'famine'
-
-
-            result_data =  find_best_creature(self.creatures, self.target_parameter, self.standardized_training_data)
+            if self.standardize:
+                result_data =  find_best_creature(self.creatures, self.target_parameter, self.standardized_training_data, standardizer=self.standardizer)
+            else:
+                result_data =  find_best_creature(self.creatures, self.target_parameter, self.training_data)
             best_creature_lists = [result_data[3 * i: 3 * (i + 1)] for i in range(int(len(result_data) / 3))]
             # best_creature_lists is list with items of form [best_creature, error, avg_error]
             error = -1
@@ -89,9 +89,18 @@ class CreatureEvolution():
             print(f'  Generation: {best_creature.generation}    Error: ' + '{0:.2E}'.format(error))
             bc_error = 0
             for data_point in self.testing_data:
-                st_data_point = self.standardizer.convert_parameter_dict_to_standardized(data_point)
-                target_calc = best_creature.calc_target(st_data_point)
-                bc_error += abs(target_calc - st_data_point[self.target_parameter])
+                if self.standardize:
+                    dp = data_point
+                    target_calc = best_creature.calc_target(self.standardizer.convert_parameter_dict_to_standardized(dp))
+                    target_calc = self.standardizer.unstandardize_value(self.target_parameter, target_calc)  # convert back to normal units before checking error
+                else:
+                    dp = data_point
+                    target_calc = best_creature.calc_target(dp)
+
+                try:
+                    bc_error += abs(target_calc - dp[self.target_parameter]) ** 2.0
+                except OverflowError:  # if error is too big to store, give huge arbitrary error
+                    error = 10 ** 150
             bc_error /= len(self.testing_data)
             print('  Testing Data Error:     ' + '{0:.2E}'.format(bc_error))
             print()
@@ -127,6 +136,14 @@ class CreatureEvolution():
                 if counter >= 10 and not self.num_cycles > 0:  # only pause if running indefinitely
                     breakpoint()
 
+            self.evolution_cycle(feast_or_famine)
+
+            # feast_or_famine = 'feast' if feast_or_famine == 'famine' else 'famine'
+            if len(self.creatures) < self.target_num_creatures:
+                feast_or_famine = 'feast'
+            elif len(self.creatures) > self.target_num_creatures:
+                feast_or_famine = 'famine'
+
             counter += 1
 
 
@@ -140,16 +157,25 @@ class CreatureEvolution():
         random.shuffle(self.creatures)
         # "feed" groups of creatures at a once.
         # creature with closest calc_target() to target gets to "eat" the data
+        all_food_data = self.training_data  # self.standardized_training_data if self.standardize else self.training_data
         for i in range(0, len(self.creatures) // group_size):
             creature_group = self.creatures[group_size * i:group_size * (i + 1)]
-            for food_data in [random.choice(self.standardized_training_data) for _ in range(30)]:
+            for food_data in [random.choice(all_food_data) for _ in range(30)]:
 
                 best_error = None
                 best_creature = None
                 error = 0
                 for creature in creature_group:
                     target_calc = creature.calc_target(food_data)
-                    error += abs(target_calc - food_data[self.target_parameter])
+                    food_val = food_data[self.target_parameter]
+                    if self.standardize:  # convert back to normal units before checking error
+                        target_calc = self.standardizer.unstandardize_value(self.target_parameter, target_calc)
+                        food_val = self.standardizer.unstandardize_value(self.target_parameter, food_val)
+                    try:
+                        error += abs(target_calc - food_val) ** 2.0
+                    except OverflowError:  # if error is too big to store, give huge arbitrary error
+                        error = 10 ** 150
+
                     if best_error is None or error < best_error:
                         best_error = error
                         best_creature = creature
@@ -157,11 +183,10 @@ class CreatureEvolution():
 
         self.run_metabolism_creatures()
         self.kill_weak_creatures()
-        # self.adjust_feast_famine_food_count(feast_or_famine)
 
         # Option to add random new creatures each cycle (2.0% of target_num_creatures each time)
         if self.add_random_creatures_each_cycle:
-            self.creatures.extend([EvogressionCreature(self.target_parameter, full_parameter_example=self.all_data[0], hunger=80 * random.random() + 10) for _ in range(int(round(0.02 * self.target_num_creatures, 0)))])
+            self.creatures.extend([EvogressionCreature(self.target_parameter, full_parameter_example=self.all_data[0], hunger=80 * random.random() + 10, layers=self.force_num_layers) for _ in range(int(round(0.02 * self.target_num_creatures, 0)))])
 
         self.mate_creatures()
 
@@ -187,7 +212,11 @@ class CreatureEvolution():
             if creature_list[1] < error or error < 0:
                 error = creature_list[1]
                 best_creature = creature_list[0]
-        return best_creature, self.standardizer
+        if self.standardize:
+            return best_creature, self.standardizer
+        else:
+            return best_creature
+
 
     def mate_creatures(self):
         '''
@@ -205,7 +234,7 @@ class CreatureEvolution():
         self.creatures.extend(new_creatures)
 
 
-def _find_best_creature(creatures: list, target_parameter: str, data: list) -> tuple:
+def _find_best_creature(creatures: list, target_parameter: str, data: list, standardizer=None) -> tuple:
     best_error = -1  # to start loop
     errors = []
     best_creature = None
@@ -213,7 +242,14 @@ def _find_best_creature(creatures: list, target_parameter: str, data: list) -> t
         error = 0
         for data_point in data:
             target_calc = creature.calc_target(data_point)
-            error += abs(target_calc - data_point[target_parameter])
+            dp_calc = data_point[target_parameter]
+            if standardizer is not None:
+                target_calc = standardizer.unstandardize_value(target_parameter, target_calc)
+                dp_calc = standardizer.unstandardize_value(target_parameter, dp_calc)
+            try:
+                error += abs(target_calc - dp_calc) ** 2.0
+            except OverflowError:  # if error is too big to store, give huge arbitrary error
+                error = 10 ** 150
             # avg_error += error
         error /= len(data)
         if error < best_error or best_error < 1:
