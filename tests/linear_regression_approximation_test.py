@@ -61,8 +61,8 @@ class TestLinearRegressionLayers(unittest.TestCase):
                 best_creature = creature
                 print(f'New best creature found!  Index: {cr_index}')
         # now have "best_creature"
-        calcuation_x_values = [i / 2 for i in range(6, 25)]
-        calculated_y_values = [best_creature.calc_target({'x': x}) for x in calcuation_x_values]
+        calculation_x_values = [i / 2 for i in range(6, 25)]
+        calculated_y_values = [best_creature.calc_target({'x': x}) for x in calculation_x_values]
 
         print('\nBest creature found!')
         print(f'  linear regression error^2: 50.8')
@@ -73,7 +73,7 @@ class TestLinearRegressionLayers(unittest.TestCase):
         print('\n'*2)
 
         plt.scatter([d['x'] for d in linear_data], [d['y'] for d in linear_data])
-        plt.scatter(calcuation_x_values, calculated_y_values)
+        plt.scatter(calculation_x_values, calculated_y_values)
         plt.show()
 
 
