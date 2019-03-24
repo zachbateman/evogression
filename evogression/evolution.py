@@ -38,6 +38,8 @@ class CreatureEvolution():
         if self.standardize:
             self.standardizer = Standardizer(self.training_data)  # only use training data for Standardizer!! (must be blind to consider test data)
             self.standardized_training_data = self.standardizer.get_standardized_data()
+        else:
+            self.standardizer = None
 
         self.target_num_creatures = target_num_creatures
         self.add_random_creatures_each_cycle = add_random_creatures_each_cycle
@@ -87,21 +89,8 @@ class CreatureEvolution():
             print(f'Median error: ' + '{0:.2E}'.format(median_error))
             print('Best Creature:')
             print(f'  Generation: {best_creature.generation}    Error: ' + '{0:.2E}'.format(error))
-            bc_error = 0
-            for data_point in self.testing_data:
-                if self.standardize:
-                    dp = data_point
-                    target_calc = best_creature.calc_target(self.standardizer.convert_parameter_dict_to_standardized(dp))
-                    target_calc = self.standardizer.unstandardize_value(self.target_parameter, target_calc)  # convert back to normal units before checking error
-                else:
-                    dp = data_point
-                    target_calc = best_creature.calc_target(dp)
 
-                try:
-                    bc_error += abs(target_calc - dp[self.target_parameter]) ** 2.0
-                except OverflowError:  # if error is too big to store, give huge arbitrary error
-                    error = 10 ** 150
-            bc_error /= len(self.testing_data)
+            bc_error = sum(calc_error_value(best_creature, self.target_parameter, data_point, self.standardizer) for data_point in self.testing_data) / len(self.testing_data)
             print('  Testing Data Error:     ' + '{0:.2E}'.format(bc_error))
             print()
 
@@ -138,12 +127,7 @@ class CreatureEvolution():
 
             self.evolution_cycle(feast_or_famine)
 
-            # feast_or_famine = 'feast' if feast_or_famine == 'famine' else 'famine'
-            if len(self.creatures) < self.target_num_creatures:
-                feast_or_famine = 'feast'
-            elif len(self.creatures) > self.target_num_creatures:
-                feast_or_famine = 'famine'
-
+            feast_or_famine = 'feast' if len(self.creatures) < self.target_num_creatures else 'famine'
             counter += 1
 
 
@@ -166,16 +150,7 @@ class CreatureEvolution():
                 best_creature = None
                 error = 0
                 for creature in creature_group:
-                    target_calc = creature.calc_target(food_data)
-                    food_val = food_data[self.target_parameter]
-                    if self.standardize:  # convert back to normal units before checking error
-                        target_calc = self.standardizer.unstandardize_value(self.target_parameter, target_calc)
-                        food_val = self.standardizer.unstandardize_value(self.target_parameter, food_val)
-                    try:
-                        error += abs(target_calc - food_val) ** 2.0
-                    except OverflowError:  # if error is too big to store, give huge arbitrary error
-                        error = 10 ** 150
-
+                    error += calc_error_value(creature, self.target_parameter, food_data, self.standardizer)
                     if best_error is None or error < best_error:
                         best_error = error
                         best_creature = creature
@@ -189,6 +164,7 @@ class CreatureEvolution():
             self.creatures.extend([EvogressionCreature(self.target_parameter, full_parameter_example=self.all_data[0], hunger=80 * random.random() + 10, layers=self.force_num_layers) for _ in range(int(round(0.02 * self.target_num_creatures, 0)))])
 
         self.mate_creatures()
+
 
     def run_metabolism_creatures(self):
         '''Deduct from each creature's hunger as their complexity demands'''
@@ -217,7 +193,6 @@ class CreatureEvolution():
         else:
             return best_creature
 
-
     def mate_creatures(self):
         '''
         Mate creatures to generate new creatures.
@@ -234,6 +209,21 @@ class CreatureEvolution():
         self.creatures.extend(new_creatures)
 
 
+def calc_error_value(creature, target_parameter: str, data_point: dict, standardizer=None) -> float:
+    '''Calculate the error between a creature's predicted value and the actual value'''
+    target_calc = creature.calc_target(data_point)
+    data_point_calc = data_point[target_parameter]
+    if standardizer is not None:
+        target_calc = standardizer.unstandardize_value(target_parameter, target_calc)
+        data_point_calc = standardizer.unstandardize_value(target_parameter, data_point_calc)
+    try:
+        error = abs(target_calc - data_point_calc) ** 2.0
+    except OverflowError:  # if error is too big to store, give huge arbitrary error
+        error = 10 ** 150
+    return error
+
+
+
 def _find_best_creature(creatures: list, target_parameter: str, data: list, standardizer=None) -> tuple:
     best_error = -1  # to start loop
     errors = []
@@ -241,16 +231,7 @@ def _find_best_creature(creatures: list, target_parameter: str, data: list, stan
     for creature in tqdm.tqdm(creatures):
         error = 0
         for data_point in data:
-            target_calc = creature.calc_target(data_point)
-            dp_calc = data_point[target_parameter]
-            if standardizer is not None:
-                target_calc = standardizer.unstandardize_value(target_parameter, target_calc)
-                dp_calc = standardizer.unstandardize_value(target_parameter, dp_calc)
-            try:
-                error += abs(target_calc - dp_calc) ** 2.0
-            except OverflowError:  # if error is too big to store, give huge arbitrary error
-                error = 10 ** 150
-            # avg_error += error
+            error += calc_error_value(creature, target_parameter, data_point, standardizer)
         error /= len(data)
         if error < best_error or best_error < 1:
             best_error = error

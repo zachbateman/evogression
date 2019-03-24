@@ -47,7 +47,7 @@ class TestParabolaRegression(unittest.TestCase):
         HAVING A VERY HARD TIME GETTING A GOOD PARABOLA MATCH WITH EVOLUTION!!!
         TRY GETTING EVOLUTION AS CLOSE AS POSSIBLE TO THE STEPS IN BRUTE FORCE ABOVE BEFORE GETTING TOO CLEVER!!!
         '''
-        evolution = evogression.evolution.CreatureEvolution('y', parabola_data, target_num_creatures=75000, num_cycles=10, force_num_layers=0, standardize=False)
+        evolution = evogression.evolution.CreatureEvolution('y', parabola_data, target_num_creatures=50000, num_cycles=7, force_num_layers=0, standardize=True)
         try:
             best_creature, standardizer = evolution.return_best_creature()
         except:
