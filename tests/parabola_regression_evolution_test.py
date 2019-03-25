@@ -2,6 +2,7 @@ import unittest
 import sys
 sys.path.insert(1, '..')
 import evogression
+import easy_multip
 from test_data import parabola_data
 from pprint import pprint as pp
 import matplotlib
@@ -13,7 +14,8 @@ class TestParabolaRegression(unittest.TestCase):
     def test_best_creature_parabola_regression_brute_force_3_layer(self):
         # this method (creating random, independent creatures and picking the best one)
         # is generating a great match with 100,000 creatures and squared error calculations!!!
-        creatures = [evogression.EvogressionCreature('y', full_parameter_example={'x': None, 'y': None}, layers=3) for _ in range(100000)]
+        # creatures = [evogression.EvogressionCreature('y', full_parameter_example={'x': None, 'y': None}, layers=3) for _ in range(100000)]
+        creatures = easy_multip.map(get_3_layer_2d_evogressioncreature, range(100000))
 
         best_error = -1
         best_creature = None
@@ -38,7 +40,11 @@ class TestParabolaRegression(unittest.TestCase):
         print('\n'*2)
 
         plt.scatter([d['x'] for d in parabola_data], [d['y'] for d in parabola_data])
-        plt.scatter(calculation_x_values, calculated_y_values)
+        plt.plot(calculation_x_values, calculated_y_values, 'g--')
+
+        plt.xlabel('x')
+        plt.ylabel('y')
+        plt.title('Parabola Regression - Brute Force Test')
         plt.show()
 
 
@@ -53,19 +59,29 @@ class TestParabolaRegression(unittest.TestCase):
         except:
             best_creature = evolution.return_best_creature()
 
+        calculation_x_values = [i for i in range(-20, 21)]
         calculated_y_values = []
-        for d in parabola_data:
+        for x in calculation_x_values:
             try:
-                standardized_dict = standardizer.convert_parameter_dict_to_standardized(d)
+                standardized_dict = standardizer.convert_parameter_dict_to_standardized({'x': x})
                 standardized_value = best_creature.calc_target(standardized_dict)
                 calculated_y_values.append(standardizer.unstandardize_value('y', standardized_value))
             except:
-                value = best_creature.calc_target(d)
+                value = best_creature.calc_target({'x'})
                 calculated_y_values.append(value)
 
         plt.scatter([d['x'] for d in parabola_data], [d['y'] for d in parabola_data])
-        plt.scatter([d['x'] for d in parabola_data], calculated_y_values)
+        plt.plot(calculation_x_values, calculated_y_values, 'g--')
+
+        plt.xlabel('x')
+        plt.ylabel('y')
+        plt.title('Parabola Regression - Evolution Test')
         plt.show()
+
+
+def get_3_layer_2d_evogressioncreature(iteration):
+    '''iteration arg is not used; simply accept given arg'''
+    return evogression.EvogressionCreature('y', full_parameter_example={'x': None, 'y': None}, layers=3)
 
 
 

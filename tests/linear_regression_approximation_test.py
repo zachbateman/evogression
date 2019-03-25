@@ -27,7 +27,8 @@ class TestLinearRegression(unittest.TestCase):
                 best_creature = creature
                 print(f'New best creature found!  Index: {cr_index}')
         # now have "best_creature"
-        calculated_y_values = [best_creature.calc_target({'x': d['x']}) for d in linear_data]
+        calculation_x_values = [i / 2 for i in range(6, 25)]
+        calculated_y_values = [best_creature.calc_target({'x': x}) for x in calculation_x_values]
 
         print('\nBest creature found!')
         print(f'  linear regression error^2: 50.8')
@@ -38,7 +39,11 @@ class TestLinearRegression(unittest.TestCase):
         print('\n'*2)
 
         plt.scatter([d['x'] for d in linear_data], [d['y'] for d in linear_data])
-        plt.scatter([d['x'] for d in linear_data], calculated_y_values)
+        plt.plot(calculation_x_values, calculated_y_values, 'g--')
+
+        plt.xlabel('x')
+        plt.ylabel('y')
+        plt.title('Linear Regression - Brute Force Single Layer Test')
         plt.show()
 
 
@@ -73,7 +78,11 @@ class TestLinearRegressionLayers(unittest.TestCase):
         print('\n'*2)
 
         plt.scatter([d['x'] for d in linear_data], [d['y'] for d in linear_data])
-        plt.scatter(calculation_x_values, calculated_y_values)
+        plt.plot(calculation_x_values, calculated_y_values, 'g--')
+
+        plt.xlabel('x')
+        plt.ylabel('y')
+        plt.title('Linear Regression - Brute Force Multiple Layers Test')
         plt.show()
 
 
