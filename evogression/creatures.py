@@ -82,7 +82,6 @@ class EvogressionCreature():
             X = 1 if random.random() < 0.4 else random.choice([-2] * 1 + [-1] * 5 + [0] * 3 + [2] * 5 + [3] * 1)
         return C, B, Z, X
 
-
     def simplify_modifiers(self, modifiers: dict={}) -> dict:
         '''Method looks at the mathematics of self.modifiers and simplifies if possible'''
         if modifiers == {}:
@@ -137,8 +136,6 @@ class EvogressionCreature():
 
         return new_modifiers
 
-
-
     def calc_target(self, parameters: dict) -> float:
         '''Apply the creature's modifiers to the parameters to calculate an attempt at target'''
         T = None  # has to be None on first layer
@@ -150,32 +147,31 @@ class EvogressionCreature():
     def _calc_single_layer_target(self, parameters: dict, layer: int, previous_T=None) -> float:
         '''Apply creature's modifiers to parameters of ONE LAYER to calculate or help calculate target'''
         T = 0
-        layer_name = f'LAYER_{layer}'
+        layer_modifiers = self.modifiers[f'LAYER_{layer}']
         for param, value in parameters.items():
-            if layer_name not in self.modifiers:
-                print()
-                print(layer_name)
-                pp(self.modifiers)
-            if param in self.modifiers[layer_name]:
-                mods = self.modifiers[layer_name][param]
-                try:
-                    T += mods['C'] * (mods['B'] * value + mods['Z']) ** mods['X']
-                except ZeroDivisionError:
-                    pass
-                except OverflowError:
-                    return 10 ** 150  # really big number should make this creature die if crazy bad calculations (overflow)
-
-        if previous_T and 'T' in self.modifiers[layer_name]:
-            mods = self.modifiers[layer_name]['T']
             try:
+                mods = layer_modifiers[param]
+                T += mods['C'] * (mods['B'] * value + mods['Z']) ** mods['X']
+            except KeyError:  # if param is not in self.modifiers[layer_name]
+                pass
+            except ZeroDivisionError:  # could occur if exponent is negative
+                pass
+            except OverflowError:
+                return 10 ** 150  # really big number should make this creature die if crazy bad calculations (overflow)
+
+        if previous_T:
+            try:
+                mods = layer_modifiers['T']
                 T += mods['C'] * (mods['B'] * previous_T + mods['Z']) ** mods['X']
-            except ZeroDivisionError:
+            except KeyError:  # if 'T' is somehow not in self.modifiers[layer_name] (likely due to mating mutation?)
+                pass
+            except ZeroDivisionError:  # could occur if exponent is negative
                 pass
             except OverflowError:
                 return 10 ** 150  # really big number should make this creature die if crazy bad calculations (overflow)
 
         try:
-            T += self.modifiers[layer_name]['N']
+            T += layer_modifiers['N']
         except KeyError:
             pass
 
