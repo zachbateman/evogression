@@ -13,11 +13,11 @@ Evogression is Python package providing an evolutionary algorithm to develop a r
 
   - Brute force generation of creatures successfully models linear and parabolic 2D data.
 
-<img src="tests/images/linear_regression_single_layer_brute_force_test.png">
+<img src="tests/images/linear_regression_single_layer_brute_force_test.png" width="550px">
 
   - Evolution algorithm successfully models linear and parabolic 2D data.  Additional dimensions of input data are still to be tested.
 
-<img src="tests/images/parabola_regression_evolution_test.png">
+<img src="tests/images/parabola_regression_evolution_test.png" width="550px">
 
 
 
