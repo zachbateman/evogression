@@ -1,4 +1,5 @@
 import unittest
+import cProfile
 import sys
 sys.path.insert(1, '..')
 import evogression
@@ -86,4 +87,8 @@ def get_3_layer_2d_evogressioncreature(iteration):
 
 
 if __name__ == '__main__':
-    unittest.main()
+    # have to do the below magic to make cProfile work with unittest
+    suite = unittest.TestLoader().discover('.')
+    def run_tests():
+        unittest.TextTestRunner().run(suite)
+    cProfile.run('unittest.main()', 'parabola_test.profile')
