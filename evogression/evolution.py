@@ -22,7 +22,8 @@ class CreatureEvolution():
                          add_random_creatures_each_cycle: bool=True,
                          num_cycles: int=0,
                          force_num_layers: int=0,
-                         standardize: bool=True) -> None:
+                         standardize: bool=True,
+                         use_multip: bool=True) -> None:
 
         self.target_parameter = target_parameter
         self.standardize = standardize
@@ -46,6 +47,7 @@ class CreatureEvolution():
         self.add_random_creatures_each_cycle = add_random_creatures_each_cycle
         self.num_cycles = num_cycles
         self.force_num_layers = force_num_layers
+        self.use_multip = use_multip
 
         self.creatures = [EvogressionCreature(target_parameter, full_parameter_example=self.all_data[0], hunger=80 * random.random() + 10, layers=self.force_num_layers) for _ in range(int(round(1.1 * target_num_creatures, 0)))]
         self.current_generation = 1
@@ -68,21 +70,22 @@ class CreatureEvolution():
             print(f'Cycle - {counter} -')
             print(f'Current Phase: {feast_or_famine}')
 
-            if self.standardize:
-                result_data =  find_best_creature(self.creatures, self.target_parameter, self.standardized_training_data, standardizer=self.standardizer)
+            if self.use_multip:
+                if self.standardize:
+                    result_data =  find_best_creature_multip(self.creatures, self.target_parameter, self.standardized_training_data, standardizer=self.standardizer)
+                else:
+                    result_data =  find_best_creature_multip(self.creatures, self.target_parameter, self.training_data)
+                best_creature_lists = [result_data[3 * i: 3 * (i + 1)] for i in range(int(len(result_data) / 3))]
+                # best_creature_lists is list with items of form [best_creature, error, avg_error]
+                error = -1
+                best_creature = None
+                for index, bc_list in enumerate(best_creature_lists):
+                    if bc_list[1] < error or error < 0:
+                        error = bc_list[1]
+                        best_creature = bc_list[0]
+                median_error = sum(bc_list[2] for bc_list in best_creature_lists) / len(best_creature_lists)  # mean of medians of big chunks...
             else:
-                result_data =  find_best_creature(self.creatures, self.target_parameter, self.training_data)
-            best_creature_lists = [result_data[3 * i: 3 * (i + 1)] for i in range(int(len(result_data) / 3))]
-            # best_creature_lists is list with items of form [best_creature, error, avg_error]
-            error = -1
-            best_creature = None
-            for index, bc_list in enumerate(best_creature_lists):
-                if bc_list[1] < error or error < 0:
-                    error = bc_list[1]
-                    best_creature = bc_list[0]
-            median_error = sum(bc_list[2] for bc_list in best_creature_lists) / len(best_creature_lists)  # mean of medians of big chunks...
-
-            # best_creature, error, median_error = find_best_creature(self.creatures, self.target_parameter, self.standardized_training_data)
+                best_creature, error, median_error = find_best_creature(self.creatures, self.target_parameter, self.standardized_training_data)
 
             self.best_creatures.append([copy.deepcopy(best_creature), error])
             print(f'Total number of creatures:  {len(self.creatures)}')
@@ -227,7 +230,7 @@ def calc_error_value(creature, target_parameter: str, data_point: dict, standard
 
 
 
-def _find_best_creature(creatures: list, target_parameter: str, data: list, standardizer=None) -> tuple:
+def find_best_creature(creatures: list, target_parameter: str, data: list, standardizer=None) -> tuple:
     best_error = -1  # to start loop
     errors = []
     best_creature = None
@@ -242,4 +245,4 @@ def _find_best_creature(creatures: list, target_parameter: str, data: list, stan
         errors.append(error)
     avg_error = sorted(errors)[len(errors)// 2]
     return [best_creature, best_error, avg_error]
-find_best_creature = easy_multip.decorators.use_multip(_find_best_creature)
+find_best_creature_multip = easy_multip.decorators.use_multip(find_best_creature)
