@@ -103,12 +103,12 @@ class CreatureEvolution():
             for creature_list in self.best_creatures:
                 if creature_list[1] < best_error or best_error < 0:
                     best_error = creature_list[1]
-                    best_creature = creature_list[0]
+                    self.best_creature = creature_list[0]
                     new_best_creature = True
 
             # sprinkle in additional best_creatures to enhance this behavior
             # also add in 3 of their offspring (mutated but close to latest best_creature)
-            additional_best_creatures = [copy.deepcopy(best_creature) for _ in range(int(round(0.005 * self.target_num_creatures, 0)))]
+            additional_best_creatures = [copy.deepcopy(self.best_creature) for _ in range(int(round(0.005 * self.target_num_creatures, 0)))]
             additional_best_creatures.extend([additional_best_creatures[0] + additional_best_creatures[1] for _ in range(int(round(0.005 * self.target_num_creatures, 0)))])
             additional_best_creatures = [cr for cr in additional_best_creatures if cr is not None]  # due to chance of not mating
             for cr in additional_best_creatures:
@@ -118,7 +118,7 @@ class CreatureEvolution():
             if counter == 1 or new_best_creature: #self.best_creatures[-1][0].modifiers != self.best_creatures[-2][0].modifiers:
                 print('\n' * 3)
                 print(f'NEW BEST CREATURE AFTER {counter} ITERATIONS...')
-                print(best_creature)
+                print(self.best_creature)
                 print(f'Total Error: ' + '{0:.2E}'.format(error))
                 new_best_creature = False
 
@@ -213,6 +213,12 @@ class CreatureEvolution():
             except IndexError:
                 pass
         self.creatures.extend(new_creatures)
+
+    def output_best_regression_function_as_module(self, output_filename='regression_function.py'):
+        if self.standardize:
+            self.best_creature.output_python_regression_module(output_filename=output_filename, standardizer=self.standardizer)
+        else:
+            self.best_creature.output_python_regression_module(output_filename=output_filename)
 
 
 def calc_error_value(creature, target_parameter: str, data_point: dict, standardizer=None) -> float:
