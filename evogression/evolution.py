@@ -56,7 +56,9 @@ class CreatureEvolution():
         self.famine_group_size = 50
 
         self.best_creatures = []
-        self.evolve_creatures()
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            self.evolve_creatures()
 
 
     def evolve_creatures(self):
@@ -221,9 +223,7 @@ def calc_error_value(creature, target_parameter: str, data_point: dict, standard
         target_calc = standardizer.unstandardize_value(target_parameter, target_calc)
         data_point_calc = standardizer.unstandardize_value(target_parameter, data_point_calc)
     try:
-        with warnings.catch_warnings():
-            warnings.simplefilter('ignore')
-            error = abs(target_calc - data_point_calc) ** 2.0  # sometimes generates "RuntimeWarning: overflow encountered in double_scalars"
+        error = abs(target_calc - data_point_calc) ** 2.0  # sometimes generates "RuntimeWarning: overflow encountered in double_scalars"
     except OverflowError:  # if error is too big to store, give huge arbitrary error
         error = 10 ** 150
     return error

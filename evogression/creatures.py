@@ -134,18 +134,15 @@ class EvogressionCreature():
             pp(old_modifiers)
             pp(new_modifiers)
 
-
         return new_modifiers
 
     def calc_target(self, parameters: dict) -> float:
         '''Apply the creature's modifiers to the parameters to calculate an attempt at target'''
-        with warnings.catch_warnings():
-            warnings.simplefilter('ignore')
-            T = None  # has to be None on first layer
-            # for layer in range(1, self.layers + 1):  # NOT SURE WHY SOMETIMES self.layers != len(self.modifiers)!!!
-            for layer in range(1, len(self.modifiers) + 1):
-                T = self._calc_single_layer_target(parameters, layer, previous_T=T)
-            return T
+        T = None  # has to be None on first layer
+        # for layer in range(1, self.layers + 1):  # NOT SURE WHY SOMETIMES self.layers != len(self.modifiers)!!!
+        for layer in range(1, len(self.modifiers) + 1):
+            T = self._calc_single_layer_target(parameters, layer, previous_T=T)
+        return T
 
     def _calc_single_layer_target(self, parameters: dict, layer: int, previous_T=None) -> float:
         '''Apply creature's modifiers to parameters of ONE LAYER to calculate or help calculate target'''
