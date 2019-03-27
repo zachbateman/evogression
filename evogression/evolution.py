@@ -79,10 +79,9 @@ class CreatureEvolution():
                     result_data =  find_best_creature_multip(self.creatures, self.target_parameter, self.training_data)
                 best_creature_lists = [result_data[3 * i: 3 * (i + 1)] for i in range(int(len(result_data) / 3))]
                 # best_creature_lists is list with items of form [best_creature, error, avg_error]
-                error = -1
-                best_creature = None
+                error, best_creature = None, None
                 for index, bc_list in enumerate(best_creature_lists):
-                    if bc_list[1] < error or error < 0:
+                    if error is None or bc_list[1] < error:
                         error = bc_list[1]
                         best_creature = bc_list[0]
                 median_error = sum(bc_list[2] for bc_list in best_creature_lists) / len(best_creature_lists)  # mean of medians of big chunks...
@@ -97,8 +96,7 @@ class CreatureEvolution():
             print(f'  Generation: {best_creature.generation}    Error: ' + '{0:.2E}'.format(error))
 
             bc_error = sum(calc_error_value(best_creature, self.target_parameter, data_point, self.standardizer) for data_point in self.testing_data) / len(self.testing_data)
-            print('  Testing Data Error:     ' + '{0:.2E}'.format(bc_error))
-            print()
+            print('  Testing Data Error:     ' + '{0:.2E}'.format(bc_error) + '\n')
 
             for creature_list in self.best_creatures:
                 if creature_list[1] < best_error or best_error < 0:
@@ -152,12 +150,10 @@ class CreatureEvolution():
             creature_group = self.creatures[group_size * i:group_size * (i + 1)]
             for food_data in [random.choice(all_food_data) for _ in range(30)]:
 
-                best_error = None
-                best_creature = None
-                error = 0
+                best_error, best_creature = None, None
                 for creature in creature_group:
-                    error += calc_error_value(creature, self.target_parameter, food_data, self.standardizer)
-                    if best_error is None or error < best_error:
+                    error = calc_error_value(creature, self.target_parameter, food_data, self.standardizer)
+                    if  best_error is None or error < best_error:
                         best_error = error
                         best_creature = creature
                 best_creature.hunger += 1
