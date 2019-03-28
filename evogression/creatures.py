@@ -149,27 +149,22 @@ class EvogressionCreature():
         '''
         T = 0
         layer_modifiers = self.modifiers[f'LAYER_{layer}']
-        for param, value in parameters.items():
+
+        def param_value_component(layer_modifiers: dict, param: str, value: float) -> float:
             try:
                 mods = layer_modifiers[param]
-                T += mods['C'] * (mods['B'] * value + mods['Z']) ** mods['X']
+                return mods['C'] * (mods['B'] * value + mods['Z']) ** mods['X']
             except KeyError:  # if param is not in self.modifiers[layer_name]
-                pass
+                return 0
             except ZeroDivisionError:  # could occur if exponent is negative
-                pass
+                return 0
             except OverflowError:
                 return 10 ** 150  # really big number should make this creature die if crazy bad calculations (overflow)
 
+        for param, value in parameters.items():
+            T += param_value_component(layer_modifiers, param, value)
         if previous_T:
-            try:
-                mods = layer_modifiers['T']
-                T += mods['C'] * (mods['B'] * previous_T + mods['Z']) ** mods['X']
-            except KeyError:  # if 'T' is somehow not in self.modifiers[layer_name] (likely due to mating mutation?)
-                pass
-            except ZeroDivisionError:  # could occur if exponent is negative
-                pass
-            except OverflowError:
-                return 10 ** 150  # really big number should make this creature die if crazy bad calculations (overflow)
+            T += param_value_component(layer_modifiers, 'T', previous_T)
 
         try:
             T += layer_modifiers['N']
