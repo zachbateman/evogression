@@ -7,7 +7,6 @@ import random
 import tqdm
 import numpy
 import warnings
-from pprint import pprint as pp
 import easy_multip
 from .creatures import EvogressionCreature
 from .standardize import Standardizer
@@ -74,9 +73,9 @@ class CreatureEvolution():
 
             if self.use_multip:
                 if self.standardize:
-                    result_data =  find_best_creature_multip(self.creatures, self.target_parameter, self.standardized_training_data, standardizer=self.standardizer)
+                    result_data = find_best_creature_multip(self.creatures, self.target_parameter, self.standardized_training_data, standardizer=self.standardizer)
                 else:
-                    result_data =  find_best_creature_multip(self.creatures, self.target_parameter, self.training_data)
+                    result_data = find_best_creature_multip(self.creatures, self.target_parameter, self.training_data)
                 best_creature_lists = [result_data[3 * i: 3 * (i + 1)] for i in range(int(len(result_data) / 3))]
                 # best_creature_lists is list with items of form [best_creature, error, avg_error]
                 error, best_creature = None, None
@@ -113,9 +112,8 @@ class CreatureEvolution():
                 cr.hunger = 100
             self.creatures.extend(additional_best_creatures)  # sprinkle in additional best_creatures to enhance this behaviour
 
-            if counter == 1 or new_best_creature: #self.best_creatures[-1][0].modifiers != self.best_creatures[-2][0].modifiers:
-                print('\n' * 3)
-                print(f'NEW BEST CREATURE AFTER {counter} ITERATIONS...')
+            if counter == 1 or new_best_creature:  # self.best_creatures[-1][0].modifiers != self.best_creatures[-2][0].modifiers:
+                print(f'\n\n\nNEW BEST CREATURE AFTER {counter} ITERATIONS...')
                 print(self.best_creature)
                 print(f'Total Error: ' + '{0:.2E}'.format(error))
                 new_best_creature = False
@@ -149,13 +147,11 @@ class CreatureEvolution():
         for i in range(0, len(self.creatures) // group_size):
             creature_group = self.creatures[group_size * i:group_size * (i + 1)]
             for food_data in [random.choice(all_food_data) for _ in range(30)]:
-
                 best_error, best_creature = None, None
                 for creature in creature_group:
                     error = calc_error_value(creature, self.target_parameter, food_data, self.standardizer)
-                    if  best_error is None or error < best_error:
-                        best_error = error
-                        best_creature = creature
+                    if best_error is None or error < best_error:
+                        best_error, best_creature = error, creature
                 best_creature.hunger += 1
 
         self.run_metabolism_creatures()
@@ -184,7 +180,7 @@ class CreatureEvolution():
         return sum(c.hunger for c in self.creatures) / len(self.creatures)
 
     def return_best_creature(self):
-        '''Return current best creature and standardizer'''
+        '''Return current best creature and standardizer if used'''
         error = -1
         for creature_list in self.best_creatures:
             if creature_list[1] < error or error < 0:
@@ -245,6 +241,6 @@ def find_best_creature(creatures: list, target_parameter: str, data: list, stand
             best_error = error
             best_creature = creature
         errors.append(error)
-    avg_error = sorted(errors)[len(errors)// 2]
+    avg_error = sorted(errors)[len(errors) // 2]
     return [best_creature, best_error, avg_error]
 find_best_creature_multip = easy_multip.decorators.use_multip(find_best_creature)

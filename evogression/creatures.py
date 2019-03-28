@@ -3,7 +3,6 @@ Module containing "creatures" that each represent a potential regression equatio
 '''
 import random
 import copy
-import warnings
 from pprint import pprint as pp
 
 
@@ -52,7 +51,7 @@ class EvogressionCreature():
         if self.layers == 0:
             self.layers = random.choice(layer_probabilities)
 
-        modifiers = {}
+        modifiers: dict = {}
         for layer in range(1, self.layers + 1):
             modifiers[f'LAYER_{layer}'] = {}
             modifiers[f'LAYER_{layer}']['N'] = 0 if random.random() < 0.2 else random.gauss(0, 3 * self.mutability)
@@ -92,7 +91,7 @@ class EvogressionCreature():
             old_modifiers = modifiers
             new_modifiers = copy.deepcopy(modifiers)
 
-        new_base_layer = False  # will be converted to the new LAYER_1 if any layers are deleted
+        new_base_layer = 0  # will be converted to the new LAYER_1 if any layers are deleted
         for layer, layer_dict in old_modifiers.items():
             current_layer_num = int(layer[-1])
             for param, param_dict in layer_dict.items():
@@ -113,7 +112,7 @@ class EvogressionCreature():
                     new_base_layer = current_layer_num
 
         # remove unused first layer(s)
-        if new_base_layer:
+        if new_base_layer > 0:
             # RESET THIS CREATURE'S LAYERS!!!
             self.layers = len(new_modifiers) - new_base_layer + 1
 
