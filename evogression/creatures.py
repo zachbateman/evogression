@@ -242,6 +242,20 @@ class EvogressionCreature():
             pos_params.extend(sorted(key for key in full_param_example if key != target_parameter))
             return pos_params
 
+        def create_new_coefficients(new_modifiers: dict, modifier_list: list, layer_name: str, coefficients) -> None:
+            '''Modifies new_modifiers in place'''
+            new_modifiers[layer_name][param] = {}
+            for coef in coefficients:
+                new_coef = sum(mods[layer_name][param][coef] for mods in modifier_list) / len(modifier_list)
+                if coef == 'X':
+                    new_coef = round(new_coef * mutate_multiplier(new_mutability), 0)
+                    if self.no_negative_exponents and new_coef < 0:
+                        new_coef = 0
+                else:
+                    new_coef *= mutate_multiplier(new_mutability)
+                new_modifiers[layer_name][param][coef] = new_coef
+
+
         possible_parameters = get_possible_parameters(self.full_parameter_example, self.target_parameter)
         # possible_parameters = ['N', 'T'].extend(sorted([key for key in self.full_parameter_example if key != self.target_parameter]))
         # breakpoint()
@@ -274,65 +288,26 @@ class EvogressionCreature():
                         new_modifiers[layer_name]['N'] = new_N
 
                 else:  # param is one of ['T', 'B', 'C', 'X', 'Z']
-                    if not (param == 'T' and layer == 1):
-                        if layer_name in self.modifiers and layer_name in other.modifiers:
+                    force_keep_param = False if param != 'T' or layer == 1 else True
+                    if layer_name in self.modifiers and layer_name in other.modifiers:
+                        if param != 'T' or layer > 1:
                             if param in self.modifiers[layer_name] and param in other.modifiers[layer_name]:
-                                new_modifiers[layer_name][param] = {}
-                                for coef in coefficients:
-                                    new_coef = (self.modifiers[layer_name][param][coef] + other.modifiers[layer_name][param][coef]) / 2
-                                    if coef == 'X':
-                                        new_coef = round(new_coef * mutate_multiplier(new_mutability), 0)
-                                        if self.no_negative_exponents and new_coef < 0:
-                                            new_coef = 0
-                                    else:
-                                        new_coef *= mutate_multiplier(new_mutability)
-                                    new_modifiers[layer_name][param][coef] = new_coef
-                            elif param in self.modifiers[layer_name] and random.random() < 0.5:
-                                new_modifiers[layer_name][param] = {}
-                                for coef in coefficients:
-                                    new_coef = self.modifiers[layer_name][param][coef]
-                                    if coef == 'X':
-                                        new_coef = round(new_coef * mutate_multiplier(new_mutability), 0)
-                                        if self.no_negative_exponents and new_coef < 0:
-                                            new_coef = 0
-                                    else:
-                                        new_coef *= mutate_multiplier(new_mutability)
-                                    new_modifiers[layer_name][param][coef] = new_coef
-                            elif param in other.modifiers[layer_name] and random.random() < 0.5:
-                                new_modifiers[layer_name][param] = {}
-                                for coef in coefficients:
-                                    new_coef = other.modifiers[layer_name][param][coef]
-                                    if coef == 'X':
-                                        new_coef = round(new_coef * mutate_multiplier(new_mutability), 0)
-                                        if self.no_negative_exponents and new_coef < 0:
-                                            new_coef = 0
-                                    else:
-                                        new_coef *= mutate_multiplier(new_mutability)
-                                    new_modifiers[layer_name][param][coef] = new_coef
-                        elif layer_name in self.modifiers:
-                            if param in self.modifiers[layer_name] and random.random() < 0.5:
-                                new_modifiers[layer_name][param] = {}
-                                for coef in coefficients:
-                                    new_coef = self.modifiers[layer_name][param][coef]
-                                    if coef == 'X':
-                                        new_coef = round(new_coef * mutate_multiplier(new_mutability), 0)
-                                        if self.no_negative_exponents and new_coef < 0:
-                                            new_coef = 0
-                                    else:
-                                        new_coef *= mutate_multiplier(new_mutability)
-                                    new_modifiers[layer_name][param][coef] = new_coef
-                        elif layer_name in other.modifiers:
-                            if param in other.modifiers[layer_name] and random.random() < 0.5:
-                                new_modifiers[layer_name][param] = {}
-                                for coef in coefficients:
-                                    new_coef = other.modifiers[layer_name][param][coef]
-                                    if coef == 'X':
-                                        new_coef = round(new_coef * mutate_multiplier(new_mutability), 0)
-                                        if self.no_negative_exponents and new_coef < 0:
-                                            new_coef = 0
-                                    else:
-                                        new_coef *= mutate_multiplier(new_mutability)
-                                    new_modifiers[layer_name][param][coef] = new_coef
+                                create_new_coefficients(new_modifiers, [self.modifiers, other.modifiers], layer_name, coefficients)
+
+                        elif param in self.modifiers[layer_name] and (random.random() < 0.5 or force_keep_param):
+                            create_new_coefficients(new_modifiers, [self.modifiers], layer_name, coefficients)
+
+                        elif param in other.modifiers[layer_name] and (random.random() < 0.5 or force_keep_param):
+                            create_new_coefficients(new_modifiers, [other.modifiers], layer_name, coefficients)
+
+                    elif layer_name in self.modifiers:
+                        if param in self.modifiers[layer_name] and (random.random() < 0.5 or force_keep_param):
+                            create_new_coefficients(new_modifiers, [self.modifiers], layer_name, coefficients)
+
+                    elif layer_name in other.modifiers:
+                        if param in other.modifiers[layer_name] and (random.random() < 0.5 or force_keep_param):
+                            create_new_coefficients(new_modifiers, [other.modifiers], layer_name, coefficients)
+
 
         # Chance to add or remove parameter modifiers
         remove_modifiers = []
@@ -340,11 +315,11 @@ class EvogressionCreature():
         for layer in range(1, new_layers + 1):
             layer_name = f'LAYER_{layer}'
             for param, values in new_modifiers[layer_name].items():
-                if random.random() < 0.01 * new_mutability:
+                if random.random() < 0.01 * new_mutability and param != 'T':
                     remove_modifiers.append((layer_name, param))
             for param in possible_parameters:
                 if param not in new_modifiers[layer_name]:
-                    if random.random() < 0.01 * new_mutability:
+                    if random.random() < 0.01 * new_mutability or (layer > 1 and param == 'T'):
                         add_modifiers.append((layer_name, param))
 
         for remove_tup in remove_modifiers:
