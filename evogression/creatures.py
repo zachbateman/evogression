@@ -4,6 +4,13 @@ Module containing "creatures" that each represent a potential regression equatio
 import random
 import copy
 from pprint import pprint as pp
+try:
+    from . import single_layer_calc
+    cython_available = True
+except ImportError:
+    print('\nUnable to import Cython single_layer_calc module!')
+    print('Calculations will run significantly slower...\n')
+    cython_available = False
 
 
 layer_probabilities = [1] * 2 + [2] * 4 + [3] * 5 + [4] * 3 + [5] * 2 + [6] * 1
@@ -139,13 +146,18 @@ class EvogressionCreature():
         '''Apply the creature's modifiers to the parameters to calculate an attempt at target'''
         T = None  # has to be None on first layer
         for layer in range(1, len(self.modifiers) + 1):
-            T = self._calc_single_layer_target(parameters, layer, previous_T=T)
+            if cython_available:
+                T = single_layer_calc.calc_single_layer_target_cython(parameters, self.modifiers, layer, T)
+            else:
+                T = self._calc_single_layer_target(parameters, layer, previous_T=T)
         return T
 
     def _calc_single_layer_target(self, parameters: dict, layer: int, previous_T=None) -> float:
         '''
         Apply creature's modifiers to parameters of ONE LAYER to calculate or help calculate target.
         THIS IS THE MOST EXPENSIVE PART OF EVOGRESSION!!!
+
+        This is now only BACKUP to Cython implementation! (over twice as fast)
         '''
         T = 0
         layer_modifiers = self.modifiers[f'LAYER_{layer}']
