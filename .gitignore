@@ -7,3 +7,4 @@ MANIFEST
 *.xlsx
 *.profile
 *.c
+*.pyd
