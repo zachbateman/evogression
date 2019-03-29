@@ -13,7 +13,7 @@ except ImportError:
     cython_available = False
 
 
-layer_probabilities = [1] * 2 + [2] * 4 + [3] * 5 + [4] * 3 + [5] * 2 + [6] * 1
+layer_probabilities = [1] * 5 + [2] * 3 + [3] * 2 + [4] * 1
 
 class EvogressionCreature():
 
