@@ -34,6 +34,22 @@ class TestCreatureCreation(unittest.TestCase):
         self.assertTrue(os.path.exists('test_reg_func_with_standardizer.py'))
         os.remove('test_reg_func_with_standardizer.py')
 
+    def test_creature_addition(self):
+        creatures = [evogression.EvogressionCreature('y', full_parameter_example={'x': None, 'y': None}) for _ in range(1000)]
+        new_creatures = []
+        for i in range(0, len(creatures), 2):
+            creature_group = creatures[i: i + 2]
+            try:
+                new_creature = creature_group[0] + creature_group[1]
+                if new_creature:
+                    new_creatures.append(new_creature)
+            except IndexError:
+                pass
+        creatures.extend(new_creatures)
+        for cr in creatures:
+            for i in range(1, len(cr.modifiers) + 1):
+                if i > 1:
+                    self.assertTrue('T' in cr.modifiers[f'LAYER_{i}'])
 
 
 if __name__ == '__main__':
