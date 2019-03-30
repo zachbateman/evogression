@@ -17,7 +17,6 @@ layer_probabilities = [1] * 5 + [2] * 3 + [3] * 2 + [4] * 1
 
 class EvogressionCreature():
 
-    __slots__ = ['hunger', 'layers', 'generation', 'mutability', 'no_negative_exponents', 'target_parameter', 'full_parameter_example', 'modifiers']
     def __init__(self,
                        target_parameter: str,
                        layers: int=0,
@@ -27,11 +26,11 @@ class EvogressionCreature():
                        full_parameter_example: dict={},
                        no_negative_exponents: bool=True,
                        modifiers: dict={}) -> None:
-
-        # hunger decreases over time proportional to this creature's regression complexity
-        # successfully "eating" a sample will increase self.hunger
-        # creature dies when self.hunger == 0
-        self.hunger = hunger
+        '''
+        Create creature representing a regression function with terms of form: C * (B * value + Z) ** X
+        The regression function can also have multiple layers of these terms.
+        '''
+        self.hunger = hunger  # creature dies when self.hunger == 0
         self.layers = layers
         self.generation = generation
         self.mutability = 0.1 * (random.random() + 0.5) if mutability == 0 else mutability
@@ -39,12 +38,6 @@ class EvogressionCreature():
         self.no_negative_exponents = no_negative_exponents
         self.target_parameter = target_parameter
         self.full_parameter_example = full_parameter_example
-
-        # for any given input, want to modify/evolve as following:
-        # inputs = {'a': 5.7, 'b': 3.2, 'c': 4.3}
-        # target = 17.9
-        # C_1 * (B_1 * a + Z_1) ** X_1 + C_2 * (B_2 * b + Z_2) ** X_2 + ...  + N_1 = T_1
-        # T_1 = target (17.9) in single layer, else, feed T_1 as additional arg into next layer, etc.
 
         if modifiers == {}:
             if full_parameter_example == {}:
@@ -55,7 +48,6 @@ class EvogressionCreature():
 
 
     def create_initial_modifiers(self) -> dict:
-        # creates initial modifiers used with each given parameter
         if self.layers == 0:
             self.layers = random.choice(layer_probabilities)
 
@@ -84,6 +76,10 @@ class EvogressionCreature():
         C = 1 if random.random() < 0.4 else random.gauss(1, self.mutability)
         B = 1 if random.random() < 0.3 else random.gauss(1, 2 * self.mutability)
         Z = 0 if random.random() < 0.4 else random.gauss(0, 3 * self.mutability)
+        if random.random() < 0.5:
+            C = -C
+        if random.random() < 0.5:
+            B = -B
         if self.no_negative_exponents:
             X = 1 if random.random() < 0.4 else random.choice([0] * 1 + [2] * 5 + [3] * 2)
         else:
@@ -121,8 +117,7 @@ class EvogressionCreature():
 
         # remove unused first layer(s)
         if new_base_layer > 0:
-            # RESET THIS CREATURE'S LAYERS!!!
-            self.layers = len(new_modifiers) - new_base_layer + 1
+            self.layers = len(new_modifiers) - new_base_layer + 1  # RESET THIS CREATURE'S LAYERS!!!
 
             for i in range(1, new_base_layer):
                 del new_modifiers[f'LAYER_{i}']
@@ -190,7 +185,7 @@ class EvogressionCreature():
     def complexity_cost(self):
         '''
         Calculate an int to reduce hunger by based on the complexity of this creature.
-        The idea is to penalize more complex models and thereby create a tendancy
+        The idea is to penalize more complex models and thereby create a tendency
         to develop a simpler model.
         '''
         cost = 10
@@ -258,8 +253,6 @@ class EvogressionCreature():
 
 
         possible_parameters = get_possible_parameters(self.full_parameter_example, self.target_parameter)
-        # possible_parameters = ['N', 'T'].extend(sorted([key for key in self.full_parameter_example if key != self.target_parameter]))
-        # breakpoint()
         coefficients = ['C', 'B', 'Z', 'X']
         new_modifiers = {f'LAYER_{layer}': {'N': 0} for layer in range(1, new_layers + 1)}
         for layer in range(1, new_layers + 1):
@@ -360,14 +353,12 @@ class EvogressionCreature():
     def get_regression_func(self):
         return self.simplify_modifiers(self.modifiers)
 
-
     def output_python_regression_module(self, output_filename: str='regression_function.py', standardizer=None):
         '''Create a Python module/file with a regression function represented by this EvogressionCreature'''
         output_str = self.output_regression_func_as_python_module_string(standardizer=standardizer)
         with open(output_filename, 'w') as f:
             f.write(output_str)
         print(f'EvogressionCreature modifiers outputted as regression function Python module!')
-
 
     def output_regression_func_as_python_module_string(self, standardizer=None) -> str:
         '''Create a string which creates a Python module with callable regression function.'''
