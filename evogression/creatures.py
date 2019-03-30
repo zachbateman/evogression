@@ -17,6 +17,7 @@ layer_probabilities = [1] * 5 + [2] * 3 + [3] * 2 + [4] * 1
 
 class EvogressionCreature():
 
+    __slots__ = ['hunger', 'layers', 'generation', 'mutability', 'no_negative_exponents', 'target_parameter', 'full_parameter_example', 'modifiers']
     def __init__(self,
                        target_parameter: str,
                        layers: int=0,
