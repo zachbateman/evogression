@@ -48,7 +48,12 @@ class CreatureEvolution():
         self.force_num_layers = force_num_layers
         self.use_multip = use_multip
 
-        self.creatures = [EvogressionCreature(target_parameter, full_parameter_example=self.all_data[0], hunger=80 * random.random() + 10, layers=self.force_num_layers) for _ in range(int(round(1.1 * target_num_creatures, 0)))]
+        if use_multip:
+            arg_tup = (target_parameter, self.all_data[0], force_num_layers)
+            self.creatures = easy_multip.map(generate_initial_creature, [arg_tup for _ in range(int(round(1.1 * target_num_creatures, 0)))])
+        else:
+            self.creatures = [EvogressionCreature(target_parameter, full_parameter_example=self.all_data[0], hunger=80 * random.random() + 10, layers=self.force_num_layers) for _ in range(int(round(1.1 * target_num_creatures, 0)))]
+
         self.current_generation = 1
 
         self.feast_group_size = 2
@@ -211,6 +216,11 @@ class CreatureEvolution():
             self.best_creature.output_python_regression_module(output_filename=output_filename, standardizer=self.standardizer)
         else:
             self.best_creature.output_python_regression_module(output_filename=output_filename)
+
+
+def generate_initial_creature(arg_tup):
+    target_param, full_param_example, layers = arg_tup
+    return EvogressionCreature(target_param, full_parameter_example=full_param_example, hunger=80 * random.random() + 10, layers=layers)
 
 
 def calc_error_value(creature, target_parameter: str, data_point: dict, standardizer=None) -> float:
