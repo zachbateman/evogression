@@ -183,9 +183,7 @@ class CreatureEvolution():
 
     def kill_weak_creatures(self):
         '''Remove all creatures whose hunger has dropped to 0 or below'''
-        for index, creature in enumerate(self.creatures):
-            if creature.hunger <= 0:
-                del self.creatures[index]
+        self.creatures = [creature for creature in self.creatures if creature.hunger > 0]
 
     @property
     def average_creature_hunger(self):
