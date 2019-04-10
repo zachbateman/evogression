@@ -147,14 +147,28 @@ class CreatureEvolution():
 
     def evolution_cycle(self, feast_or_famine: str):
 
+        self.feed_creatures(feast_or_famine)
+        self.run_metabolism_creatures()
+        self.kill_weak_creatures()
+
+        # Option to add random new creatures each cycle (2.0% of target_num_creatures each time)
+        if self.add_random_creatures_each_cycle:
+            self.creatures.extend([EvogressionCreature(self.target_parameter, full_parameter_example=self.all_data[0], hunger=80 * random.random() + 10, layers=self.force_num_layers) for _ in range(int(round(0.02 * self.target_num_creatures, 0)))])
+
+        self.mate_creatures()
+
+
+    def feed_creatures(self, feast_or_famine: str):
+        '''
+        "feed" groups of creatures at a once.
+        creature with closest calc_target() to target gets to "eat" the data
+        '''
         if feast_or_famine == 'feast':
             group_size = self.feast_group_size
         elif feast_or_famine == 'famine':
             group_size = self.famine_group_size
 
         random.shuffle(self.creatures)
-        # "feed" groups of creatures at a once.
-        # creature with closest calc_target() to target gets to "eat" the data
         all_food_data = self.standardized_training_data if self.standardize else self.training_data
         for i in range(0, len(self.creatures) // group_size):
             creature_group = self.creatures[group_size * i:group_size * (i + 1)]
@@ -165,15 +179,6 @@ class CreatureEvolution():
                     if best_error is None or error < best_error:
                         best_error, best_creature = error, creature
                 best_creature.hunger += 1
-
-        self.run_metabolism_creatures()
-        self.kill_weak_creatures()
-
-        # Option to add random new creatures each cycle (2.0% of target_num_creatures each time)
-        if self.add_random_creatures_each_cycle:
-            self.creatures.extend([EvogressionCreature(self.target_parameter, full_parameter_example=self.all_data[0], hunger=80 * random.random() + 10, layers=self.force_num_layers) for _ in range(int(round(0.02 * self.target_num_creatures, 0)))])
-
-        self.mate_creatures()
 
 
     def run_metabolism_creatures(self):
