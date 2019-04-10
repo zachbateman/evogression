@@ -22,7 +22,8 @@ class CreatureEvolution():
                          num_cycles: int=0,
                          force_num_layers: int=0,
                          standardize: bool=True,
-                         use_multip: bool=True) -> None:
+                         use_multip: bool=True,
+                         train_on_all_data=True) -> None:
 
         self.target_parameter = target_parameter
         self.standardize = standardize
@@ -33,8 +34,13 @@ class CreatureEvolution():
                 if numpy.isnan(val):
                     print('ERROR!  NAN values detected in all_data!')
                     print(f'Index: {i}  data: {d}')
-        self.training_data = self.all_data[:int(round(len(self.all_data) * 0.75))]
-        self.testing_data = self.all_data[int(round(len(self.all_data) * 0.75)):]
+
+        if train_on_all_data:
+            self.training_data = self.all_data
+            self.testing_data = self.all_data
+        else:
+            self.training_data = self.all_data[:int(round(len(self.all_data) * 0.75))]
+            self.testing_data = self.all_data[int(round(len(self.all_data) * 0.75)):]
 
         if self.standardize:
             self.standardizer = Standardizer(self.training_data)  # only use training data for Standardizer!! (must be blind to consider test data)
