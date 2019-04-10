@@ -250,8 +250,12 @@ def find_best_creature(creatures: list, target_parameter: str, data: list, stand
     best_creature = None
     for creature in tqdm.tqdm(creatures):
         error = 0
-        for data_point in data:
-            error += calc_error_value(creature, target_parameter, data_point, standardizer)
+        if creature.all_data_error_sum is not None:
+            error += creature.all_data_error_sum
+        else:
+            for data_point in data:  # only have to calculate for all data ONCE for each creature!
+                error += calc_error_value(creature, target_parameter, data_point, standardizer)
+            creature.all_data_error_sum = error + 0  # +0 quick and dirty way to ensure reference to different value
         error /= len(data)
         if error < best_error or best_error < 1:
             best_error = error

@@ -46,6 +46,8 @@ class EvogressionCreature():
         else:
             self.modifiers = modifiers
 
+        self.all_data_error_sum = None  # used for CACHING creature's error for all training data!
+
 
     def create_initial_modifiers(self) -> dict:
         if self.layers == 0:
