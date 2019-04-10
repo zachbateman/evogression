@@ -54,11 +54,8 @@ class CreatureEvolution():
         self.force_num_layers = force_num_layers
         self.use_multip = use_multip
 
-        if use_multip:
-            arg_tup = (target_parameter, self.all_data[0], force_num_layers)
-            self.creatures = easy_multip.map(generate_initial_creature, [arg_tup for _ in range(int(round(1.1 * target_num_creatures, 0)))])
-        else:
-            self.creatures = [EvogressionCreature(target_parameter, full_parameter_example=self.all_data[0], hunger=80 * random.random() + 10, layers=self.force_num_layers) for _ in range(int(round(1.1 * target_num_creatures, 0)))]
+        arg_tup = (target_parameter, self.all_data[0], force_num_layers)
+        self.creatures = easy_multip.map(generate_initial_creature, [arg_tup for _ in range(int(round(1.1 * target_num_creatures, 0)))])
 
         self.current_generation = 1
 
