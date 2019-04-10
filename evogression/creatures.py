@@ -46,6 +46,8 @@ class EvogressionCreature():
         else:
             self.modifiers = modifiers
 
+        self.modifier_hash = hash(repr(self.modifiers.items()))  # used for caching purposes!
+
         self.all_data_error_sum = None  # used for CACHING creature's error for all training data!
 
 
