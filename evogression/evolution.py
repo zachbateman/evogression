@@ -155,7 +155,7 @@ class CreatureEvolution():
         random.shuffle(self.creatures)
         # "feed" groups of creatures at a once.
         # creature with closest calc_target() to target gets to "eat" the data
-        all_food_data = self.training_data  # self.standardized_training_data if self.standardize else self.training_data
+        all_food_data = self.standardized_training_data if self.standardize else self.training_data
         for i in range(0, len(self.creatures) // group_size):
             creature_group = self.creatures[group_size * i:group_size * (i + 1)]
             for food_data in [random.choice(all_food_data) for _ in range(30)]:
@@ -231,7 +231,10 @@ def generate_initial_creature(arg_tup):
 
 
 def calc_error_value(creature, target_parameter: str, data_point: dict, standardizer=None) -> float:
-    '''Calculate the error between a creature's predicted value and the actual value'''
+    '''
+    Calculate the error between a creature's predicted value and the actual value.
+    data_point must ALREADY be standardized if using a standardizer!!!
+    '''
     target_calc = creature.calc_target(data_point)
     data_point_calc = data_point[target_parameter]
     if standardizer is not None:
