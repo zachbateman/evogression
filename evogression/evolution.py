@@ -79,21 +79,25 @@ class CreatureEvolution():
             print(f'Cycle - {counter} -')
             print(f'Current Phase: {feast_or_famine}')
 
+            random.shuffle(self.creatures)  # used to mix up new creatures in among multip
             if self.use_multip:
+                calculated_creatures = []
                 if self.standardize:
                     result_data = find_best_creature_multip(self.creatures, self.target_parameter, self.standardized_training_data, standardizer=self.standardizer)
                 else:
                     result_data = find_best_creature_multip(self.creatures, self.target_parameter, self.training_data)
-                best_creature_lists = [result_data[3 * i: 3 * (i + 1)] for i in range(int(len(result_data) / 3))]
+                best_creature_lists = [result_data[4 * i: 4 * (i + 1)] for i in range(int(len(result_data) / 4))]
                 # best_creature_lists is list with items of form [best_creature, error, avg_error]
                 error, best_creature = None, None
                 for index, bc_list in enumerate(best_creature_lists):
+                    calculated_creatures.extend(bc_list[3])
                     if error is None or bc_list[1] < error:
                         error = bc_list[1]
                         best_creature = bc_list[0]
                 median_error = sum(bc_list[2] for bc_list in best_creature_lists) / len(best_creature_lists)  # mean of medians of big chunks...
             else:
-                best_creature, error, median_error = find_best_creature(self.creatures, self.target_parameter, self.standardized_training_data)
+                best_creature, error, median_error, calculated_creatures = find_best_creature(self.creatures, self.target_parameter, self.standardized_training_data)
+            self.creatures = calculated_creatures
 
             self.best_creatures.append([copy.deepcopy(best_creature), error])
             print(f'Total number of creatures:  {len(self.creatures)}')
@@ -244,6 +248,7 @@ def calc_error_value(creature, target_parameter: str, data_point: dict, standard
 def find_best_creature(creatures: list, target_parameter: str, data: list, standardizer=None) -> tuple:
     best_error = -1  # to start loop
     errors = []
+    calculated_creatures: list = []
     best_creature = None
     for creature in tqdm.tqdm(creatures):
         error = 0
@@ -253,11 +258,12 @@ def find_best_creature(creatures: list, target_parameter: str, data: list, stand
             for data_point in data:  # only have to calculate for all data ONCE for each creature!
                 error += calc_error_value(creature, target_parameter, data_point, standardizer)
             creature.all_data_error_sum = error + 0  # +0 quick and dirty way to ensure reference to different value
+        calculated_creatures.append(creature)
         error /= len(data)
         if error < best_error or best_error < 1:
             best_error = error
             best_creature = creature
         errors.append(error)
     avg_error = sorted(errors)[len(errors) // 2]
-    return [best_creature, best_error, avg_error]
+    return [best_creature, best_error, avg_error, calculated_creatures]
 find_best_creature_multip = easy_multip.decorators.use_multip(find_best_creature)
