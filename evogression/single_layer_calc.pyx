@@ -21,8 +21,7 @@ cpdef calc_single_layer_target_cython(dict parameters, dict modifiers, long laye
     return T
 
 
-
-cdef param_value_component(dict layer_modifiers, str param, double value):
+cdef double param_value_component(dict layer_modifiers, str param, double value):
 
     try:
         mods = layer_modifiers[param]
@@ -33,5 +32,3 @@ cdef param_value_component(dict layer_modifiers, str param, double value):
         return 0
     except OverflowError:
         return 10 ** 150  # really big number should make this creature die if crazy bad calculations (overflow)
-
-
