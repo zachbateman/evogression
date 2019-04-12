@@ -170,15 +170,23 @@ class CreatureEvolution():
 
         random.shuffle(self.creatures)
         all_food_data = self.standardized_training_data if self.standardize else self.training_data
-        for i in range(0, len(self.creatures) // group_size):
-            creature_group = self.creatures[group_size * i:group_size * (i + 1)]
-            for food_data in [random.choice(all_food_data) for _ in range(30)]:
-                best_error, best_creature = None, None
-                for creature in creature_group:
-                    error = calc_error_value(creature, self.target_parameter, food_data, self.standardizer)
-                    if best_error is None or error < best_error:
-                        best_error, best_creature = error, creature
-                best_creature.hunger += 1
+
+        if self.use_multip:
+            creature_groups = (creature_group for creature_group in (self.creatures[group_size * i:group_size * (i + 1)] for i in range(0, len(self.creatures) // group_size)))
+            food_groups = ([random.choice(all_food_data) for _ in range(30)] for i in range(0, len(self.creatures) // group_size))
+            feeding_arg_tups = [(creature_group, food_group, self.target_parameter, self.standardizer) for creature_group, food_group in zip(creature_groups, food_groups)]
+            hunger_modified_creatures = easy_multip.map(feed_creature_groups, feeding_arg_tups)
+            self.creatures = [creature for sublist in hunger_modified_creatures for creature in sublist]
+        else:
+            for i in range(0, len(self.creatures) // group_size):
+                creature_group = self.creatures[group_size * i:group_size * (i + 1)]
+                for food_data in [random.choice(all_food_data) for _ in range(30)]:
+                    best_error, best_creature = None, None
+                    for creature in creature_group:
+                        error = calc_error_value(creature, self.target_parameter, food_data, self.standardizer)
+                        if best_error is None or error < best_error:
+                            best_error, best_creature = error, creature
+                    best_creature.hunger += 1
 
 
     def run_metabolism_creatures(self):
@@ -231,6 +239,18 @@ class CreatureEvolution():
 def generate_initial_creature(arg_tup):
     target_param, full_param_example, layers = arg_tup
     return EvogressionCreature(target_param, full_parameter_example=full_param_example, hunger=80 * random.random() + 10, layers=layers)
+
+
+def feed_creature_groups(arg_tup):
+    creature_group, food_group, target_parameter, standardizer = arg_tup
+    for food_data in food_group:
+        best_error, best_creature = 10 ** 150, None
+        for creature in creature_group:
+            error = calc_error_value(creature, target_parameter, food_data, standardizer)
+            if error < best_error:
+                best_error, best_creature = error, creature
+        best_creature.hunger += 1
+    return creature_group
 
 
 def calc_error_value(creature, target_parameter: str, data_point: dict, standardizer=None) -> float:
