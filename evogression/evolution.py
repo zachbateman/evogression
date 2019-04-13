@@ -12,6 +12,8 @@ from .creatures import EvogressionCreature
 from .standardize import Standardizer
 
 
+
+
 class CreatureEvolution():
 
     def __init__(self,
@@ -54,6 +56,8 @@ class CreatureEvolution():
         self.force_num_layers = force_num_layers
         self.use_multip = use_multip
 
+        self.all_data_error_sums: dict = {}
+
         arg_tup = (target_parameter, self.all_data[0], force_num_layers)
         self.creatures = easy_multip.map(generate_initial_creature, [arg_tup for _ in range(int(round(1.1 * target_num_creatures, 0)))])
 
@@ -83,10 +87,10 @@ class CreatureEvolution():
             if self.use_multip:
                 calculated_creatures = []
                 if self.standardize:
-                    result_data = find_best_creature_multip(self.creatures, self.target_parameter, self.standardized_training_data, standardizer=self.standardizer)
+                    result_data = find_best_creature_multip(self.creatures, self.target_parameter, self.standardized_training_data, standardizer=self.standardizer, all_data_error_sums=self.all_data_error_sums)
                 else:
-                    result_data = find_best_creature_multip(self.creatures, self.target_parameter, self.training_data)
-                best_creature_lists = [result_data[4 * i: 4 * (i + 1)] for i in range(int(len(result_data) / 4))]
+                    result_data = find_best_creature_multip(self.creatures, self.target_parameter, self.training_data, all_data_error_sums=self.all_data_error_sums)
+                best_creature_lists = [result_data[5 * i: 5 * (i + 1)] for i in range(int(len(result_data) / 5))]
                 # best_creature_lists is list with items of form [best_creature, error, avg_error]
                 error, best_creature = None, None
                 for index, bc_list in enumerate(best_creature_lists):
@@ -94,10 +98,13 @@ class CreatureEvolution():
                     if error is None or bc_list[1] < error:
                         error = bc_list[1]
                         best_creature = bc_list[0]
+                    self.all_data_error_sums = {**self.all_data_error_sums, **bc_list[4]}  # recreate all_data_error_sums cache with results including updated cache values
                 median_error = sum(bc_list[2] for bc_list in best_creature_lists) / len(best_creature_lists)  # mean of medians of big chunks...
             else:
-                best_creature, error, median_error, calculated_creatures = find_best_creature(self.creatures, self.target_parameter, self.standardized_training_data)
+                best_creature, error, median_error, calculated_creatures, all_data_error_sums = find_best_creature(self.creatures, self.target_parameter, self.standardized_training_data, all_data_error_sums=self.all_data_error_sums)
+                self.all_data_error_sums = {**self.all_data_error_sums, **all_data_error_sums}
             self.creatures = calculated_creatures
+
 
             self.best_creatures.append([copy.deepcopy(best_creature), error])
             print(f'Total number of creatures:  {len(self.creatures)}')
@@ -271,19 +278,29 @@ def calc_error_value(creature, target_parameter: str, data_point: dict, standard
 
 
 
-def find_best_creature(creatures: list, target_parameter: str, data: list, standardizer=None) -> tuple:
+def find_best_creature(creatures: list, target_parameter: str, data: list, standardizer=None, all_data_error_sums: dict={}) -> tuple:
     best_error = -1  # to start loop
     errors = []
     calculated_creatures: list = []
     best_creature = None
     for creature in tqdm.tqdm(creatures):
         error = 0
-        if creature.all_data_error_sum is not None:
-            error += creature.all_data_error_sum
-        else:
-            for data_point in data:  # only have to calculate for all data ONCE for each creature!
+        try:
+            error += all_data_error_sums[creature.modifier_hash]
+        except KeyError:
+            for data_point in data:
                 error += calc_error_value(creature, target_parameter, data_point, standardizer)
-            creature.all_data_error_sum = error + 0  # +0 quick and dirty way to ensure reference to different value
+            # +0 is simply a quick and dirty way to ensure reference to different value
+            all_data_error_sums[creature.modifier_hash] = calc_error_value(creature, target_parameter, data_point, standardizer) + 0
+
+        # if creature.modifier_hash in all_data_error_sums:
+            # error
+        # if creature.all_data_error_sum is not None:
+            # error += creature.all_data_error_sum
+        # else:
+            # for data_point in data:  # only have to calculate for all data ONCE for each creature!
+                # error += calc_error_value(creature, target_parameter, data_point, standardizer)
+            # creature.all_data_error_sum = error + 0  # +0 quick and dirty way to ensure reference to different value
         calculated_creatures.append(creature)
         error /= len(data)
         if error < best_error or best_error < 1:
@@ -291,5 +308,5 @@ def find_best_creature(creatures: list, target_parameter: str, data: list, stand
             best_creature = creature
         errors.append(error)
     avg_error = sorted(errors)[len(errors) // 2]
-    return [best_creature, best_error, avg_error, calculated_creatures]
+    return [best_creature, best_error, avg_error, calculated_creatures, all_data_error_sums]
 find_best_creature_multip = easy_multip.decorators.use_multip(find_best_creature)
