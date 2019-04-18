@@ -279,34 +279,31 @@ def calc_error_value(creature, target_parameter: str, data_point: dict, standard
 
 
 def find_best_creature(creatures: list, target_parameter: str, data: list, standardizer=None, all_data_error_sums: dict={}) -> tuple:
+    '''
+    Determines best EvogressionCreature and returns misc objects (more than otherwise needed)
+    so that multiprocessing (easy_multip) can be used.
+    '''
     best_error = -1  # to start loop
-    errors = []
+    errors: list = []
+    append_to_errors = errors.append  # local variable for speed
     calculated_creatures: list = []
+    append_to_calculated_creatures = calculated_creatures.append  # local variable for speed
+    data_length = len(data)
     best_creature = None
     for creature in tqdm.tqdm(creatures):
         error = 0
         try:
             error += all_data_error_sums[creature.modifier_hash]
         except KeyError:
-            for data_point in data:
-                error += calc_error_value(creature, target_parameter, data_point, standardizer)
-            # +0 is simply a quick and dirty way to ensure reference to different value
-            all_data_error_sums[creature.modifier_hash] = calc_error_value(creature, target_parameter, data_point, standardizer) + 0
+            error = sum(calc_error_value(creature, target_parameter, data_point, standardizer) for data_point in data)
+            all_data_error_sums[creature.modifier_hash] = error + 0  # +0 is simply a quick and dirty way to ensure reference to different value
 
-        # if creature.modifier_hash in all_data_error_sums:
-            # error
-        # if creature.all_data_error_sum is not None:
-            # error += creature.all_data_error_sum
-        # else:
-            # for data_point in data:  # only have to calculate for all data ONCE for each creature!
-                # error += calc_error_value(creature, target_parameter, data_point, standardizer)
-            # creature.all_data_error_sum = error + 0  # +0 quick and dirty way to ensure reference to different value
-        calculated_creatures.append(creature)
-        error /= len(data)
+        append_to_calculated_creatures(creature)
+        error /= data_length
         if error < best_error or best_error < 1:
             best_error = error
             best_creature = creature
-        errors.append(error)
+        append_to_errors(error)
     avg_error = sorted(errors)[len(errors) // 2]
     return [best_creature, best_error, avg_error, calculated_creatures, all_data_error_sums]
 find_best_creature_multip = easy_multip.decorators.use_multip(find_best_creature)
