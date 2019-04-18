@@ -189,7 +189,7 @@ class CreatureEvolution():
         random_choice = random.choice  # local variable for speed
         if self.use_multip:
             creature_groups = (creature_group for creature_group in (self.creatures[group_size * i:group_size * (i + 1)] for i in range(0, len(self.creatures) // group_size)))
-            food_groups = ([random_choice(all_food_data) for _ in range(30)] for i in range(0, len(self.creatures) // group_size))
+            food_groups = ([random_choice(all_food_data) for _ in range(10)] for i in range(0, len(self.creatures) // group_size))
             feeding_arg_tups = [(creature_group, food_group, self.target_parameter, self.standardizer) for creature_group, food_group in zip(creature_groups, food_groups)]
             hunger_modified_creatures = easy_multip.map(feed_creature_groups, feeding_arg_tups)
             self.creatures = [creature for sublist in hunger_modified_creatures for creature in sublist]
@@ -198,13 +198,13 @@ class CreatureEvolution():
             standardizer = self.standardizer  # local variable for speed
             for i in range(0, len(self.creatures) // group_size):
                 creature_group = self.creatures[group_size * i:group_size * (i + 1)]
-                for food_data in [random_choice(all_food_data) for _ in range(30)]:
+                for food_data in [random_choice(all_food_data) for _ in range(10)]:
                     best_error, best_creature = None, None
                     for creature in creature_group:
                         error = calc_error_value(creature, target_parameter, food_data, standardizer)
                         if best_error is None or error < best_error:
                             best_error, best_creature = error, creature
-                    best_creature.hunger += 1
+                    best_creature.hunger += 3
 
 
     def run_metabolism_creatures(self):
@@ -267,7 +267,7 @@ def feed_creature_groups(arg_tup):
             error = calc_error_value(creature, target_parameter, food_data, standardizer)
             if error < best_error:
                 best_error, best_creature = error, creature
-        best_creature.hunger += 1
+        best_creature.hunger += 3
     return creature_group
 
 
