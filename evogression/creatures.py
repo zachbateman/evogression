@@ -46,6 +46,7 @@ class EvogressionCreature():
         else:
             self.modifiers = modifiers
 
+        self.layer_list = list(range(1, len(self.modifiers) + 1))
         self.modifier_hash = hash(repr(self.modifiers.items()))  # used for caching purposes!
 
         self.all_data_error_sum = None  # used for CACHING creature's error for all training data!
@@ -147,11 +148,16 @@ class EvogressionCreature():
         '''
         Apply the creature's modifiers to the parameters to calculate an attempt at target
         '''
+        try:  # optimize for cython-available case
+            single_layer_calc___calc_single_layer_target_cython = single_layer_calc.calc_single_layer_target_cython
+        except NameError:
+            pass
+
         T = None  # has to be None on first layer
-        for layer in range(1, len(self.modifiers) + 1):
-            if cython_available:
-                T = single_layer_calc.calc_single_layer_target_cython(parameters, self.modifiers, layer, T)
-            else:
+        for layer in self.layer_list:
+            try:  # if cython_available; use try and except for max speed
+                T = single_layer_calc___calc_single_layer_target_cython(parameters, self.modifiers, layer, T)
+            except NameError:
                 T = self._calc_single_layer_target(parameters, layer, previous_T=T)
         return T
 

@@ -53,4 +53,5 @@ class Standardizer():
 
     def unstandardize_value(self, param, value) -> float:
         '''Convert a single value back into what it was/would have been without standardization'''
-        return value * self.data_modifiers[param]['stdev'] + self.data_modifiers[param]['mean']
+        data_mods_param = self.data_modifiers[param]  # local variable for speed
+        return value * data_mods_param['stdev'] + data_mods_param['mean']

@@ -6,6 +6,8 @@ Cython implementation of EvogressionCreature._calc_single_layer_target()
 cpdef calc_single_layer_target_cython(dict parameters, dict modifiers, long layer, previous_T):
 
     cpdef double T = 0
+    cpdef str param
+    cpdef double value
     layer_modifiers = modifiers[f'LAYER_{layer}']
 
     for param, value in parameters.items():
@@ -22,6 +24,8 @@ cpdef calc_single_layer_target_cython(dict parameters, dict modifiers, long laye
 
 
 cdef double param_value_component(dict layer_modifiers, str param, double value):
+
+    cpdef dict mods
 
     try:
         mods = layer_modifiers[param]

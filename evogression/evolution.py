@@ -44,6 +44,9 @@ class CreatureEvolution():
             self.training_data = self.all_data[:int(round(len(self.all_data) * 0.75))]
             self.testing_data = self.all_data[int(round(len(self.all_data) * 0.75)):]
 
+        self.training_data_len = len(self.training_data)
+        self.testing_data_len = len(self.testing_data)
+
         if self.standardize:
             self.standardizer = Standardizer(self.training_data)  # only use training data for Standardizer!! (must be blind to consider test data)
             self.standardized_training_data = self.standardizer.get_standardized_data()
@@ -65,6 +68,8 @@ class CreatureEvolution():
 
         self.feast_group_size = 2
         self.famine_group_size = 50
+
+        self.num_additional_best_creatures = int(round(0.005 * self.target_num_creatures, 0))
 
         self.best_creatures = []
         with warnings.catch_warnings():
@@ -113,7 +118,7 @@ class CreatureEvolution():
             print('Best Creature:')
             print(f'  Generation: {best_creature.generation}    Error: ' + '{0:.2E}'.format(error))
 
-            bc_error = sum(calc_error_value(best_creature, self.target_parameter, data_point, self.standardizer) for data_point in self.testing_data) / len(self.testing_data)
+            bc_error = sum([calc_error_value(best_creature, self.target_parameter, data_point, self.standardizer) for data_point in self.testing_data]) / self.testing_data_len
             print('  Testing Data Error:     ' + '{0:.2E}'.format(bc_error) + '\n')
 
             for creature_list in self.best_creatures:
@@ -122,14 +127,8 @@ class CreatureEvolution():
                     self.best_creature = creature_list[0]
                     new_best_creature = True
 
-            # sprinkle in additional best_creatures to enhance this behavior
-            # also add in 3 of their offspring (mutated but close to latest best_creature)
-            additional_best_creatures = [copy.deepcopy(self.best_creature) for _ in range(int(round(0.005 * self.target_num_creatures, 0)))]
-            additional_best_creatures.extend([additional_best_creatures[0] + additional_best_creatures[1] for _ in range(int(round(0.005 * self.target_num_creatures, 0)))])
-            additional_best_creatures = [cr for cr in additional_best_creatures if cr is not None]  # due to chance of not mating
-            for cr in additional_best_creatures:
-                cr.hunger = 100
-            self.creatures.extend(additional_best_creatures)  # sprinkle in additional best_creatures to enhance this behaviour
+
+            self.creatures.extend(self.additional_best_creatures())  # sprinkle in additional best_creatures to enhance the top-performing behaviour
 
             if counter == 1 or new_best_creature:  # self.best_creatures[-1][0].modifiers != self.best_creatures[-2][0].modifiers:
                 print(f'\n\n\nNEW BEST CREATURE AFTER {counter} ITERATIONS...')
@@ -150,6 +149,15 @@ class CreatureEvolution():
 
             feast_or_famine = 'feast' if len(self.creatures) < self.target_num_creatures else 'famine'
             counter += 1
+
+
+    def additional_best_creatures(self) -> list:
+        # sprinkle in additional best_creatures to enhance this behavior
+        # also add in their offspring (mutated but close to latest best_creature)
+        additional_best_creatures = [copy.deepcopy(self.best_creature) for _ in range(self.num_additional_best_creatures)]
+        additional_best_creatures.extend([additional_best_creatures[0] + additional_best_creatures[1] for _ in range(self.num_additional_best_creatures)])
+        additional_best_creatures = [cr for cr in additional_best_creatures if cr is not None]  # due to chance of not mating
+        return additional_best_creatures
 
 
     def evolution_cycle(self, feast_or_famine: str):
@@ -178,19 +186,22 @@ class CreatureEvolution():
         random.shuffle(self.creatures)
         all_food_data = self.standardized_training_data if self.standardize else self.training_data
 
+        random_choice = random.choice  # local variable for speed
         if self.use_multip:
             creature_groups = (creature_group for creature_group in (self.creatures[group_size * i:group_size * (i + 1)] for i in range(0, len(self.creatures) // group_size)))
-            food_groups = ([random.choice(all_food_data) for _ in range(30)] for i in range(0, len(self.creatures) // group_size))
+            food_groups = ([random_choice(all_food_data) for _ in range(30)] for i in range(0, len(self.creatures) // group_size))
             feeding_arg_tups = [(creature_group, food_group, self.target_parameter, self.standardizer) for creature_group, food_group in zip(creature_groups, food_groups)]
             hunger_modified_creatures = easy_multip.map(feed_creature_groups, feeding_arg_tups)
             self.creatures = [creature for sublist in hunger_modified_creatures for creature in sublist]
         else:
+            target_parameter = self.target_parameter  # local variable for speed
+            standardizer = self.standardizer  # local variable for speed
             for i in range(0, len(self.creatures) // group_size):
                 creature_group = self.creatures[group_size * i:group_size * (i + 1)]
-                for food_data in [random.choice(all_food_data) for _ in range(30)]:
+                for food_data in [random_choice(all_food_data) for _ in range(30)]:
                     best_error, best_creature = None, None
                     for creature in creature_group:
-                        error = calc_error_value(creature, self.target_parameter, food_data, self.standardizer)
+                        error = calc_error_value(creature, target_parameter, food_data, standardizer)
                         if best_error is None or error < best_error:
                             best_error, best_creature = error, creature
                     best_creature.hunger += 1
@@ -268,8 +279,9 @@ def calc_error_value(creature, target_parameter: str, data_point: dict, standard
     target_calc = creature.calc_target(data_point)
     data_point_calc = data_point[target_parameter]
     if standardizer is not None:
-        target_calc = standardizer.unstandardize_value(target_parameter, target_calc)
-        data_point_calc = standardizer.unstandardize_value(target_parameter, data_point_calc)
+        unstandardize_value = standardizer.unstandardize_value
+        target_calc = unstandardize_value(target_parameter, target_calc)
+        data_point_calc = unstandardize_value(target_parameter, data_point_calc)
     try:
         error = abs(target_calc - data_point_calc) ** 2.0  # sometimes generates "RuntimeWarning: overflow encountered in double_scalars"
     except OverflowError:  # if error is too big to store, give huge arbitrary error
@@ -295,7 +307,7 @@ def find_best_creature(creatures: list, target_parameter: str, data: list, stand
         try:
             error += all_data_error_sums[creature.modifier_hash]
         except KeyError:
-            error = sum(calc_error_value(creature, target_parameter, data_point, standardizer) for data_point in data)
+            error = sum([calc_error_value(creature, target_parameter, data_point, standardizer) for data_point in data])
             all_data_error_sums[creature.modifier_hash] = error + 0  # +0 is simply a quick and dirty way to ensure reference to different value
 
         append_to_calculated_creatures(creature)

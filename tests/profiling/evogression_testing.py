@@ -2,13 +2,13 @@
 import sys
 sys.path.insert(1, '..')
 sys.path.insert(1, '..\\..')
-from test_data import surface_3d_data
+from test_data import parabola_data
 import evogression
 
 
 
 def main():
-    evolution = evogression.evolution.CreatureEvolution('z', surface_3d_data, target_num_creatures=5000, num_cycles=5, use_multip=True)
+    evolution = evogression.evolution.CreatureEvolution('y', parabola_data, target_num_creatures=10000, num_cycles=10, use_multip=False)
 
 
 
