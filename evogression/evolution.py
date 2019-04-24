@@ -16,6 +16,9 @@ from .standardize import Standardizer
 
 class CreatureEvolution():
 
+    feast_group_size = 2
+    famine_group_size = 50
+
     def __init__(self,
                          target_parameter: str,
                          all_data: typing.List[typing.Dict[str, float]],
@@ -31,11 +34,19 @@ class CreatureEvolution():
         self.standardize = standardize
         self.all_data = all_data
         random.shuffle(self.all_data)
-        for i, d in enumerate(self.all_data):
-            for key, val in d.items():
-                if numpy.isnan(val):
-                    print('ERROR!  NAN values detected in all_data!')
-                    print(f'Index: {i}  data: {d}')
+        self.target_num_creatures = target_num_creatures
+        self.add_random_creatures_each_cycle = add_random_creatures_each_cycle
+        self.num_cycles = num_cycles
+        self.force_num_layers = force_num_layers
+        self.use_multip = use_multip
+
+        self.current_generation = 1
+        self.num_additional_best_creatures = int(round(0.005 * self.target_num_creatures, 0))
+        self.all_data_error_sums: dict = {}
+        self.best_creatures: list = []
+
+
+        self.data_checks()
 
         if train_on_all_data:
             self.training_data = self.all_data
@@ -53,13 +64,6 @@ class CreatureEvolution():
         else:
             self.standardizer = None
 
-        self.target_num_creatures = target_num_creatures
-        self.add_random_creatures_each_cycle = add_random_creatures_each_cycle
-        self.num_cycles = num_cycles
-        self.force_num_layers = force_num_layers
-        self.use_multip = use_multip
-
-        self.all_data_error_sums: dict = {}
 
         arg_tup = (target_parameter, self.all_data[0], force_num_layers)
         if use_multip:
@@ -67,17 +71,20 @@ class CreatureEvolution():
         else:
             self.creatures = [generate_initial_creature(arg_tup) for _ in range(int(round(1.1 * target_num_creatures, 0)))]
 
-        self.current_generation = 1
 
-        self.feast_group_size = 2
-        self.famine_group_size = 50
-
-        self.num_additional_best_creatures = int(round(0.005 * self.target_num_creatures, 0))
-
-        self.best_creatures = []
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
             self.evolve_creatures()
+
+
+
+    def data_checks(self):
+        '''Check input data for potential issues'''
+        for i, d in enumerate(self.all_data):
+            for key, val in d.items():
+                if numpy.isnan(val):
+                    print('ERROR!  NAN values detected in all_data!')
+                    print(f'Index: {i}  data: {d}')
 
 
     def evolve_creatures(self):
@@ -155,8 +162,10 @@ class CreatureEvolution():
 
 
     def additional_best_creatures(self) -> list:
-        # sprinkle in additional best_creatures to enhance this behavior
-        # also add in their offspring (mutated but close to latest best_creature)
+        '''
+        sprinkle in additional best_creatures to enhance this behavior
+        also add in their offspring (mutated but close to latest best_creature)
+        '''
         additional_best_creatures = [copy.deepcopy(self.best_creature) for _ in range(self.num_additional_best_creatures)]
         additional_best_creatures.extend([additional_best_creatures[0] + additional_best_creatures[1] for _ in range(self.num_additional_best_creatures)])
         additional_best_creatures = [cr for cr in additional_best_creatures if cr is not None]  # due to chance of not mating
