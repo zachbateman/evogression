@@ -62,7 +62,10 @@ class CreatureEvolution():
         self.all_data_error_sums: dict = {}
 
         arg_tup = (target_parameter, self.all_data[0], force_num_layers)
-        self.creatures = easy_multip.map(generate_initial_creature, [arg_tup for _ in range(int(round(1.1 * target_num_creatures, 0)))])
+        if use_multip:
+            self.creatures = easy_multip.map(generate_initial_creature, [arg_tup for _ in range(int(round(1.1 * target_num_creatures, 0)))])
+        else:
+            self.creatures = [generate_initial_creature(arg_tup) for _ in range(int(round(1.1 * target_num_creatures, 0)))]
 
         self.current_generation = 1
 
