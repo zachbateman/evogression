@@ -18,19 +18,19 @@ layer_probabilities = [1] * 5 + [2] * 3 + [3] * 2 + [4] * 1
 class EvogressionCreature():
 
     def __init__(self,
-                       target_parameter: str,
-                       layers: int=0,
-                       hunger: int=100,
-                       generation: int=1,
-                       mutability: float=0,
-                       full_parameter_example: dict={},
-                       no_negative_exponents: bool=True,
-                       modifiers: dict={}) -> None:
+                 target_parameter: str,
+                 layers: int=0,
+                 hunger: int=100,
+                 generation: int=1,
+                 mutability: float=0,
+                 full_parameter_example: dict={},
+                 no_negative_exponents: bool=True,
+                 modifiers: dict={}) -> None:
         '''
         Create creature representing a regression function with terms of form: C * (B * value + Z) ** X
         The regression function can also have multiple layers of these terms.
         '''
-        self.hunger = hunger  # creature dies when self.hunger == 0
+        self.hunger = hunger  # creature dies when self.hunger <= 0
         self.layers = layers
         self.generation = generation
         self.mutability = 0.1 * (random.random() + 0.5) if mutability == 0 else mutability
@@ -49,13 +49,12 @@ class EvogressionCreature():
         self.layer_list = list(range(1, len(self.modifiers) + 1))
         self.modifier_hash = hash(repr(self.modifiers.items()))  # used for caching purposes!
 
-        self.all_data_error_sum = None  # used for CACHING creature's error for all training data!
-
 
     def create_initial_modifiers(self) -> dict:
         if self.layers == 0:
             self.layers = random.choice(layer_probabilities)
 
+        parameter_usage_num = (1 / len(self.full_parameter_example)) + 0.3  # local variable for speed
         modifiers: dict = {}
         for layer in range(1, self.layers + 1):
             modifiers[f'LAYER_{layer}'] = {}
@@ -63,7 +62,7 @@ class EvogressionCreature():
             for param in self.full_parameter_example.keys():
                 # resist using parameters if many of them
                 # len(full_param_example) will always be >= 2
-                if random.random() < (1 / len(self.full_parameter_example)) + 0.3 and param != self.target_parameter:
+                if random.random() < parameter_usage_num and param != self.target_parameter:
                     C, B, Z, X = self.generate_parameter_coefficients()
                     if X != 0:  # 0 exponent makes term overly complex for value added; don't include
                         modifiers[f'LAYER_{layer}'][param] = {'C': C, 'B': B, 'Z': Z, 'X': X}
@@ -78,17 +77,20 @@ class EvogressionCreature():
         return modifiers
 
     def generate_parameter_coefficients(self):
-        C = 1 if random.random() < 0.4 else random.gauss(1, self.mutability)
-        B = 1 if random.random() < 0.3 else random.gauss(1, 2 * self.mutability)
-        Z = 0 if random.random() < 0.4 else random.gauss(0, 3 * self.mutability)
-        if random.random() < 0.5:
+        rand_rand = random.random  # local variable for speed
+        rand_gauss = random.gauss  # local variable for speed
+        mutability = self.mutability  # local variable for speed
+        C = 1 if rand_rand() < 0.4 else rand_gauss(1, mutability)
+        B = 1 if rand_rand() < 0.3 else rand_gauss(1, 2 * mutability)
+        Z = 0 if rand_rand() < 0.4 else rand_gauss(0, 3 * mutability)
+        if rand_rand() < 0.5:
             C = -C
-        if random.random() < 0.5:
+        if rand_rand() < 0.5:
             B = -B
         if self.no_negative_exponents:
-            X = 1 if random.random() < 0.4 else random.choice([0] * 1 + [2] * 5 + [3] * 2)
+            X = 1 if rand_rand() < 0.4 else random.choice([0] * 1 + [2] * 5 + [3] * 2)
         else:
-            X = 1 if random.random() < 0.4 else random.choice([-2] * 1 + [-1] * 5 + [0] * 3 + [2] * 5 + [3] * 1)
+            X = 1 if rand_rand() < 0.4 else random.choice([-2] * 1 + [-1] * 5 + [0] * 3 + [2] * 5 + [3] * 1)
         return C, B, Z, X
 
     def simplify_modifiers(self, modifiers: dict={}) -> dict:
