@@ -12,7 +12,7 @@ except ImportError:
     print('Calculations will run significantly slower...\n')
     cython_available = False
 
-
+random.seed(1000)
 layer_probabilities = [1] * 5 + [2] * 3 + [3] * 2 + [4] * 1
 
 class EvogressionCreature():
@@ -46,51 +46,67 @@ class EvogressionCreature():
         else:
             self.modifiers = modifiers
 
-        self.layer_list = list(range(1, len(self.modifiers) + 1))
-        self.modifier_hash = hash(repr(self.modifiers.items()))  # used for caching purposes!
+        mods = self.modifiers  # local for speed
+        self.layer_list = list(range(1, len(mods) + 1))
+        self.modifier_hash = hash(repr(mods.items()))  # used for caching purposes!
 
 
     def create_initial_modifiers(self) -> dict:
         if self.layers == 0:
             self.layers = random.choice(layer_probabilities)
 
-        parameter_usage_num = (1 / len(self.full_parameter_example)) + 0.3  # local variable for speed
+        # local variables for speed
+        parameter_usage_num = (1 / len(self.full_parameter_example)) + 0.3
+        rand_rand = random.random
+        # rand_gauss = random.gauss
+        rand_tri = random.triangular
+        targ_param = self.target_parameter
+        gen_param_coeffs = self.generate_parameter_coefficients
+        full_param_example_keys = self.full_parameter_example.keys()
+
         modifiers: dict = {}
         for layer in range(1, self.layers + 1):
-            modifiers[f'LAYER_{layer}'] = {}
-            modifiers[f'LAYER_{layer}']['N'] = 0 if random.random() < 0.2 else random.gauss(0, 3 * self.mutability)
-            for param in self.full_parameter_example.keys():
+            layer_name = f'LAYER_{layer}'
+            modifiers[layer_name] = {}
+            # modifiers[f'LAYER_{layer}']['N'] = 0 if rand_rand() < 0.2 else random.gauss(0, 3 * self.mutability)
+            modifiers[layer_name]['N'] = 0 if rand_rand() < 0.2 else rand_tri(-9 * self.mutability, 0, 9 * self.mutability)
+            for param in full_param_example_keys:
                 # resist using parameters if many of them
                 # len(full_param_example) will always be >= 2
-                if random.random() < parameter_usage_num and param != self.target_parameter:
-                    C, B, Z, X = self.generate_parameter_coefficients()
+                if rand_rand() < parameter_usage_num and param != targ_param:
+                    C, B, Z, X = gen_param_coeffs()
                     if X != 0:  # 0 exponent makes term overly complex for value added; don't include
-                        modifiers[f'LAYER_{layer}'][param] = {'C': C, 'B': B, 'Z': Z, 'X': X}
+                        modifiers[layer_name][param] = {'C': C, 'B': B, 'Z': Z, 'X': X}
                     else:
-                        modifiers[f'LAYER_{layer}']['N'] += C
+                        modifiers[layer_name]['N'] += C
             if layer > 1:
-                C, B, Z, X = self.generate_parameter_coefficients()
+                C, B, Z, X = gen_param_coeffs()
                 if X == 0:  # want every layer > 1 to include a T term!!
                     X = 1
-                modifiers[f'LAYER_{layer}']['T'] = {'C': C, 'B': B, 'Z': Z, 'X': X}
+                modifiers[layer_name]['T'] = {'C': C, 'B': B, 'Z': Z, 'X': X}
 
         return modifiers
 
     def generate_parameter_coefficients(self):
         rand_rand = random.random  # local variable for speed
-        rand_gauss = random.gauss  # local variable for speed
+        # rand_gauss = random.gauss  # local variable for speed
+        rand_tri = random.triangular
+        rand_choice = random.choice
         mutability = self.mutability  # local variable for speed
-        C = 1 if rand_rand() < 0.4 else rand_gauss(1, mutability)
-        B = 1 if rand_rand() < 0.3 else rand_gauss(1, 2 * mutability)
-        Z = 0 if rand_rand() < 0.4 else rand_gauss(0, 3 * mutability)
+        # C = 1 if rand_rand() < 0.4 else rand_gauss(1, mutability)
+        # B = 1 if rand_rand() < 0.3 else rand_gauss(1, 2 * mutability)
+        # Z = 0 if rand_rand() < 0.4 else rand_gauss(0, 3 * mutability)
+        C = 1 if rand_rand() < 0.4 else rand_tri(-3 * mutability, 1, 3 * mutability)
+        B = 1 if rand_rand() < 0.3 else rand_tri(-6 * mutability, 1, 6 * mutability)
+        Z = 0 if rand_rand() < 0.4 else rand_tri(-9 * mutability, 0, 9 * mutability)
         if rand_rand() < 0.5:
             C = -C
         if rand_rand() < 0.5:
             B = -B
         if self.no_negative_exponents:
-            X = 1 if rand_rand() < 0.4 else random.choice([0] * 1 + [2] * 5 + [3] * 2)
+            X = 1 if rand_rand() < 0.4 else rand_choice([0] * 1 + [2] * 5 + [3] * 2)
         else:
-            X = 1 if rand_rand() < 0.4 else random.choice([-2] * 1 + [-1] * 5 + [0] * 3 + [2] * 5 + [3] * 1)
+            X = 1 if rand_rand() < 0.4 else rand_choice([-2] * 1 + [-1] * 5 + [0] * 3 + [2] * 5 + [3] * 1)
         return C, B, Z, X
 
     def simplify_modifiers(self, modifiers: dict={}) -> dict:
