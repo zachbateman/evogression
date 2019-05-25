@@ -7,9 +7,10 @@ from Cython.Build import cythonize
 with open('README.md', 'r') as f:
     long_description = f.read()
 
-extensions = [
-    Extension('evogression.single_layer_calc', ['evogression/single_layer_calc.pyx'])
-]
+# extensions = [
+    # Extension('evogression.single_layer_calc', ['evogression/single_layer_calc.pyx']),
+    # Extension('evogression.generate_parameter_coefficients_calc', ['evogression.generate_parameter_coefficients_calc.pyx']),
+# ]
 
 
 setup(name='evogression',
@@ -29,5 +30,6 @@ setup(name='evogression',
                    'Programming Language :: Python :: 3.6',
                    'Programming Language :: Python :: 3.7',
                    ],
-    ext_modules=cythonize(extensions)
+    # ext_modules=cythonize(extensions)
+    ext_modules=cythonize(['evogression\\*.pyx'])
 )
