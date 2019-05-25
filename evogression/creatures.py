@@ -12,6 +12,15 @@ except ImportError:
     print('Calculations will run significantly slower...\n')
     cython_available = False
 
+try:
+    from . import generate_parameter_coefficients_calc
+    param_coeff_cython_available = True
+except ImportError:
+    print('\nUnable to import Cython generate_parameter_coefficients_calc module!')
+    print('Calculations will run slightly slower...\n')
+    param_coeff_cython_available = False
+
+
 random.seed(1000)
 layer_probabilities = [1] * 5 + [2] * 3 + [3] * 2 + [4] * 1
 
@@ -88,6 +97,14 @@ class EvogressionCreature():
         return modifiers
 
     def generate_parameter_coefficients(self):
+
+        try:  # optimize for cython-available case
+            return generate_parameter_coefficients_calc.generate_parameter_coefficients_calc(self.mutability, self.no_negative_exponents)
+        except NameError:
+            return self._generate_parameter_coefficients()
+
+
+    def _generate_parameter_coefficients(self):
         rand_rand = random.random  # local variable for speed
         # rand_gauss = random.gauss  # local variable for speed
         rand_tri = random.triangular
@@ -219,10 +236,11 @@ class EvogressionCreature():
         The idea is to penalize more complex models and thereby create a tendency
         to develop a simpler model.
         '''
-        cost = 10
-        cost += 3 * self.layers  # cost will be AT LEAST 3
-        cost += int(round(sum(len(layer_dict) / 5 for layer_dict in self.modifiers.values()), 0))
-        return cost
+        try:
+            return self._complexity_cost
+        except:
+            self._complexity_cost = 10 + int(round(sum(len(layer_dict) for layer_dict in self.modifiers.values()) / 4, 0))
+            return self._complexity_cost
 
     def __add__(self, other):
         '''
