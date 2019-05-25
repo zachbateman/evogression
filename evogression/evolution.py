@@ -27,6 +27,7 @@ class CreatureEvolution():
                          force_num_layers: int=0,
                          standardize: bool=True,
                          use_multip: bool=True,
+                         initial_creature_creation_multip: bool=True,
                          train_on_all_data=True) -> None:
 
         self.target_parameter = target_parameter
@@ -65,7 +66,7 @@ class CreatureEvolution():
 
 
         arg_tup = (target_parameter, self.all_data[0], force_num_layers)
-        if use_multip:
+        if initial_creature_creation_multip:
             self.creatures = easy_multip.map(generate_initial_creature, [arg_tup for _ in range(int(round(1.1 * target_num_creatures, 0)))])
         else:
             self.creatures = [generate_initial_creature(arg_tup) for _ in range(int(round(1.1 * target_num_creatures, 0)))]
@@ -224,13 +225,16 @@ class CreatureEvolution():
         for creature in self.creatures:
             creature.hunger -= creature.complexity_cost
 
+
     def kill_weak_creatures(self):
         '''Remove all creatures whose hunger has dropped to 0 or below'''
         self.creatures = [creature for creature in self.creatures if creature.hunger > 0]
 
+
     @property
     def average_creature_hunger(self):
         return sum(c.hunger for c in self.creatures) / len(self.creatures)
+
 
     def return_best_creature(self):
         '''Return current best creature and standardizer if used'''
@@ -243,6 +247,7 @@ class CreatureEvolution():
             return best_creature, self.standardizer
         else:
             return best_creature
+
 
     def mate_creatures(self):
         '''
@@ -259,6 +264,7 @@ class CreatureEvolution():
             except IndexError:
                 pass
         self.creatures.extend(new_creatures)
+
 
     def output_best_regression_function_as_module(self, output_filename='regression_function.py'):
         if self.standardize:
@@ -300,7 +306,6 @@ def calc_error_value(creature, target_parameter: str, data_point: dict, standard
     except OverflowError:  # if error is too big to store, give huge arbitrary error
         error = 10 ** 150
     return error
-
 
 
 def find_best_creature(creatures: list, target_parameter: str, data: list, standardizer=None, all_data_error_sums: dict={}) -> tuple:

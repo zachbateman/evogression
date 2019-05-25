@@ -4,14 +4,6 @@ Module containing "creatures" that each represent a potential regression equatio
 import random
 import copy
 from pprint import pprint as pp
-# try:
-    # from . import single_layer_calc
-    # cython_available = True
-# except ImportError:
-    # print('\nUnable to import Cython single_layer_calc module!')
-    # print('Calculations will run significantly slower...\n')
-    # cython_available = False
-
 try:
     from . import calc_target_cython
     cython_available = True
@@ -19,7 +11,6 @@ except ImportError:
     print('\nUnable to import Cython calc_target_cython module!')
     print('Calculations will run significantly slower...\n')
     cython_available = False
-
 
 try:
     from . import generate_parameter_coefficients_calc
@@ -105,6 +96,7 @@ class EvogressionCreature():
 
         return modifiers
 
+
     def generate_parameter_coefficients(self):
 
         try:  # optimize for cython-available case
@@ -115,13 +107,9 @@ class EvogressionCreature():
 
     def _generate_parameter_coefficients(self):
         rand_rand = random.random  # local variable for speed
-        # rand_gauss = random.gauss  # local variable for speed
         rand_tri = random.triangular
         rand_choice = random.choice
         mutability = self.mutability  # local variable for speed
-        # C = 1 if rand_rand() < 0.4 else rand_gauss(1, mutability)
-        # B = 1 if rand_rand() < 0.3 else rand_gauss(1, 2 * mutability)
-        # Z = 0 if rand_rand() < 0.4 else rand_gauss(0, 3 * mutability)
         C = 1 if rand_rand() < 0.4 else rand_tri(-3 * mutability, 1, 3 * mutability)
         B = 1 if rand_rand() < 0.3 else rand_tri(-6 * mutability, 1, 6 * mutability)
         Z = 0 if rand_rand() < 0.4 else rand_tri(-9 * mutability, 0, 9 * mutability)
@@ -134,6 +122,7 @@ class EvogressionCreature():
         else:
             X = 1 if rand_rand() < 0.4 else rand_choice([-2] * 1 + [-1] * 5 + [0] * 3 + [2] * 5 + [3] * 1)
         return C, B, Z, X
+
 
     def simplify_modifiers(self, modifiers: dict={}) -> dict:
         '''Method looks at the mathematics of self.modifiers and simplifies if possible'''
@@ -194,19 +183,12 @@ class EvogressionCreature():
         '''
         try:
             return calc_target_cython.calc_target_cython(parameters, self.modifiers, self.layer_list)
-        except:
-            try:  # optimize for cython-available case
-                single_layer_calc___calc_single_layer_target_cython = single_layer_calc.calc_single_layer_target_cython
-            except NameError:
-                pass
-
+        except:  # if cython extension not available
             T = None  # has to be None on first layer
             for layer in self.layer_list:
-                try:  # if cython_available; use try and except for max speed
-                    T = single_layer_calc___calc_single_layer_target_cython(parameters, self.modifiers, layer, T)
-                except NameError:
-                    T = self._calc_single_layer_target(parameters, layer, previous_T=T)
+                T = self._calc_single_layer_target(parameters, layer, previous_T=T)
             return T
+
 
     def _calc_single_layer_target(self, parameters: dict, layer: int, previous_T=None) -> float:
         '''
@@ -241,6 +223,7 @@ class EvogressionCreature():
 
         return T
 
+
     @property
     def complexity_cost(self):
         '''
@@ -253,6 +236,7 @@ class EvogressionCreature():
         except:
             self._complexity_cost = 10 + int(round(sum(len(layer_dict) for layer_dict in self.modifiers.values()) / 4, 0))
             return self._complexity_cost
+
 
     def __add__(self, other):
         '''
@@ -407,8 +391,10 @@ class EvogressionCreature():
 
         return EvogressionCreature(self.target_parameter, layers=new_layers, hunger=100, generation=new_generation, mutability=new_mutability, full_parameter_example=self.full_parameter_example, modifiers=new_modifiers)
 
+
     def __copy__(self):
         return EvogressionCreature(self.target_parameter, layers=self.layers, hunger=self.hunger, generation=self.generation, mutability=self.mutability, modifiers=self.modifiers)
+
 
     def __repr__(self) -> str:
         printout = f'EvogressionCreature - Generation: {self.generation}'
@@ -419,8 +405,10 @@ class EvogressionCreature():
         printout += '\n'
         return printout
 
+
     def get_regression_func(self):
         return self.simplify_modifiers(self.modifiers)
+
 
     def output_python_regression_module(self, output_filename: str='regression_function.py', standardizer=None):
         '''Create a Python module/file with a regression function represented by this EvogressionCreature'''
@@ -428,6 +416,7 @@ class EvogressionCreature():
         with open(output_filename, 'w') as f:
             f.write(output_str)
         print(f'EvogressionCreature modifiers outputted as regression function Python module!')
+
 
     def output_regression_func_as_python_module_string(self, standardizer=None) -> str:
         '''Create a string which creates a Python module with callable regression function.'''
