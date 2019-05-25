@@ -57,7 +57,7 @@ class EvogressionCreature():
 
         mods = self.modifiers  # local for speed
         self.layer_list = list(range(1, len(mods) + 1))
-        self.modifier_hash = hash(repr(mods.items()))  # used for caching purposes!
+        self.modifier_hash = hash(repr(mods))  # used for caching purposes!
 
 
     def create_initial_modifiers(self) -> dict:
@@ -249,6 +249,7 @@ class EvogressionCreature():
         also includes some mutation.
         '''
         rand_rand = random.random  # local variable for speed
+        self_layers, other_layers = self.layers, other.layers
 
         combined_hunger = self.hunger + other.hunger
         chance_of_mating = (combined_hunger - 75) / 100
@@ -257,12 +258,12 @@ class EvogressionCreature():
             return None
 
         # Generate new number of layers
-        if self.layers == other.layers:
-            new_layers = int(self.layers)
-        elif abs(self.layers - other.layers) < 1:
-            new_layers = int(self.layers) if rand_rand() < 0.5 else int(other.layers)
+        if self_layers == other_layers:
+            new_layers = int(self_layers)
+        elif abs(self_layers - other_layers) < 1:
+            new_layers = int(self_layers) if rand_rand() < 0.5 else int(other_layers)
         else:
-            new_layers = int(round((self.layers + other.layers) / 2, 0))
+            new_layers = int(round((self_layers + other_layers) / 2, 0))
 
         if rand_rand() < 0.05:  # mutation to number of layers
             if rand_rand() < 0.5 and new_layers > 1:
