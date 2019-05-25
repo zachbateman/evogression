@@ -5,7 +5,6 @@ import typing
 import copy
 import random
 import tqdm
-import numpy
 import warnings
 import easy_multip
 from .creatures import EvogressionCreature
@@ -80,11 +79,12 @@ class CreatureEvolution():
 
     def data_checks(self):
         '''Check input data for potential issues'''
+        acceptable_types = {'float', 'int'}
         for i, d in enumerate(self.all_data):
             for key, val in d.items():
-                if numpy.isnan(val):
+                if type(val).__name__ not in acceptable_types:
                     print('ERROR!  NAN values detected in all_data!')
-                    print(f'Index: {i}  data: {d}')
+                    print(f'Index: {i}  data: {d}  type: {type(val).__name__}')
 
 
     def evolve_creatures(self):
