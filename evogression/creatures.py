@@ -4,13 +4,22 @@ Module containing "creatures" that each represent a potential regression equatio
 import random
 import copy
 from pprint import pprint as pp
+# try:
+    # from . import single_layer_calc
+    # cython_available = True
+# except ImportError:
+    # print('\nUnable to import Cython single_layer_calc module!')
+    # print('Calculations will run significantly slower...\n')
+    # cython_available = False
+
 try:
-    from . import single_layer_calc
+    from . import calc_target_cython
     cython_available = True
 except ImportError:
-    print('\nUnable to import Cython single_layer_calc module!')
+    print('\nUnable to import Cython calc_target_cython module!')
     print('Calculations will run significantly slower...\n')
     cython_available = False
+
 
 try:
     from . import generate_parameter_coefficients_calc
@@ -183,18 +192,21 @@ class EvogressionCreature():
         '''
         Apply the creature's modifiers to the parameters to calculate an attempt at target
         '''
-        try:  # optimize for cython-available case
-            single_layer_calc___calc_single_layer_target_cython = single_layer_calc.calc_single_layer_target_cython
-        except NameError:
-            pass
-
-        T = None  # has to be None on first layer
-        for layer in self.layer_list:
-            try:  # if cython_available; use try and except for max speed
-                T = single_layer_calc___calc_single_layer_target_cython(parameters, self.modifiers, layer, T)
+        try:
+            return calc_target_cython.calc_target_cython(parameters, self.modifiers, self.layer_list)
+        except:
+            try:  # optimize for cython-available case
+                single_layer_calc___calc_single_layer_target_cython = single_layer_calc.calc_single_layer_target_cython
             except NameError:
-                T = self._calc_single_layer_target(parameters, layer, previous_T=T)
-        return T
+                pass
+
+            T = None  # has to be None on first layer
+            for layer in self.layer_list:
+                try:  # if cython_available; use try and except for max speed
+                    T = single_layer_calc___calc_single_layer_target_cython(parameters, self.modifiers, layer, T)
+                except NameError:
+                    T = self._calc_single_layer_target(parameters, layer, previous_T=T)
+            return T
 
     def _calc_single_layer_target(self, parameters: dict, layer: int, previous_T=None) -> float:
         '''
