@@ -7,6 +7,7 @@ import random
 import tqdm
 import warnings
 import easy_multip
+from pprint import pprint as pp
 from .creatures import EvogressionCreature
 from .standardize import Standardizer
 
@@ -44,7 +45,7 @@ class CreatureEvolution():
         self.num_additional_best_creatures = int(round(0.005 * self.target_num_creatures, 0))
         self.all_data_error_sums: dict = {}
         self.best_creatures: list = []
-
+        self.parameter_usefulness_count: dict={key: 0 for key in all_data[0] if key != target_parameter}
 
         self.data_checks()
 
@@ -71,7 +72,6 @@ class CreatureEvolution():
         else:
             self.creatures = [generate_initial_creature(arg_tup) for _ in range(int(round(1.1 * target_num_creatures, 0)))]
 
-
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
             self.evolve_creatures()
@@ -80,7 +80,7 @@ class CreatureEvolution():
 
     def data_checks(self):
         '''Check input data for potential issues'''
-        acceptable_types = {'float', 'int'}
+        acceptable_types = {'float', 'int', 'float64'}
         for i, d in enumerate(self.all_data):
             for key, val in d.items():
                 if type(val).__name__ not in acceptable_types:
@@ -120,7 +120,9 @@ class CreatureEvolution():
                 best_creature, error, median_error, calculated_creatures, all_data_error_sums = find_best_creature(self.creatures, self.target_parameter, self.standardized_training_data, all_data_error_sums=self.all_data_error_sums)
                 self.all_data_error_sums = {**self.all_data_error_sums, **all_data_error_sums}
             self.creatures = calculated_creatures
-
+            
+            for param in best_creature.used_parameters():
+                self.parameter_usefulness_count[param] += 1
 
             self.best_creatures.append([copy.deepcopy(best_creature), error])
             print(f'Total number of creatures:  {len(self.creatures)}')
@@ -146,6 +148,8 @@ class CreatureEvolution():
                 print(self.best_creature)
                 print(f'Total Error: ' + '{0:.2E}'.format(error))
                 new_best_creature = False
+                
+                pp(self.parameter_usefulness_count)
 
             if self.num_cycles > 0 and counter == self.num_cycles:
                 break

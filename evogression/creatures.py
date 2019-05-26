@@ -123,6 +123,11 @@ class EvogressionCreature():
             X = 1 if rand_rand() < 0.4 else rand_choice([-2] * 1 + [-1] * 5 + [0] * 3 + [2] * 5 + [3] * 1)
         return C, B, Z, X
 
+    
+    def used_parameters(self) -> set:
+        '''Return list of the parameters that are used by this creature.'''
+        return {param for layer, layer_dict in self.simplify_modifiers(self.modifiers).items() for param in layer_dict if param not in {'N', 'T', self.target_parameter}}
+
 
     def simplify_modifiers(self, modifiers: dict={}) -> dict:
         '''Method looks at the mathematics of self.modifiers and simplifies if possible'''
