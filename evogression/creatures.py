@@ -88,7 +88,7 @@ class EvogressionCreature():
                         modifiers[layer_name][param] = {'C': C, 'B': B, 'Z': Z, 'X': X}
                     else:
                         modifiers[layer_name]['N'] += C
-            if layer_name != 'LAYER_2':
+            if layer_name != 'LAYER_1':
                 C, B, Z, X = gen_param_coeffs()
                 if X == 0:  # want every layer > 1 to include a T term!!
                     X = 1
