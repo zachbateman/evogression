@@ -446,7 +446,7 @@ class EvogressionCreature():
                     s += f"        pass\n"
                 s += f"    parameters = standardized_data\n\n"
             else:
-                s += f"    # No input parameters used for regression"
+                s += f"    # No standardizer used for regression\n\n"
             s += "    T = 0  # T is the value from the previous layer if multiple layers\n\n"
 
         for layer in range(1, len(modifiers) + 1):
