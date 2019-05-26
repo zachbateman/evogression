@@ -10,3 +10,4 @@ MANIFEST
 *.c
 *.pyd
 *.profile
+*.html

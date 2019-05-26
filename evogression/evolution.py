@@ -20,21 +20,19 @@ class CreatureEvolution():
     famine_group_size = 50
 
     def __init__(self,
-                         target_parameter: str,
-                         all_data: typing.List[typing.Dict[str, float]],
-                         target_num_creatures: int=30000,
-                         add_random_creatures_each_cycle: bool=True,
-                         num_cycles: int=0,
-                         force_num_layers: int=0,
-                         standardize: bool=True,
-                         use_multip: bool=True,
-                         initial_creature_creation_multip: bool=True,
-                         train_on_all_data=True) -> None:
+                       target_parameter: str,
+                       all_data: typing.List[typing.Dict[str, float]],
+                       target_num_creatures: int=30000,
+                       add_random_creatures_each_cycle: bool=True,
+                       num_cycles: int=0,
+                       force_num_layers: int=0,
+                       standardize: bool=True,
+                       use_multip: bool=True,
+                       initial_creature_creation_multip: bool=True) -> None:
 
         self.target_parameter = target_parameter
         self.standardize = standardize
         self.all_data = all_data
-        random.shuffle(self.all_data)
         self.target_num_creatures = target_num_creatures
         self.add_random_creatures_each_cycle = add_random_creatures_each_cycle
         self.num_cycles = num_cycles
@@ -42,29 +40,18 @@ class CreatureEvolution():
         self.use_multip = use_multip
 
         self.current_generation = 1
-        self.num_additional_best_creatures = int(round(0.005 * self.target_num_creatures, 0))
+        self.num_additional_best_creatures = int(round(0.01 * self.target_num_creatures, 0))
         self.all_data_error_sums: dict = {}
         self.best_creatures: list = []
         self.parameter_usefulness_count: dict={key: 0 for key in all_data[0] if key != target_parameter}
 
         self.data_checks()
 
-        if train_on_all_data:
-            self.training_data = self.all_data
-            self.testing_data = self.all_data
-        else:
-            self.training_data = self.all_data[:int(round(len(self.all_data) * 0.75))]
-            self.testing_data = self.all_data[int(round(len(self.all_data) * 0.75)):]
-
-        self.training_data_len = len(self.training_data)
-        self.testing_data_len = len(self.testing_data)
-
         if self.standardize:
-            self.standardizer = Standardizer(self.training_data)  # only use training data for Standardizer!! (must be blind to consider test data)
-            self.standardized_training_data = self.standardizer.get_standardized_data()
+            self.standardizer = Standardizer(self.all_data)
+            self.standardized_all_data = self.standardizer.get_standardized_data()
         else:
             self.standardizer = None
-
 
         arg_tup = (target_parameter, self.all_data[0], force_num_layers)
         if initial_creature_creation_multip:
@@ -103,9 +90,9 @@ class CreatureEvolution():
             if self.use_multip:
                 calculated_creatures = []
                 if self.standardize:
-                    result_data = find_best_creature_multip(self.creatures, self.target_parameter, self.standardized_training_data, standardizer=self.standardizer, all_data_error_sums=self.all_data_error_sums)
+                    result_data = find_best_creature_multip(self.creatures, self.target_parameter, self.standardized_all_data, standardizer=self.standardizer, all_data_error_sums=self.all_data_error_sums)
                 else:
-                    result_data = find_best_creature_multip(self.creatures, self.target_parameter, self.training_data, all_data_error_sums=self.all_data_error_sums)
+                    result_data = find_best_creature_multip(self.creatures, self.target_parameter, self.all_data, all_data_error_sums=self.all_data_error_sums)
                 best_creature_lists = [result_data[5 * i: 5 * (i + 1)] for i in range(int(len(result_data) / 5))]
                 # best_creature_lists is list with items of form [best_creature, error, avg_error]
                 error, best_creature = None, None
@@ -117,7 +104,7 @@ class CreatureEvolution():
                     self.all_data_error_sums = {**self.all_data_error_sums, **bc_list[4]}  # recreate all_data_error_sums cache with results including updated cache values
                 median_error = sum(bc_list[2] for bc_list in best_creature_lists) / len(best_creature_lists)  # mean of medians of big chunks...
             else:
-                best_creature, error, median_error, calculated_creatures, all_data_error_sums = find_best_creature(self.creatures, self.target_parameter, self.standardized_training_data, all_data_error_sums=self.all_data_error_sums)
+                best_creature, error, median_error, calculated_creatures, all_data_error_sums = find_best_creature(self.creatures, self.target_parameter, self.standardized_all_data, all_data_error_sums=self.all_data_error_sums)
                 self.all_data_error_sums = {**self.all_data_error_sums, **all_data_error_sums}
             self.creatures = calculated_creatures
             
@@ -130,9 +117,6 @@ class CreatureEvolution():
             print(f'Median error: ' + '{0:.2E}'.format(median_error))
             print('Best Creature:')
             print(f'  Generation: {best_creature.generation}    Error: ' + '{0:.2E}'.format(error))
-
-            bc_error = sum([calc_error_value(best_creature, self.target_parameter, data_point, self.standardizer) for data_point in self.testing_data]) / self.testing_data_len
-            print('  Testing Data Error:     ' + '{0:.2E}'.format(bc_error) + '\n')
 
             for creature_list in self.best_creatures:
                 if creature_list[1] < best_error or best_error < 0:
@@ -201,7 +185,7 @@ class CreatureEvolution():
             group_size = self.famine_group_size
 
         random.shuffle(self.creatures)
-        all_food_data = self.standardized_training_data if self.standardize else self.training_data
+        all_food_data = self.standardized_all_data if self.standardize else self.all_data
 
         random_choice = random.choice  # local variable for speed
         if self.use_multip:

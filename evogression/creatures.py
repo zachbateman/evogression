@@ -239,7 +239,7 @@ class EvogressionCreature():
         try:
             return self._complexity_cost
         except:
-            self._complexity_cost = 10 + int(round(sum(len(layer_dict) for layer_dict in self.modifiers.values()) / 4, 0))
+            self._complexity_cost = 15 + int(round(sum(len(layer_dict) for layer_dict in self.modifiers.values()) / 4, 0))
             return self._complexity_cost
 
 
@@ -253,7 +253,7 @@ class EvogressionCreature():
         self_layers, other_layers = self.layers, other.layers
 
         combined_hunger = self.hunger + other.hunger
-        chance_of_mating = (combined_hunger - 75) / 100
+        chance_of_mating = (combined_hunger - 100) / 100
 
         if rand_rand() < (1 - chance_of_mating):
             return None
