@@ -21,7 +21,7 @@ Evogression is Python package providing an evolutionary algorithm to develop a r
 
  - Evolution algorithm successfully models surface 3D data using two input attributes.  Below test models both x and y components linearly; both x and y could be fitted non-linearly with sufficient evolution size and an appropriate data set.
 
-<img src="tests/images/surface_regression_evolution_test.png" width="550px">
+<img src="tests/images/surface_regression_evolution_test2.png" width="550px">
 
 
 
