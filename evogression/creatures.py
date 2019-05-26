@@ -48,6 +48,11 @@ class EvogressionCreature():
         self.target_parameter = target_parameter
         self.full_parameter_example = full_parameter_example
 
+        if self.layers == 0:
+            self.layers = random.choice(layer_probabilities)
+        self.layer_list = list(range(1, self.layers + 1))
+        self.layer_str_list = [f'LAYER_{layer}' for layer in self.layer_list]
+
         if modifiers == {}:
             if full_parameter_example == {}:
                 print('Warning!  No modifiers or parameters provided to create EvogressionCreature!')
@@ -55,15 +60,10 @@ class EvogressionCreature():
         else:
             self.modifiers = modifiers
 
-        mods = self.modifiers  # local for speed
-        self.layer_list = list(range(1, len(mods) + 1))
-        self.layer_str_list = [f'LAYER_{layer}' for layer in self.layer_list]
-        self.modifier_hash = hash(repr(mods))  # used for caching purposes!
+        self.modifier_hash = hash(repr(self.modifiers))  # used for caching purposes!
 
 
     def create_initial_modifiers(self) -> dict:
-        if self.layers == 0:
-            self.layers = random.choice(layer_probabilities)
 
         # local variables for speed
         parameter_usage_num = 2.5 * (len(self.full_parameter_example) + 1)
@@ -88,7 +88,7 @@ class EvogressionCreature():
                         modifiers[layer_name][param] = {'C': C, 'B': B, 'Z': Z, 'X': X}
                     else:
                         modifiers[layer_name]['N'] += C
-            if layer > 1:
+            if layer_name != 'LAYER_2':
                 C, B, Z, X = gen_param_coeffs()
                 if X == 0:  # want every layer > 1 to include a T term!!
                     X = 1
@@ -123,7 +123,7 @@ class EvogressionCreature():
             X = 1 if rand_rand() < 0.4 else rand_choice([-2] * 1 + [-1] * 5 + [0] * 3 + [2] * 5 + [3] * 1)
         return C, B, Z, X
 
-    
+
     def used_parameters(self) -> set:
         '''Return list of the parameters that are used by this creature.'''
         return {param for layer, layer_dict in self.simplify_modifiers(self.modifiers).items() for param in layer_dict if param not in {'N', 'T', self.target_parameter}}

@@ -40,7 +40,6 @@ class CreatureEvolution():
         self.use_multip = use_multip
 
         self.current_generation = 1
-        self.num_additional_best_creatures = int(round(0.01 * self.target_num_creatures, 0))
         self.all_data_error_sums: dict = {}
         self.best_creatures: list = []
         self.parameter_usefulness_count: dict={key: 0 for key in all_data[0] if key != target_parameter}
@@ -86,7 +85,6 @@ class CreatureEvolution():
             print(f'Cycle - {counter} -')
             print(f'Current Phase: {feast_or_famine}')
 
-            random.shuffle(self.creatures)  # used to mix up new creatures in among multip
             if self.use_multip:
                 calculated_creatures = []
                 if self.standardize:
@@ -107,7 +105,7 @@ class CreatureEvolution():
                 best_creature, error, median_error, calculated_creatures, all_data_error_sums = find_best_creature(self.creatures, self.target_parameter, self.standardized_all_data, all_data_error_sums=self.all_data_error_sums)
                 self.all_data_error_sums = {**self.all_data_error_sums, **all_data_error_sums}
             self.creatures = calculated_creatures
-            
+
             for param in best_creature.used_parameters():
                 self.parameter_usefulness_count[param] += 1
 
@@ -132,7 +130,7 @@ class CreatureEvolution():
                 print(self.best_creature)
                 print(f'Total Error: ' + '{0:.2E}'.format(error))
                 new_best_creature = False
-                
+
                 pp(self.parameter_usefulness_count)
 
             if self.num_cycles > 0 and counter == self.num_cycles:
@@ -155,21 +153,23 @@ class CreatureEvolution():
         sprinkle in additional best_creatures to enhance this behavior
         also add in their offspring (mutated but close to latest best_creature)
         '''
-        additional_best_creatures = [copy.deepcopy(self.best_creature) for _ in range(self.num_additional_best_creatures)]
-        additional_best_creatures.extend([additional_best_creatures[0] + additional_best_creatures[1] for _ in range(self.num_additional_best_creatures)])
+        num_additional_best_creatures = int(round(0.005 * self.target_num_creatures, 0))
+        additional_best_creatures = [copy.deepcopy(self.best_creature) for _ in range(num_additional_best_creatures)]
+        additional_best_creatures.extend([additional_best_creatures[0] + additional_best_creatures[1] for _ in range(num_additional_best_creatures)])
         additional_best_creatures = [cr for cr in additional_best_creatures if cr is not None]  # due to chance of not mating
         return additional_best_creatures
 
 
     def evolution_cycle(self, feast_or_famine: str):
 
-        self.feed_creatures(feast_or_famine)
-        self.run_metabolism_creatures()
-        self.kill_weak_creatures()
-
         # Option to add random new creatures each cycle (2.0% of target_num_creatures each time)
         if self.add_random_creatures_each_cycle:
             self.creatures.extend([EvogressionCreature(self.target_parameter, full_parameter_example=self.all_data[0], hunger=80 * random.random() + 10, layers=self.force_num_layers) for _ in range(int(round(0.02 * self.target_num_creatures, 0)))])
+
+        random.shuffle(self.creatures)  # used to mix up new creatures in among multip and randomize feeding groups
+        self.feed_creatures(feast_or_famine)
+        self.run_metabolism_creatures()
+        self.kill_weak_creatures()
 
         self.mate_creatures()
 
@@ -184,7 +184,6 @@ class CreatureEvolution():
         elif feast_or_famine == 'famine':
             group_size = self.famine_group_size
 
-        random.shuffle(self.creatures)
         all_food_data = self.standardized_all_data if self.standardize else self.all_data
 
         random_choice = random.choice  # local variable for speed
