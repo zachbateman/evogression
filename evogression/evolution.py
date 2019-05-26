@@ -170,7 +170,6 @@ class CreatureEvolution():
         self.feed_creatures(feast_or_famine)
         self.run_metabolism_creatures()
         self.kill_weak_creatures()
-
         self.mate_creatures()
 
 
@@ -308,12 +307,11 @@ def find_best_creature(creatures: list, target_parameter: str, data: list, stand
     data_length = len(data)
     best_creature = None
     for creature in tqdm.tqdm(creatures):
-        error = 0
         try:
-            error += all_data_error_sums[creature.modifier_hash]
+            error = all_data_error_sums[creature.modifier_hash]
         except KeyError:
             error = sum([calc_error_value(creature, target_parameter, data_point, standardizer) for data_point in data])
-            all_data_error_sums[creature.modifier_hash] = error + 0  # +0 is simply a quick and dirty way to ensure reference to different value
+            all_data_error_sums[creature.modifier_hash] = error
 
         append_to_calculated_creatures(creature)
         error /= data_length
