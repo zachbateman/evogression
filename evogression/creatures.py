@@ -65,7 +65,7 @@ class EvogressionCreature():
             self.layers = random.choice(layer_probabilities)
 
         # local variables for speed
-        parameter_usage_num = (1 / len(self.full_parameter_example)) + 0.3
+        parameter_usage_num = 2.5 * (len(self.full_parameter_example) + 1)
         rand_rand = random.random
         # rand_gauss = random.gauss
         rand_tri = random.triangular
@@ -290,6 +290,7 @@ class EvogressionCreature():
             '''Modifies new_modifiers in place'''
             new_modifiers[layer_name][param] = {}
             len_modifier_list = len(modifier_list)
+            new_mods_layername_param = new_modifiers[layer_name][param]  # local variable for speed
             for coef in coefficients:
                 new_coef = sum(mods[layer_name][param][coef] for mods in modifier_list) / len_modifier_list
                 if coef == 'X':
@@ -298,7 +299,7 @@ class EvogressionCreature():
                         new_coef = 0
                 else:
                     new_coef *= mutate_multiplier(new_mutability)
-                new_modifiers[layer_name][param][coef] = new_coef
+                new_mods_layername_param[coef] = new_coef
 
 
         possible_parameters = get_possible_parameters(self.full_parameter_example, self.target_parameter)
