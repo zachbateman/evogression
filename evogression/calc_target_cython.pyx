@@ -3,22 +3,21 @@ Cython implementation of EvogressionCreature._calc_single_layer_target()
 '''
 
 
-cpdef double calc_target_cython(dict parameters, dict modifiers, list layer_list):
+cpdef double calc_target_cython(dict parameters, dict modifiers, list layer_str_list):
 
-    cpdef double T = 0
-    T = -99999  # bogus value for first layer
-    for layer in layer_list:
-        T = calc_single_layer_target_cython(parameters, modifiers, layer, T)
+    cpdef double T = -99999  # bogus value for first layer
+    for layer_name in layer_str_list:
+        T = calc_single_layer_target_cython(parameters, modifiers, layer_name, T)
     return T
 
 
 
-cdef double calc_single_layer_target_cython(dict parameters, dict modifiers, long layer, double previous_T):
+cdef double calc_single_layer_target_cython(dict parameters, dict modifiers, str layer_name, double previous_T):
 
     cpdef double T = 0
-    cpdef str param
-    cpdef double value
-    layer_modifiers = modifiers[f'LAYER_{layer}']
+    cdef str param
+    cdef double value
+    cdef dict layer_modifiers = modifiers[layer_name]
 
     for param, value in parameters.items():
         T += param_value_component(layer_modifiers, param, value)
@@ -36,7 +35,7 @@ cdef double calc_single_layer_target_cython(dict parameters, dict modifiers, lon
 
 cdef double param_value_component(dict layer_modifiers, str param, double value):
 
-    cpdef dict mods
+    cdef dict mods
 
     try:
         mods = layer_modifiers[param]

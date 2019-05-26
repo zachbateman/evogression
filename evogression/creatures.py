@@ -57,6 +57,7 @@ class EvogressionCreature():
 
         mods = self.modifiers  # local for speed
         self.layer_list = list(range(1, len(mods) + 1))
+        self.layer_str_list = [f'LAYER_{layer}' for layer in self.layer_list]
         self.modifier_hash = hash(repr(mods))  # used for caching purposes!
 
 
@@ -74,8 +75,7 @@ class EvogressionCreature():
         full_param_example_keys = self.full_parameter_example.keys()
 
         modifiers: dict = {}
-        for layer in range(1, self.layers + 1):
-            layer_name = f'LAYER_{layer}'
+        for layer_name in self.layer_str_list:
             modifiers[layer_name] = {}
             # modifiers[f'LAYER_{layer}']['N'] = 0 if rand_rand() < 0.2 else random.gauss(0, 3 * self.mutability)
             modifiers[layer_name]['N'] = 0 if rand_rand() < 0.2 else rand_tri(-9 * self.mutability, 0, 9 * self.mutability)
@@ -187,7 +187,7 @@ class EvogressionCreature():
         Apply the creature's modifiers to the parameters to calculate an attempt at target
         '''
         try:
-            return calc_target_cython.calc_target_cython(parameters, self.modifiers, self.layer_list)
+            return calc_target_cython.calc_target_cython(parameters, self.modifiers, self.layer_str_list)
         except:  # if cython extension not available
             T = None  # has to be None on first layer
             for layer in self.layer_list:
