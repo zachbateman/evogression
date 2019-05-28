@@ -43,13 +43,13 @@ class CreatureEvolution():
         self.best_creatures: list = []
         self.parameter_usefulness_count: dict={key: 0 for key in all_data[0] if key != target_parameter}
 
-        self.data_checks()
-
         if self.standardize:
             self.standardizer = Standardizer(self.all_data)
             self.standardized_all_data = self.standardizer.get_standardized_data()
         else:
             self.standardizer = None
+
+        self.data_checks()
 
         arg_tup = (target_parameter, self.all_data[0], force_num_layers)
         if initial_creature_creation_multip:
@@ -66,11 +66,16 @@ class CreatureEvolution():
     def data_checks(self):
         '''Check input data for potential issues'''
         acceptable_types = {'float', 'int', 'float64'}
-        for i, d in enumerate(self.all_data):
-            for key, val in d.items():
-                if type(val).__name__ not in acceptable_types:
-                    print('ERROR!  NAN values detected in all_data!')
-                    print(f'Index: {i}  data: {d}  type: {type(val).__name__}')
+        def check_data(data, data_name):
+            for i, d in enumerate(data):
+                for key, val in d.items():
+                    # val > & < checks are way of checking for nan without needing to require numpy import
+                    if type(val).__name__ not in acceptable_types or not (val >= 0 or val <= 0):
+                        print(f'ERROR!  NAN values detected in {data_name}!')
+                        print(f'Index: {i}  key: {key}  value: {val}  type: {type(val).__name__}')
+                        breakpoint()
+        check_data(self.all_data, 'all_data')
+        check_data(self.standardized_all_data, 'standardized_all_data')
 
 
     def evolve_creatures(self):
