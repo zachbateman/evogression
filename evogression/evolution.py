@@ -120,6 +120,7 @@ class CreatureEvolution():
             for creature_list in self.best_creatures:
                 if creature_list[1] < best_error or best_error < 0:
                     best_error = creature_list[1]
+                    self.best_error = best_error
                     self.best_creature = creature_list[0]
                     new_best_creature = True
                     for param in self.best_creature.used_parameters():  # only count parameter usage for each NEW best_creature
@@ -255,9 +256,9 @@ class CreatureEvolution():
 
     def output_best_regression_function_as_module(self, output_filename='regression_function.py'):
         if self.standardize:
-            self.best_creature.output_python_regression_module(output_filename=output_filename, standardizer=self.standardizer)
+            self.best_creature.output_python_regression_module(output_filename=output_filename, standardizer=self.standardizer, directory='regression_modules', name_ext=f'___{self.best_error}')
         else:
-            self.best_creature.output_python_regression_module(output_filename=output_filename)
+            self.best_creature.output_python_regression_module(output_filename=output_filename, directory='regression_modules', name_ext=f'___{self.best_error}')
 
 
 def generate_initial_creature(arg_tup):

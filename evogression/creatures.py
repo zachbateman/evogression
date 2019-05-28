@@ -3,6 +3,7 @@ Module containing "creatures" that each represent a potential regression equatio
 '''
 import random
 import copy
+import os
 from pprint import pprint as pp
 try:
     from . import calc_target_cython
@@ -416,8 +417,9 @@ class EvogressionCreature():
         return self.simplify_modifiers(self.modifiers)
 
 
-    def output_python_regression_module(self, output_filename: str='regression_function.py', standardizer=None):
+    def output_python_regression_module(self, output_filename: str='regression_function.py', standardizer=None, directory: str='.', name_ext: str=''):
         '''Create a Python module/file with a regression function represented by this EvogressionCreature'''
+        output_filename = os.path.join(directory, output_filename + name_ext)
         output_str = self.output_regression_func_as_python_module_string(standardizer=standardizer)
         with open(output_filename, 'w') as f:
             f.write(output_str)
