@@ -22,7 +22,6 @@ except ImportError:
     param_coeff_cython_available = False
 
 
-random.seed(1000)
 layer_probabilities = [1] * 5 + [2] * 3 + [3] * 2 + [4] * 1
 
 class EvogressionCreature():
@@ -417,9 +416,9 @@ class EvogressionCreature():
         return self.simplify_modifiers(self.modifiers)
 
 
-    def output_python_regression_module(self, output_filename: str='regression_function.py', standardizer=None, directory: str='.', name_ext: str=''):
+    def output_python_regression_module(self, output_filename: str='regression_function', standardizer=None, directory: str='.', name_ext: str=''):
         '''Create a Python module/file with a regression function represented by this EvogressionCreature'''
-        output_filename = os.path.join(directory, output_filename + name_ext)
+        output_filename = os.path.join(directory, output_filename + name_ext + '.py')
         output_str = self.output_regression_func_as_python_module_string(standardizer=standardizer)
         with open(output_filename, 'w') as f:
             f.write(output_str)

@@ -254,11 +254,11 @@ class CreatureEvolution():
         self.creatures.extend(new_creatures)
 
 
-    def output_best_regression_function_as_module(self, output_filename='regression_function.py'):
+    def output_best_regression_function_as_module(self, output_filename='regression_function'):
         if self.standardize:
-            self.best_creature.output_python_regression_module(output_filename=output_filename, standardizer=self.standardizer, directory='regression_modules', name_ext=f'___{self.best_error}')
+            self.best_creature.output_python_regression_module(output_filename=output_filename, standardizer=self.standardizer, directory='regression_modules', name_ext=f'___{round(self.best_error, 5)}')
         else:
-            self.best_creature.output_python_regression_module(output_filename=output_filename, directory='regression_modules', name_ext=f'___{self.best_error}')
+            self.best_creature.output_python_regression_module(output_filename=output_filename, directory='regression_modules', name_ext=f'___{round(self.best_error, 5)}')
 
 
 def generate_initial_creature(arg_tup):
