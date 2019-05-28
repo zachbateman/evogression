@@ -13,7 +13,6 @@ from .standardize import Standardizer
 
 
 
-
 class CreatureEvolution():
 
     feast_group_size = 2
@@ -315,7 +314,7 @@ def find_best_creature(creatures: list, target_parameter: str, data: list, stand
 
         append_to_calculated_creatures(creature)
         error /= data_length
-        if error < best_error or best_error < 1:
+        if error < best_error or best_error < 0:
             best_error = error
             best_creature = creature
         append_to_errors(error)
