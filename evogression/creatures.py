@@ -66,7 +66,7 @@ class EvogressionCreature():
     def create_initial_modifiers(self) -> dict:
 
         # local variables for speed
-        parameter_usage_num = 2.5 * (len(self.full_parameter_example) + 1)
+        parameter_usage_num = 2.5 / (len(self.full_parameter_example) + 1)
         rand_rand = random.random
         # rand_gauss = random.gauss
         rand_tri = random.triangular
