@@ -110,9 +110,6 @@ class CreatureEvolution():
                 self.all_data_error_sums = {**self.all_data_error_sums, **all_data_error_sums}
             self.creatures = calculated_creatures
 
-            for param in best_creature.used_parameters():
-                self.parameter_usefulness_count[param] += 1
-
             self.best_creatures.append([copy.deepcopy(best_creature), error])
             print(f'Total number of creatures:  {len(self.creatures)}')
             print(f'Average Hunger: {round(self.average_creature_hunger, 1)}')
@@ -125,17 +122,17 @@ class CreatureEvolution():
                     best_error = creature_list[1]
                     self.best_creature = creature_list[0]
                     new_best_creature = True
-
+                    for param in self.best_creature.used_parameters():  # only count parameter usage for each NEW best_creature
+                        self.parameter_usefulness_count[param] += 1
 
             self.creatures.extend(self.additional_best_creatures())  # sprinkle in additional best_creatures to enhance the top-performing behaviour
 
             if counter == 1 or new_best_creature:  # self.best_creatures[-1][0].modifiers != self.best_creatures[-2][0].modifiers:
+                pp(self.parameter_usefulness_count)
                 print(f'\n\n\nNEW BEST CREATURE AFTER {counter} ITERATIONS...')
                 print(self.best_creature)
                 print(f'Total Error: ' + '{0:.2E}'.format(error))
                 new_best_creature = False
-
-                pp(self.parameter_usefulness_count)
 
             if self.num_cycles > 0 and counter == self.num_cycles:
                 break
