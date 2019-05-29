@@ -33,7 +33,7 @@ class Standardizer():
         self.data_modifiers[param]['mean'] = mean
         self.data_modifiers[param]['stdev'] = stdev
 
-        new_values = [(v - mean) / stdev if stdev > 0 else v for v in values]
+        new_values = [(v - mean) / stdev if stdev > 0 else v - mean for v in values]
         for i in range(len(self.standardized_data)):
             self.standardized_data[i][param] = new_values[i]
 

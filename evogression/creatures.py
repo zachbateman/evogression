@@ -446,7 +446,7 @@ class EvogressionCreature():
                         if modifier_dict['stdev'] != 0:
                             s += f"            standardized_data['{param}'] = (value - {round(modifier_dict['mean'], 6)}) / {round(modifier_dict['stdev'], 6)}\n"
                         else:
-                            s += f"            standardized_data['{param}'] = value\n"
+                            s += f"            standardized_data['{param}'] = value - {round(modifier_dict['mean'], 6)}\n"
                 if '()' in s[-10:]:
                     s += f"        pass\n"
                 s += f"    parameters = standardized_data\n\n"
