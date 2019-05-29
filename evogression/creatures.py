@@ -443,7 +443,10 @@ class EvogressionCreature():
                 for param, modifier_dict in standardizer.data_modifiers.items():
                     if param != self.target_parameter and param in used_parameters:
                         s += f"        if param == '{param}':\n"
-                        s += f"            standardized_data['{param}'] = (value - {round(modifier_dict['mean'], 6)}) / {round(modifier_dict['stdev'], 6)}\n"
+                        if modifier_dict['stdev'] != 0:
+                            s += f"            standardized_data['{param}'] = (value - {round(modifier_dict['mean'], 6)}) / {round(modifier_dict['stdev'], 6)}\n"
+                        else:
+                            s += f"            standardized_data['{param}'] = value\n"
                 if '()' in s[-10:]:
                     s += f"        pass\n"
                 s += f"    parameters = standardized_data\n\n"
