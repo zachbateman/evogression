@@ -453,7 +453,7 @@ def calc_error_value(creature, target_parameter: str, data_point: dict, standard
         target_calc = unstandardize_value(target_parameter, target_calc)
         data_point_calc = unstandardize_value(target_parameter, data_point_calc)
     try:
-        error = abs(target_calc - data_point_calc) ** 2.0  # sometimes generates "RuntimeWarning: overflow encountered in double_scalars"
+        error = (target_calc - data_point_calc) ** 2.0  # sometimes generates "RuntimeWarning: overflow encountered in double_scalars"
     except OverflowError:  # if error is too big to store, give huge arbitrary error
         error = 10 ** 150
     return error
