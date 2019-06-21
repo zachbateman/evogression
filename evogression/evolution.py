@@ -193,7 +193,7 @@ class CreatureEvolution():
 class CreatureEvolutionFittest(CreatureEvolution):
 
     def __init__(self, *args, **kwargs) -> None:
-        super().__init__(self, args, kwargs)
+        super().__init__(*args, **kwargs)
 
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
@@ -269,7 +269,7 @@ class CreatureEvolutionFittest(CreatureEvolution):
             counter += 1
 
 
-    def evolution_cycle(self, feast_or_famine: str):
+    def evolution_cycle(self):
 
         # Option to add random new creatures each cycle (2.0% of target_num_creatures each time)
         if self.add_random_creatures_each_cycle:
@@ -292,8 +292,8 @@ class CreatureEvolutionFittest(CreatureEvolution):
 
 class CreatureEvolutionNatural(CreatureEvolution):
 
-    def __init__(self, **kwargs) -> None:
-        super().__init__(self, kwargs)
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
 
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')

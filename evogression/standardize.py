@@ -8,8 +8,7 @@ import copy
 
 class Standardizer():
 
-    def __init__(self,
-                         all_data: typing.List[typing.Dict[str, float]]) -> None:
+    def __init__(self, all_data: typing.List[typing.Dict[str, float]]) -> None:
         self.all_data = all_data
         self.parameters = all_data[0].keys()
         # initially create self.standarized_data as copy of all_data
