@@ -164,6 +164,14 @@ class CreatureEvolution():
             return best_creature
 
 
+    def print_cycle_stats(self, median_error: float=0, best_creature_error: float=0) -> None:
+        print(f'Total number of creatures:  {len(self.creatures)}')
+        print(f'Average Hunger: {round(self.average_creature_hunger, 1)}')
+        print(f'Median error: ' + '{0:.2E}'.format(median_error))
+        print('Best Creature:')
+        print(f'  Generation: {best_creature.generation}    Error: ' + '{0:.2E}'.format(error))
+
+
     def mate_creatures(self):
         '''
         Mate creatures to generate new creatures.
@@ -232,11 +240,7 @@ class CreatureEvolutionFittest(CreatureEvolution):
             self.current_median_error = median_error
 
             self.best_creatures.append([copy.deepcopy(best_creature), error])
-            print(f'Total number of creatures:  {len(self.creatures)}')
-            print(f'Average Hunger: {round(self.average_creature_hunger, 1)}')
-            print(f'Median error: ' + '{0:.2E}'.format(median_error))
-            print('Best Creature:')
-            print(f'  Generation: {best_creature.generation}    Error: ' + '{0:.2E}'.format(error))
+            self.print_cycle_stats(median_error=median_error, best_creature_error=error)
 
             for creature_list in self.best_creatures:
                 if creature_list[1] < best_error or best_error < 0:
@@ -270,15 +274,13 @@ class CreatureEvolutionFittest(CreatureEvolution):
 
 
     def evolution_cycle(self):
-
-        # Option to add random new creatures each cycle (2.0% of target_num_creatures each time)
-        if self.add_random_creatures_each_cycle:
-            self.creatures.extend([EvogressionCreature(self.target_parameter, full_parameter_example=self.all_data[0], hunger=80 * random.random() + 10, layers=self.force_num_layers) for _ in range(int(round(0.02 * self.target_num_creatures, 0)))])
-
-        random.shuffle(self.creatures)  # used to mix up new creatures in among multip and randomize feeding groups
         self.kill_weak_creatures()
         self.mate_creatures()
-        self.mate_creatures()
+
+        # Add random new creatures each cycle to get back to target num creatures
+        if self.add_random_creatures_each_cycle:
+            self.creatures.extend([EvogressionCreature(self.target_parameter, full_parameter_example=self.all_data[0], hunger=80 * random.random() + 10, layers=self.force_num_layers) for _ in range(int(round(self.target_num_creatures - len(self.creatures), 0)))])
+        random.shuffle(self.creatures)  # used to mix up new creatures in among multip
 
 
     def kill_weak_creatures(self):
@@ -333,11 +335,7 @@ class CreatureEvolutionNatural(CreatureEvolution):
             self.creatures = calculated_creatures
 
             self.best_creatures.append([copy.deepcopy(best_creature), error])
-            print(f'Total number of creatures:  {len(self.creatures)}')
-            print(f'Average Hunger: {round(self.average_creature_hunger, 1)}')
-            print(f'Median error: ' + '{0:.2E}'.format(median_error))
-            print('Best Creature:')
-            print(f'  Generation: {best_creature.generation}    Error: ' + '{0:.2E}'.format(error))
+            self.print_cycle_stats(median_error=median_error, best_creature_error=error)
 
             for creature_list in self.best_creatures:
                 if creature_list[1] < best_error or best_error < 0:
