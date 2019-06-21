@@ -164,7 +164,31 @@ class CreatureEvolution():
             return best_creature
 
 
-    def print_cycle_stats(self, median_error: float=0, best_creature_error: float=0) -> None:
+    def calculate_all_and_find_best_creature(self) -> tuple:
+        if self.use_multip:
+            calculated_creatures = []
+            if self.standardize:
+                result_data = find_best_creature_multip(self.creatures, self.target_parameter, self.standardized_all_data, standardizer=self.standardizer, all_data_error_sums=self.all_data_error_sums)
+            else:
+                result_data = find_best_creature_multip(self.creatures, self.target_parameter, self.all_data, all_data_error_sums=self.all_data_error_sums)
+            best_creature_lists = [result_data[5 * i: 5 * (i + 1)] for i in range(int(len(result_data) / 5))]
+            # best_creature_lists is list with items of form [best_creature, error, avg_error]
+            error, best_creature = None, None
+            for index, bc_list in enumerate(best_creature_lists):
+                calculated_creatures.extend(bc_list[3])
+                if error is None or bc_list[1] < error:
+                    error = bc_list[1]
+                    best_creature = bc_list[0]
+                self.all_data_error_sums = {**self.all_data_error_sums, **bc_list[4]}  # recreate all_data_error_sums cache with results including updated cache values
+            median_error = sum(bc_list[2] for bc_list in best_creature_lists) / len(best_creature_lists)  # mean of medians of big chunks...
+        else:
+            best_creature, error, median_error, calculated_creatures, all_data_error_sums = find_best_creature(self.creatures, self.target_parameter, self.standardized_all_data, all_data_error_sums=self.all_data_error_sums)
+            self.all_data_error_sums = {**self.all_data_error_sums, **all_data_error_sums}
+        self.creatures = calculated_creatures
+        return best_creature, error, median_error
+
+
+    def print_cycle_stats(self, best_creature=None, error=None, median_error: float=0, best_creature_error: float=0) -> None:
         print(f'Total number of creatures:  {len(self.creatures)}')
         print(f'Average Hunger: {round(self.average_creature_hunger, 1)}')
         print(f'Median error: ' + '{0:.2E}'.format(median_error))
@@ -210,37 +234,16 @@ class CreatureEvolutionFittest(CreatureEvolution):
 
     def evolve_creatures(self):
         counter = 1
-        best_creature = None
-        best_error = -1
-        new_best_creature = False
+        best_creature, best_error, new_best_creature = None, -1, False
         while True:
             print('-----------------------------------------')
             print(f'Cycle - {counter} -')
 
-            if self.use_multip:
-                calculated_creatures = []
-                if self.standardize:
-                    result_data = find_best_creature_multip(self.creatures, self.target_parameter, self.standardized_all_data, standardizer=self.standardizer, all_data_error_sums=self.all_data_error_sums)
-                else:
-                    result_data = find_best_creature_multip(self.creatures, self.target_parameter, self.all_data, all_data_error_sums=self.all_data_error_sums)
-                best_creature_lists = [result_data[5 * i: 5 * (i + 1)] for i in range(int(len(result_data) / 5))]
-                # best_creature_lists is list with items of form [best_creature, error, avg_error]
-                error, best_creature = None, None
-                for index, bc_list in enumerate(best_creature_lists):
-                    calculated_creatures.extend(bc_list[3])
-                    if error is None or bc_list[1] < error:
-                        error = bc_list[1]
-                        best_creature = bc_list[0]
-                    self.all_data_error_sums = {**self.all_data_error_sums, **bc_list[4]}  # recreate all_data_error_sums cache with results including updated cache values
-                median_error = sum(bc_list[2] for bc_list in best_creature_lists) / len(best_creature_lists)  # mean of medians of big chunks...
-            else:
-                best_creature, error, median_error, calculated_creatures, all_data_error_sums = find_best_creature(self.creatures, self.target_parameter, self.standardized_all_data, all_data_error_sums=self.all_data_error_sums)
-                self.all_data_error_sums = {**self.all_data_error_sums, **all_data_error_sums}
-            self.creatures = calculated_creatures
-            self.current_median_error = median_error
+            best_creature, error, median_error = self.calculate_all_and_find_best_creature()
 
+            self.current_median_error = median_error
             self.best_creatures.append([copy.deepcopy(best_creature), error])
-            self.print_cycle_stats(median_error=median_error, best_creature_error=error)
+            self.print_cycle_stats(best_creature=best_creature, error=error, median_error=median_error, best_creature_error=error)
 
             for creature_list in self.best_creatures:
                 if creature_list[1] < best_error or best_error < 0:
@@ -305,37 +308,17 @@ class CreatureEvolutionNatural(CreatureEvolution):
     def evolve_creatures(self):
         feast_or_famine = 'famine'
         counter = 1
-        best_creature = None
-        best_error = -1
-        new_best_creature = False
+        best_creature, best_error, new_best_creature = None, -1, False
         while True:
             print('-----------------------------------------')
             print(f'Cycle - {counter} -')
             print(f'Current Phase: {feast_or_famine}')
 
-            if self.use_multip:
-                calculated_creatures = []
-                if self.standardize:
-                    result_data = find_best_creature_multip(self.creatures, self.target_parameter, self.standardized_all_data, standardizer=self.standardizer, all_data_error_sums=self.all_data_error_sums)
-                else:
-                    result_data = find_best_creature_multip(self.creatures, self.target_parameter, self.all_data, all_data_error_sums=self.all_data_error_sums)
-                best_creature_lists = [result_data[5 * i: 5 * (i + 1)] for i in range(int(len(result_data) / 5))]
-                # best_creature_lists is list with items of form [best_creature, error, avg_error]
-                error, best_creature = None, None
-                for index, bc_list in enumerate(best_creature_lists):
-                    calculated_creatures.extend(bc_list[3])
-                    if error is None or bc_list[1] < error:
-                        error = bc_list[1]
-                        best_creature = bc_list[0]
-                    self.all_data_error_sums = {**self.all_data_error_sums, **bc_list[4]}  # recreate all_data_error_sums cache with results including updated cache values
-                median_error = sum(bc_list[2] for bc_list in best_creature_lists) / len(best_creature_lists)  # mean of medians of big chunks...
-            else:
-                best_creature, error, median_error, calculated_creatures, all_data_error_sums = find_best_creature(self.creatures, self.target_parameter, self.standardized_all_data, all_data_error_sums=self.all_data_error_sums)
-                self.all_data_error_sums = {**self.all_data_error_sums, **all_data_error_sums}
-            self.creatures = calculated_creatures
+            best_creature, error, median_error = self.calculate_all_and_find_best_creature()
+
 
             self.best_creatures.append([copy.deepcopy(best_creature), error])
-            self.print_cycle_stats(median_error=median_error, best_creature_error=error)
+            self.print_cycle_stats(best_creature=best_creature, error=error, median_error=median_error, best_creature_error=error)
 
             for creature_list in self.best_creatures:
                 if creature_list[1] < best_error or best_error < 0:
