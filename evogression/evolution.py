@@ -53,9 +53,9 @@ class CreatureEvolution():
 
         arg_tup = (target_parameter, self.all_data[0], force_num_layers)
         if initial_creature_creation_multip:
-            self.creatures = easy_multip.map(generate_initial_creature, [arg_tup for _ in range(int(round(1.1 * target_num_creatures, 0)))])
+            self.creatures = easy_multip.map(generate_initial_creature, [arg_tup for _ in range(target_num_creatures)])
         else:
-            self.creatures = [generate_initial_creature(arg_tup) for _ in range(int(round(1.1 * target_num_creatures, 0)))]
+            self.creatures = [generate_initial_creature(arg_tup) for _ in range(target_num_creatures)]
 
         # with warnings.catch_warnings():
             # warnings.simplefilter('ignore')
@@ -83,10 +83,7 @@ class CreatureEvolution():
         also add in their offspring (mutated but close to latest best_creature)
         '''
         num_additional_best_creatures = int(round(0.005 * self.target_num_creatures, 0))
-        additional_best_creatures = [copy.deepcopy(self.best_creature) for _ in range(num_additional_best_creatures)]
-        additional_best_creatures.extend([additional_best_creatures[0] + additional_best_creatures[1] for _ in range(num_additional_best_creatures)])
-        additional_best_creatures = [cr for cr in additional_best_creatures if cr is not None]  # due to chance of not mating
-        return additional_best_creatures
+        return [copy.deepcopy(self.best_creature) for _ in range(num_additional_best_creatures)]
 
 
     def evolution_cycle(self, feast_or_famine: str):
@@ -100,6 +97,16 @@ class CreatureEvolution():
         self.run_metabolism_creatures()
         self.kill_weak_creatures()
         self.mate_creatures()
+
+
+    def check_cycles(self, counter):
+        '''Used in evolve_creatures() to handle cycle counting extras'''
+        if counter % 10 == 0:
+            if counter > 10:
+                self.best_creatures = self.best_creatures[10:]
+            if counter >= 10 and not self.num_cycles > 0:  # only pause if running indefinitely
+                breakpoint()
+        return counter + 1
 
 
     def feed_creatures(self, feast_or_famine: str):
@@ -263,17 +270,11 @@ class CreatureEvolutionFittest(CreatureEvolution):
                 print(f'Total Error: ' + '{0:.2E}'.format(error))
                 new_best_creature = False
 
+
+            counter = self.check_cycles(counter)
             if self.num_cycles > 0 and counter == self.num_cycles:
                 break
-
-            if counter % 10 == 0:
-                if counter > 10:
-                    self.best_creatures = self.best_creatures[10:]
-                if counter >= 10 and not self.num_cycles > 0:  # only pause if running indefinitely
-                    breakpoint()
-
             self.evolution_cycle()
-            counter += 1
 
 
     def evolution_cycle(self):
@@ -281,8 +282,7 @@ class CreatureEvolutionFittest(CreatureEvolution):
         self.mate_creatures()
 
         # Add random new creatures each cycle to get back to target num creatures
-        if self.add_random_creatures_each_cycle:
-            self.creatures.extend([EvogressionCreature(self.target_parameter, full_parameter_example=self.all_data[0], hunger=80 * random.random() + 10, layers=self.force_num_layers) for _ in range(int(round(self.target_num_creatures - len(self.creatures), 0)))])
+        self.creatures.extend([EvogressionCreature(self.target_parameter, full_parameter_example=self.all_data[0], hunger=80 * random.random() + 10, layers=self.force_num_layers) for _ in range(int(round(self.target_num_creatures - len(self.creatures), 0)))])
         random.shuffle(self.creatures)  # used to mix up new creatures in among multip
 
 
@@ -290,6 +290,7 @@ class CreatureEvolutionFittest(CreatureEvolution):
         '''Remove all creatures whose hunger has dropped to 0 or below'''
         error_sums = self.all_data_error_sums
         median_error = self.current_median_error
+        print(f'median_error: {median_error}')
         self.creatures = [creature for creature in self.creatures if error_sums[creature.modifier_hash] > median_error]
 
 
@@ -338,19 +339,12 @@ class CreatureEvolutionNatural(CreatureEvolution):
                 print(f'Total Error: ' + '{0:.2E}'.format(error))
                 new_best_creature = False
 
+            counter = self.check_cycles(counter)
             if self.num_cycles > 0 and counter == self.num_cycles:
                 break
-
-            if counter % 10 == 0:
-                if counter > 10:
-                    self.best_creatures = self.best_creatures[10:]
-                if counter >= 10 and not self.num_cycles > 0:  # only pause if running indefinitely
-                    breakpoint()
-
             self.evolution_cycle(feast_or_famine)
 
             feast_or_famine = 'feast' if len(self.creatures) < self.target_num_creatures else 'famine'
-            counter += 1
 
 
     def evolution_cycle(self, feast_or_famine: str):
@@ -481,11 +475,10 @@ def find_best_creature(creatures: list, target_parameter: str, data: list, stand
         try:
             error = all_data_error_sums[creature.modifier_hash]
         except KeyError:
-            error = sum([calc_error_value(creature, target_parameter, data_point, standardizer) for data_point in data])
+            error = sum([calc_error_value(creature, target_parameter, data_point, standardizer) for data_point in data]) / data_length
             all_data_error_sums[creature.modifier_hash] = error
 
         append_to_calculated_creatures(creature)
-        error /= data_length
         if error < best_error or best_error < 0:
             best_error = error
             best_creature = creature

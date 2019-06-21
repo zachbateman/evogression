@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 
 
 class TestParabolaRegression(unittest.TestCase):
-    '''
+
     def test_best_creature_parabola_regression_brute_force_3_layer(self):
         # this method (creating random, independent creatures and picking the best one)
         # is generating a great match with 100,000 creatures and squared error calculations!!!
@@ -47,15 +47,11 @@ class TestParabolaRegression(unittest.TestCase):
         plt.ylabel('y')
         plt.title('Parabola Regression - Brute Force Test')
         plt.show()
-    '''
+
 
 
     def test_best_creature_parabola_regression_evolution(self):
-        '''
-        HAVING A VERY HARD TIME GETTING A GOOD PARABOLA MATCH WITH EVOLUTION!!!
-        TRY GETTING EVOLUTION AS CLOSE AS POSSIBLE TO THE STEPS IN BRUTE FORCE ABOVE BEFORE GETTING TOO CLEVER!!!
-        '''
-        evolution = evogression.evolution.CreatureEvolutionFittest('y', parabola_data, target_num_creatures=50000, num_cycles=7, force_num_layers=0, standardize=True)
+        evolution = evogression.evolution.CreatureEvolutionFittest('y', parabola_data, target_num_creatures=50000, num_cycles=7, force_num_layers=0, standardize=True, use_multip=False)
         try:
             best_creature, standardizer = evolution.return_best_creature()
         except:
