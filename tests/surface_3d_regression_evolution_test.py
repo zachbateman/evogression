@@ -12,7 +12,7 @@ from mpl_toolkits.mplot3d import axes3d
 class Test3DSurfaceRegression(unittest.TestCase):
 
     def test_best_creature_3d(self):
-        evolution = evogression.evolution.CreatureEvolutionFittest('z', surface_3d_data, target_num_creatures=15000, num_cycles=10)
+        evolution = evogression.evolution.CreatureEvolutionFittest('z', surface_3d_data, target_num_creatures=30000, num_cycles=10)
 
         x = [point_dict['x'] for point_dict in surface_3d_data]
         y = [point_dict['y'] for point_dict in surface_3d_data]
