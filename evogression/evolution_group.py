@@ -3,7 +3,7 @@ Module containing high-level evogression functionality to fit and summarize regr
 '''
 import random
 import easy_multip
-from .evolution import CreatureEvolution
+from .evolution import CreatureEvolutionFittest
 
 
 
@@ -21,7 +21,7 @@ def calculate_single_evolution(arg_group):
     Module-level function for arg to easy_multip.
     '''
     target_param, data, num_cr, num_cy = arg_group
-    return CreatureEvolution(target_param, data, target_num_creatures=num_cr, num_cycles=num_cy, use_multip=False, initial_creature_creation_multip=False)
+    return CreatureEvolutionFittest(target_param, data, target_num_creatures=num_cr, num_cycles=num_cy, use_multip=False, initial_creature_creation_multip=False)
 
 
 def output_group_regression_funcs(group: list):
