@@ -1,5 +1,5 @@
 '''
-Module containing evolution algorithm for regression.
+Module containing evolution algorithms for regression.
 '''
 from typing import List, Dict
 import copy
@@ -14,20 +14,24 @@ from .standardize import Standardizer
 
 
 class CreatureEvolution():
-
+    '''
+    Creates a framework for evolving groups of creatures.
+    This class is designed to be subclassed into more
+    specific evolution algorithms.
+    '''
     feast_group_size = 2
     famine_group_size = 50
 
     def __init__(self,
-                       target_parameter: str,
-                       all_data: List[Dict[str, float]],
-                       target_num_creatures: int=30000,
-                       add_random_creatures_each_cycle: bool=True,
-                       num_cycles: int=0,
-                       force_num_layers: int=0,
-                       standardize: bool=True,
-                       use_multip: bool=True,
-                       initial_creature_creation_multip: bool=True) -> None:
+                 target_parameter: str,
+                 all_data: List[Dict[str, float]],
+                 target_num_creatures: int=30000,
+                 add_random_creatures_each_cycle: bool=True,
+                 num_cycles: int=0,
+                 force_num_layers: int=0,
+                 standardize: bool=True,
+                 use_multip: bool=True,
+                 initial_creature_creation_multip: bool=True) -> None:
 
         self.target_parameter = target_parameter
         self.standardize = standardize
@@ -56,10 +60,6 @@ class CreatureEvolution():
             self.creatures = easy_multip.map(generate_initial_creature, [arg_tup for _ in range(target_num_creatures)])
         else:
             self.creatures = [generate_initial_creature(arg_tup) for _ in range(target_num_creatures)]
-
-        # with warnings.catch_warnings():
-            # warnings.simplefilter('ignore')
-            # self.evolve_creatures()
 
 
     def data_checks(self):
@@ -204,9 +204,7 @@ class CreatureEvolution():
 
 
     def mate_creatures(self):
-        '''
-        Mate creatures to generate new creatures.
-        '''
+        '''Mate creatures to generate new creatures'''
         new_creatures = []
         new_creatures_append = new_creatures.append
         for i in range(0, len(self.creatures), 2):
@@ -230,7 +228,10 @@ class CreatureEvolution():
 
 
 class CreatureEvolutionFittest(CreatureEvolution):
-
+    '''
+    Evolves creatures by killing off the worst performers in
+    each cycle and then randomly generating many new creatures.
+    '''
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
@@ -261,9 +262,9 @@ class CreatureEvolutionFittest(CreatureEvolution):
                     for param in self.best_creature.used_parameters():  # only count parameter usage for each NEW best_creature
                         self.parameter_usefulness_count[param] += 1
 
-            self.creatures.extend(self.additional_best_creatures())  # sprinkle in additional best_creatures to enhance the top-performing behaviour
+            self.creatures.extend(self.additional_best_creatures())  # sprinkle in additional best_creatures to encourage top-performing behaviour
 
-            if counter == 1 or new_best_creature:  # self.best_creatures[-1][0].modifiers != self.best_creatures[-2][0].modifiers:
+            if counter == 1 or new_best_creature:
                 pp(self.parameter_usefulness_count)
                 print(f'\n\n\nNEW BEST CREATURE AFTER {counter} ITERATIONS...')
                 print(self.best_creature)
@@ -278,6 +279,7 @@ class CreatureEvolutionFittest(CreatureEvolution):
 
 
     def evolution_cycle(self):
+        '''Run one cycle of evolution'''
         self.kill_weak_creatures()
         self.mate_creatures()
 
@@ -297,7 +299,16 @@ class CreatureEvolutionFittest(CreatureEvolution):
 
 
 class CreatureEvolutionNatural(CreatureEvolution):
+    '''
+    Evolves creatures by "feeding" them.  The better creatures
+    successfully model test data and stay healthy while bad
+    performers get progressivly "hungrier" until they are killed off.
 
+    Cycles of "feast" and "famine" cause the community of creatures to
+    grow and shrink with each phase either increasing the diversity of
+    creatures (regression equations) or decreasing the diversity by
+    killing off the lower-performing creatures.
+    '''
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
@@ -330,9 +341,9 @@ class CreatureEvolutionNatural(CreatureEvolution):
                     for param in self.best_creature.used_parameters():  # only count parameter usage for each NEW best_creature
                         self.parameter_usefulness_count[param] += 1
 
-            self.creatures.extend(self.additional_best_creatures())  # sprinkle in additional best_creatures to enhance the top-performing behaviour
+            self.creatures.extend(self.additional_best_creatures())  # sprinkle in additional best_creatures to encourage top-performing behaviour
 
-            if counter == 1 or new_best_creature:  # self.best_creatures[-1][0].modifiers != self.best_creatures[-2][0].modifiers:
+            if counter == 1 or new_best_creature:
                 pp(self.parameter_usefulness_count)
                 print(f'\n\n\nNEW BEST CREATURE AFTER {counter} ITERATIONS...')
                 print(self.best_creature)
@@ -348,7 +359,7 @@ class CreatureEvolutionNatural(CreatureEvolution):
 
 
     def evolution_cycle(self, feast_or_famine: str):
-
+        '''Run one cycle of evolution'''
         # Option to add random new creatures each cycle (2.0% of target_num_creatures each time)
         if self.add_random_creatures_each_cycle:
             self.creatures.extend([EvogressionCreature(self.target_parameter, full_parameter_example=self.all_data[0], hunger=80 * random.random() + 10, layers=self.force_num_layers) for _ in range(int(round(0.02 * self.target_num_creatures, 0)))])
@@ -402,23 +413,6 @@ class CreatureEvolutionNatural(CreatureEvolution):
     def kill_weak_creatures(self):
         '''Remove all creatures whose hunger has dropped to 0 or below'''
         self.creatures = [creature for creature in self.creatures if creature.hunger > 0]
-
-
-    def mate_creatures(self):
-        '''
-        Mate creatures to generate new creatures.
-        '''
-        new_creatures = []
-        new_creatures_append = new_creatures.append
-        for i in range(0, len(self.creatures), 2):
-            creature_group = self.creatures[i: i + 2]
-            try:
-                new_creature = creature_group[0] + creature_group[1]
-                if new_creature:
-                    new_creatures_append(new_creature)
-            except IndexError:
-                pass
-        self.creatures.extend(new_creatures)
 
 
 
