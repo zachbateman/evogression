@@ -1,13 +1,14 @@
 '''
 Module containing high-level evogression functionality to fit and summarize regressions.
 '''
+from typing import List, Dict
 import random
 import easy_multip
 from .evolution import CreatureEvolutionFittest
 
 
 
-def evolution_group(data: list, target_param: str='', target_num_creatures: int=10000, num_cycles: int=10, num_groups: int=4) -> list:
+def evolution_group(data: list, target_param: str='', target_num_creatures: int=10000, num_cycles: int=10, num_groups: int=4) -> List[CreatureEvolutionFittest]:
     '''
     Generate a list of fully initialized CreatureEvolution objects.
     '''
@@ -15,7 +16,7 @@ def evolution_group(data: list, target_param: str='', target_num_creatures: int=
     return easy_multip.map(calculate_single_evolution, arg_groups)
 
 
-def calculate_single_evolution(arg_group):
+def calculate_single_evolution(arg_group: list) -> CreatureEvolutionFittest:
     '''
     Fully initialize and return a single CreatureEvolution object.
     Module-level function for arg to easy_multip.
@@ -33,7 +34,7 @@ def output_group_regression_funcs(group: list):
         cr_ev.output_best_regression_function_as_module()
 
 
-def group_parameter_usage(group: list):
+def group_parameter_usage(group: list) -> Dict[str, int]:
     '''
     Combine each CreatureEvolution's .parameter_usefulness_count dicts to see which attributes are important.
     '''
