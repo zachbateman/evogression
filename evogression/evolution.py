@@ -121,10 +121,10 @@ class CreatureEvolution():
 
         all_food_data = self.standardized_all_data if self.standardize else self.all_data
 
-        random_choice = random.choice  # local variable for speed
+        rand_choice = random.choice  # local variable for speed
         if self.use_multip:
             creature_groups = (creature_group for creature_group in (self.creatures[group_size * i:group_size * (i + 1)] for i in range(0, len(self.creatures) // group_size)))
-            food_groups = ([random_choice(all_food_data) for _ in range(5)] for i in range(0, len(self.creatures) // group_size))
+            food_groups = ([rand_choice(all_food_data) for _ in range(5)] for i in range(0, len(self.creatures) // group_size))
             feeding_arg_tups = [(creature_group, food_group, self.target_parameter, self.standardizer) for creature_group, food_group in zip(creature_groups, food_groups)]
             hunger_modified_creatures = easy_multip.map(feed_creature_groups, feeding_arg_tups)
             self.creatures = [creature for sublist in hunger_modified_creatures for creature in sublist]
@@ -133,7 +133,7 @@ class CreatureEvolution():
             standardizer = self.standardizer  # local variable for speed
             for i in range(0, len(self.creatures) // group_size):
                 creature_group = self.creatures[group_size * i:group_size * (i + 1)]
-                for food_data in [random_choice(all_food_data) for _ in range(5)]:
+                for food_data in [rand_choice(all_food_data) for _ in range(5)]:
                     best_error, best_creature = None, None
                     for creature in creature_group:
                         error = calc_error_value(creature, target_parameter, food_data, standardizer)
@@ -289,7 +289,7 @@ class CreatureEvolutionFittest(CreatureEvolution):
 
 
     def kill_weak_creatures(self):
-        '''Remove all creatures whose hunger has dropped to 0 or below'''
+        '''Overwrite CreatureEvolution's kill_weak_creatures method'''
         error_sums = self.all_data_error_sums
         median_error = self.current_median_error
         print(f'median_error: {median_error}')
@@ -383,10 +383,10 @@ class CreatureEvolutionNatural(CreatureEvolution):
 
         all_food_data = self.standardized_all_data if self.standardize else self.all_data
 
-        random_choice = random.choice  # local variable for speed
+        rand_choice = random.choice  # local variable for speed
         if self.use_multip:
             creature_groups = (creature_group for creature_group in (self.creatures[group_size * i:group_size * (i + 1)] for i in range(0, len(self.creatures) // group_size)))
-            food_groups = ([random_choice(all_food_data) for _ in range(5)] for i in range(0, len(self.creatures) // group_size))
+            food_groups = ([rand_choice(all_food_data) for _ in range(5)] for i in range(0, len(self.creatures) // group_size))
             feeding_arg_tups = [(creature_group, food_group, self.target_parameter, self.standardizer) for creature_group, food_group in zip(creature_groups, food_groups)]
             hunger_modified_creatures = easy_multip.map(feed_creature_groups, feeding_arg_tups)
             self.creatures = [creature for sublist in hunger_modified_creatures for creature in sublist]
@@ -395,7 +395,7 @@ class CreatureEvolutionNatural(CreatureEvolution):
             standardizer = self.standardizer  # local variable for speed
             for i in range(0, len(self.creatures) // group_size):
                 creature_group = self.creatures[group_size * i:group_size * (i + 1)]
-                for food_data in [random_choice(all_food_data) for _ in range(5)]:
+                for food_data in [rand_choice(all_food_data) for _ in range(5)]:
                     best_error, best_creature = None, None
                     for creature in creature_group:
                         error = calc_error_value(creature, target_parameter, food_data, standardizer)
@@ -408,11 +408,6 @@ class CreatureEvolutionNatural(CreatureEvolution):
         '''Deduct from each creature's hunger as their complexity demands'''
         for creature in self.creatures:
             creature.hunger -= creature.complexity_cost
-
-
-    def kill_weak_creatures(self):
-        '''Remove all creatures whose hunger has dropped to 0 or below'''
-        self.creatures = [creature for creature in self.creatures if creature.hunger > 0]
 
 
 
