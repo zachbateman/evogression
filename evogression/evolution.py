@@ -2,6 +2,7 @@
 Module containing evolution algorithms for regression.
 '''
 from typing import List, Dict
+import statistics
 import copy
 import random
 import tqdm
@@ -31,11 +32,15 @@ class CreatureEvolution():
                  force_num_layers: int=0,
                  standardize: bool=True,
                  use_multip: bool=True,
+                 fill_none: bool=True,
                  initial_creature_creation_multip: bool=True) -> None:
 
         self.target_parameter = target_parameter
         self.standardize = standardize
         self.all_data = all_data
+        if fill_none:
+            self.fill_none_with_median()
+
         self.target_num_creatures = target_num_creatures
         self.add_random_creatures_each_cycle = add_random_creatures_each_cycle
         self.num_cycles = num_cycles
@@ -60,6 +65,29 @@ class CreatureEvolution():
             self.creatures = easy_multip.map(generate_initial_creature, [arg_tup for _ in range(target_num_creatures)])
         else:
             self.creatures = [generate_initial_creature(arg_tup) for _ in range(target_num_creatures)]
+
+
+    def fill_none_with_median(self):
+        '''
+        Find median value of each input parameter and
+        then replace any None values with this median.
+        '''
+        parameters_adjusted = []
+        for param in self.all_data[0].keys():
+            if param != self.target_parameter:
+                values = [d[param] for d in self.all_data if d[param] is not None]
+                median = statistics.median(values)
+                for d in self.all_data:
+                    if d[param] is None:
+                        parameters_adjusted.append(param)
+                        d[param] = median
+        # Remove any data points that have None for the target/result parameter
+        self.all_data = [d for d in self.all_data if d[self.target_parameter] is not None]
+
+        if len(parameters_adjusted) >= 1:
+            print('Data None values filled with median for the following parameters:')
+            for param in sorted(set(parameters_adjusted)):
+                print(f'  {param}')
 
 
     def data_checks(self):
