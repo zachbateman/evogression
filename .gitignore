@@ -11,3 +11,4 @@ MANIFEST
 *.pyd
 *.profile
 *.html
+*regression_function_*
