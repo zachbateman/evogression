@@ -33,4 +33,4 @@ Evogression is Python package providing an evolutionary algorithm to develop a r
 
 License
 ----
-TODO
+MIT
