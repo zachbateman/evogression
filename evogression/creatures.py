@@ -64,11 +64,10 @@ class EvogressionCreature():
 
 
     def create_initial_modifiers(self) -> dict:
+        '''Generate and return a set of modifiers.'''
 
-        # local variables for speed
-        parameter_usage_num = 2.5 / (len(self.full_parameter_example) + 1)
+        parameter_usage_num = 2.5 / (len(self.full_parameter_example) + 1)  # local variables for speed
         rand_rand = random.random
-        # rand_gauss = random.gauss
         rand_tri = random.triangular
         targ_param = self.target_parameter
         gen_param_coeffs = self.generate_parameter_coefficients
@@ -77,7 +76,6 @@ class EvogressionCreature():
         modifiers: dict = {}
         for layer_name in self.layer_str_list:
             modifiers[layer_name] = {}
-            # modifiers[f'LAYER_{layer}']['N'] = 0 if rand_rand() < 0.2 else random.gauss(0, 3 * self.mutability)
             modifiers[layer_name]['N'] = 0 if rand_rand() < 0.2 else rand_tri(-9 * self.mutability, 0, 9 * self.mutability)
             for param in full_param_example_keys:
                 # resist using parameters if many of them
@@ -98,7 +96,6 @@ class EvogressionCreature():
 
 
     def generate_parameter_coefficients(self):
-
         try:  # optimize for cython-available case
             return generate_parameter_coefficients_calc.generate_parameter_coefficients_calc(self.mutability, self.no_negative_exponents)
         except NameError:
@@ -126,17 +123,18 @@ class EvogressionCreature():
 
     def used_parameters(self) -> set:
         '''Return list of the parameters that are used by this creature.'''
-        return {param for layer, layer_dict in self.simplify_modifiers(self.modifiers).items() for param in layer_dict if param not in {'N', 'T', self.target_parameter}}
+        return {param for layer, layer_dict in self.simplify_modifiers(self.modifiers).items() for param in layer_dict
+                         if param not in {'N', 'T', self.target_parameter}}
 
 
     def simplify_modifiers(self, modifiers: dict={}) -> dict:
-        '''Method looks at the mathematics of self.modifiers and simplifies if possible'''
+        '''
+        Method looks at the mathematics of self.modifiers and simplifies if possible
+        '''
         if modifiers == {}:
-            old_modifiers = self.modifiers
-            new_modifiers = copy.deepcopy(self.modifiers)
+            old_modifiers, new_modifiers = self.modifiers, copy.deepcopy(self.modifiers)
         else:
-            old_modifiers = modifiers
-            new_modifiers = copy.deepcopy(modifiers)
+            old_modifiers, new_modifiers = modifiers, copy.deepcopy(modifiers)
 
         new_base_layer = 0  # will be converted to the new LAYER_1 if any layers are deleted
         for layer, layer_dict in old_modifiers.items():
@@ -161,7 +159,6 @@ class EvogressionCreature():
         # remove unused first layer(s)
         if new_base_layer > 0:
             self.layers = len(new_modifiers) - new_base_layer + 1  # RESET THIS CREATURE'S LAYERS!!!
-
             for i in range(1, new_base_layer):
                 del new_modifiers[f'LAYER_{i}']
             for i in range(1, self.layers + 1):
@@ -294,7 +291,7 @@ class EvogressionCreature():
         def create_new_coefficients(new_modifiers: dict, modifier_list: list, layer_name: str, coefficients) -> None:
             '''Modifies new_modifiers in place'''
             new_modifiers[layer_name][param] = {}
-            len_modifier_list = len(modifier_list)
+            len_modifier_list = len(modifier_list)  # local variable for speed
             new_mods_layername_param = new_modifiers[layer_name][param]  # local variable for speed
             for coef in coefficients:
                 new_coef = sum(mods[layer_name][param][coef] for mods in modifier_list) / len_modifier_list

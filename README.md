@@ -13,7 +13,7 @@ Evogression is Python package providing an evolutionary algorithm to develop a r
   - CreatureEvolutionNatural evolves creatures by "feeding" them.  The better creatures successfully model test data and stay healthy while bad performers get progressively "hungrier" until they are killed off. Cycles of "feast" and "famine" cause the community of creatures to grow and shrink with each phase either increasing the diversity of creatures (regression equations) or decreasing the diversity by killing off the lower-performing creatures.
 
   - evolution_group.py provides high-level approaches to regression by running multiple evolution groups.
-  - Parameter pruning algorithm can determine the most useful attributes in a dataset and progressivly discard the least useful data while progressively determining a best fit equation for the target attribute.
+  - Parameter pruning algorithm can determine the most useful attributes in a dataset and progressively discard the least useful data while determining a best fit equation for the target attribute.
 
 # Testing
 
