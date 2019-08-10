@@ -114,14 +114,61 @@ class CreatureEvolution():
         return [copy.deepcopy(self.best_creature) for _ in range(num_additional_best_creatures)]
 
 
-    def evolution_cycle(self, feast_or_famine: str):
+    def evolve_creatures(self, evolution_cycle_func=None, use_feast_and_famine=False):
+        if evolution_cycle_func is None:
+            evolution_cycle_func = self.evolution_cycle
+        feast_or_famine = 'famine'
+        counter = 1
+        best_creature, best_error, new_best_creature = None, -1, False
+        while True:
+            print('-----------------------------------------')
+            print(f'Cycle - {counter} -')
+            if use_feast_and_famine:
+                print(f'Current Phase: {feast_or_famine}')
 
+            best_creature, error, median_error = self.calculate_all_and_find_best_creature()
+
+            self.current_median_error = median_error
+            self.best_creatures.append([copy.deepcopy(best_creature), error])
+            self.print_cycle_stats(best_creature=best_creature, error=error, median_error=median_error, best_creature_error=error)
+
+            for creature_list in self.best_creatures:
+                if creature_list[1] < best_error or best_error < 0:
+                    best_error = creature_list[1]
+                    self.best_error = best_error
+                    self.best_creature = creature_list[0]
+                    new_best_creature = True
+                    for param in self.best_creature.used_parameters():  # only count parameter usage for each NEW best_creature
+                        self.parameter_usefulness_count[param] += 1
+
+            self.creatures.extend(self.additional_best_creatures())  # sprinkle in additional best_creatures to encourage top-performing behaviour
+
+            if counter == 1 or new_best_creature:
+                pp(self.parameter_usefulness_count)
+                print(f'\n\n\nNEW BEST CREATURE AFTER {counter} ITERATIONS...')
+                print(self.best_creature)
+                print(f'Total Error: ' + '{0:.2E}'.format(error))
+                new_best_creature = False
+
+
+            counter = self.check_cycles(counter)
+            if self.num_cycles > 0 and counter == self.num_cycles:
+                break
+
+            if use_feast_and_famine:
+                evolution_cycle_func(feast_or_famine)
+                feast_or_famine = 'feast' if len(self.creatures) < self.target_num_creatures else 'famine'
+            else:
+                evolution_cycle_func()
+
+
+    def evolution_cycle(self, feast_or_famine: str):
+        '''Run one cycle of evolution'''
         # Option to add random new creatures each cycle (2.0% of target_num_creatures each time)
         if self.add_random_creatures_each_cycle:
             self.creatures.extend([EvogressionCreature(self.target_parameter, full_parameter_example=self.all_data[0], hunger=80 * random.random() + 10, layers=self.force_num_layers) for _ in range(int(round(0.02 * self.target_num_creatures, 0)))])
 
         random.shuffle(self.creatures)  # used to mix up new creatures in among multip and randomize feeding groups
-        self.feed_creatures(feast_or_famine)
         self.run_metabolism_creatures()
         self.kill_weak_creatures()
         self.mate_creatures()
@@ -135,39 +182,6 @@ class CreatureEvolution():
             if counter >= 10 and not self.num_cycles > 0:  # only pause if running indefinitely
                 breakpoint()
         return counter + 1
-
-
-    def feed_creatures(self, feast_or_famine: str):
-        '''
-        "feed" groups of creatures at a once.
-        creature with closest calc_target() to target gets to "eat" the data
-        '''
-        if feast_or_famine == 'feast':
-            group_size = self.feast_group_size
-        elif feast_or_famine == 'famine':
-            group_size = self.famine_group_size
-
-        all_food_data = self.standardized_all_data if self.standardize else self.all_data
-
-        rand_choice = random.choice  # local variable for speed
-        if self.use_multip:
-            creature_groups = (creature_group for creature_group in (self.creatures[group_size * i:group_size * (i + 1)] for i in range(0, len(self.creatures) // group_size)))
-            food_groups = ([rand_choice(all_food_data) for _ in range(5)] for i in range(0, len(self.creatures) // group_size))
-            feeding_arg_tups = [(creature_group, food_group, self.target_parameter, self.standardizer) for creature_group, food_group in zip(creature_groups, food_groups)]
-            hunger_modified_creatures = easy_multip.map(feed_creature_groups, feeding_arg_tups)
-            self.creatures = [creature for sublist in hunger_modified_creatures for creature in sublist]
-        else:
-            target_parameter = self.target_parameter  # local variable for speed
-            standardizer = self.standardizer  # local variable for speed
-            for i in range(0, len(self.creatures) // group_size):
-                creature_group = self.creatures[group_size * i:group_size * (i + 1)]
-                for food_data in [rand_choice(all_food_data) for _ in range(5)]:
-                    best_error, best_creature = None, None
-                    for creature in creature_group:
-                        error = calc_error_value(creature, target_parameter, food_data, standardizer)
-                        if best_error is None or error < best_error:
-                            best_error, best_creature = error, creature
-                    best_creature.hunger += 6
 
 
     def run_metabolism_creatures(self):
@@ -265,45 +279,7 @@ class CreatureEvolutionFittest(CreatureEvolution):
 
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
-            self.evolve_creatures()
-
-
-    def evolve_creatures(self):
-        counter = 1
-        best_creature, best_error, new_best_creature = None, -1, False
-        while True:
-            print('-----------------------------------------')
-            print(f'Cycle - {counter} -')
-
-            best_creature, error, median_error = self.calculate_all_and_find_best_creature()
-
-            self.current_median_error = median_error
-            self.best_creatures.append([copy.deepcopy(best_creature), error])
-            self.print_cycle_stats(best_creature=best_creature, error=error, median_error=median_error, best_creature_error=error)
-
-            for creature_list in self.best_creatures:
-                if creature_list[1] < best_error or best_error < 0:
-                    best_error = creature_list[1]
-                    self.best_error = best_error
-                    self.best_creature = creature_list[0]
-                    new_best_creature = True
-                    for param in self.best_creature.used_parameters():  # only count parameter usage for each NEW best_creature
-                        self.parameter_usefulness_count[param] += 1
-
-            self.creatures.extend(self.additional_best_creatures())  # sprinkle in additional best_creatures to encourage top-performing behaviour
-
-            if counter == 1 or new_best_creature:
-                pp(self.parameter_usefulness_count)
-                print(f'\n\n\nNEW BEST CREATURE AFTER {counter} ITERATIONS...')
-                print(self.best_creature)
-                print(f'Total Error: ' + '{0:.2E}'.format(error))
-                new_best_creature = False
-
-
-            counter = self.check_cycles(counter)
-            if self.num_cycles > 0 and counter == self.num_cycles:
-                break
-            self.evolution_cycle()
+            self.evolve_creatures(self.evolution_cycle)
 
 
     def evolution_cycle(self):
@@ -341,61 +317,7 @@ class CreatureEvolutionNatural(CreatureEvolution):
 
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
-            self.evolve_creatures()
-
-
-    def evolve_creatures(self):
-        feast_or_famine = 'famine'
-        counter = 1
-        best_creature, best_error, new_best_creature = None, -1, False
-        while True:
-            print('-----------------------------------------')
-            print(f'Cycle - {counter} -')
-            print(f'Current Phase: {feast_or_famine}')
-
-            best_creature, error, median_error = self.calculate_all_and_find_best_creature()
-
-
-            self.best_creatures.append([copy.deepcopy(best_creature), error])
-            self.print_cycle_stats(best_creature=best_creature, error=error, median_error=median_error, best_creature_error=error)
-
-            for creature_list in self.best_creatures:
-                if creature_list[1] < best_error or best_error < 0:
-                    best_error = creature_list[1]
-                    self.best_error = best_error
-                    self.best_creature = creature_list[0]
-                    new_best_creature = True
-                    for param in self.best_creature.used_parameters():  # only count parameter usage for each NEW best_creature
-                        self.parameter_usefulness_count[param] += 1
-
-            self.creatures.extend(self.additional_best_creatures())  # sprinkle in additional best_creatures to encourage top-performing behaviour
-
-            if counter == 1 or new_best_creature:
-                pp(self.parameter_usefulness_count)
-                print(f'\n\n\nNEW BEST CREATURE AFTER {counter} ITERATIONS...')
-                print(self.best_creature)
-                print(f'Total Error: ' + '{0:.2E}'.format(error))
-                new_best_creature = False
-
-            counter = self.check_cycles(counter)
-            if self.num_cycles > 0 and counter == self.num_cycles:
-                break
-            self.evolution_cycle(feast_or_famine)
-
-            feast_or_famine = 'feast' if len(self.creatures) < self.target_num_creatures else 'famine'
-
-
-    def evolution_cycle(self, feast_or_famine: str):
-        '''Run one cycle of evolution'''
-        # Option to add random new creatures each cycle (2.0% of target_num_creatures each time)
-        if self.add_random_creatures_each_cycle:
-            self.creatures.extend([EvogressionCreature(self.target_parameter, full_parameter_example=self.all_data[0], hunger=80 * random.random() + 10, layers=self.force_num_layers) for _ in range(int(round(0.02 * self.target_num_creatures, 0)))])
-
-        random.shuffle(self.creatures)  # used to mix up new creatures in among multip and randomize feeding groups
-        self.feed_creatures(feast_or_famine)
-        self.run_metabolism_creatures()
-        self.kill_weak_creatures()
-        self.mate_creatures()
+            self.evolve_creatures(evolution_cycle_func=self.evolution_cycle, use_feast_and_famine=True)
 
 
     def feed_creatures(self, feast_or_famine: str):
@@ -431,11 +353,17 @@ class CreatureEvolutionNatural(CreatureEvolution):
                     best_creature.hunger += 6
 
 
-    def run_metabolism_creatures(self):
-        '''Deduct from each creature's hunger as their complexity demands'''
-        for creature in self.creatures:
-            creature.hunger -= creature.complexity_cost
+    def evolution_cycle(self, feast_or_famine: str):
+        '''Run one cycle of evolution'''
+        # Option to add random new creatures each cycle (2.0% of target_num_creatures each time)
+        if self.add_random_creatures_each_cycle:
+            self.creatures.extend([EvogressionCreature(self.target_parameter, full_parameter_example=self.all_data[0], hunger=80 * random.random() + 10, layers=self.force_num_layers) for _ in range(int(round(0.02 * self.target_num_creatures, 0)))])
 
+        random.shuffle(self.creatures)  # used to mix up new creatures in among multip and randomize feeding groups
+        self.feed_creatures(feast_or_famine)
+        self.run_metabolism_creatures()
+        self.kill_weak_creatures()
+        self.mate_creatures()
 
 
 
