@@ -247,23 +247,24 @@ class EvogressionCreature():
         this merely makes small changes to the values of some of the coefficients.
         '''
         rand_rand = random.random
+        rand_tri = random.triangular
         new_modifiers = copy.deepcopy(self.modifiers)
         for layer_name in new_modifiers:
-            if rand_rand() < 0.15:
-                new_modifiers[layer_name]['N'] += (rand_rand() - 0.5) / 5
+            if rand_rand() < 0.1:
+                new_modifiers[layer_name]['N'] += rand_tri(-0.05, 0.05, 0)
             for param in new_modifiers[layer_name].keys():
-                if param != ['N']:
+                if param != 'N':
                     for term in new_modifiers[layer_name][param]:
-                        if rand_rand() < 0.15:
+                        if rand_rand() < 0.1:
                             if term != 'X':
-                                new_modifiers[layer_name][param] += (rand_rand() - 0.5) / 5
+                                new_modifiers[layer_name][param][term] += rand_tri(-0.05, 0.05, 0)
                             else:
-                                if rand_rand() < 0.5:
-                                    new_modifiers[layer_name]['X'] += 1
-                                elif rand_rand() < 0.5 and new_modifiers[layer_name]['X'] > 1:
-                                    new_modifiers[layer_name]['X'] -= 1
+                                if rand_rand() < 0.2:
+                                    new_modifiers[layer_name][param]['X'] += 1
+                                elif rand_rand() < 0.2 and new_modifiers[layer_name][param]['X'] > 1:
+                                    new_modifiers[layer_name][param]['X'] -= 1
 
-        EvogressionCreature(self.target_parameter, layers=self.layers, hunger=100, generation=new_generation, mutability=self.mutability, full_parameter_example=self.full_parameter_example, modifiers=new_modifiers)
+        return EvogressionCreature(self.target_parameter, layers=self.layers, hunger=100, generation=self.generation + 1, mutability=self.mutability, full_parameter_example=self.full_parameter_example, modifiers=new_modifiers)
 
 
     def __add__(self, other):
@@ -418,7 +419,7 @@ class EvogressionCreature():
             self.hunger -= 10
             other.hunger -= 10
 
-        return EvogressionCreature(self.target_parameter, layers=new_layers, hunger=100, generation=new_generation, mutability=new_mutability, full_parameter_example=self.full_parameter_example, modifiers=new_modifiers)
+        return EvogressionCreature(self.target_parameter, layers=new_layers, hunger=100, generation=self.generation, mutability=new_mutability, full_parameter_example=self.full_parameter_example, modifiers=new_modifiers)
 
 
     def __copy__(self):
