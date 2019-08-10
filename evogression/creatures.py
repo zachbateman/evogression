@@ -415,6 +415,8 @@ class EvogressionCreature():
 
     def output_python_regression_module(self, output_filename: str='regression_function', standardizer=None, directory: str='.', name_ext: str=''):
         '''Create a Python module/file with a regression function represented by this EvogressionCreature'''
+        if directory != '.' and not os.path.exists(directory):
+            os.mkdir(directory)
         output_filename = os.path.join(directory, output_filename + name_ext + '.py')
         output_filename = output_filename[:-3].replace('.', '_') + output_filename[-3:]  # period in filename not valid
         output_str = self.output_regression_func_as_python_module_string(standardizer=standardizer)
