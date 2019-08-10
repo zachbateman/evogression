@@ -240,6 +240,32 @@ class EvogressionCreature():
             return self._complexity_cost
 
 
+    def mutate_to_new_creature(self):
+        '''
+        Create a new creature based on slightly modifying this creature's modifiers.
+        Rather than changing the modifiers as can happen with __add__ing the creatures,
+        this merely makes small changes to the values of some of the coefficients.
+        '''
+        rand_rand = random.random
+        new_modifiers = copy.deepcopy(self.modifiers)
+        for layer_name in new_modifiers:
+            if rand_rand() < 0.15:
+                new_modifiers[layer_name]['N'] += (rand_rand() - 0.5) / 5
+            for param in new_modifiers[layer_name].keys():
+                if param != ['N']:
+                    for term in new_modifiers[layer_name][param]:
+                        if rand_rand() < 0.15:
+                            if term != 'X':
+                                new_modifiers[layer_name][param] += (rand_rand() - 0.5) / 5
+                            else:
+                                if rand_rand() < 0.5:
+                                    new_modifiers[layer_name]['X'] += 1
+                                elif rand_rand() < 0.5 and new_modifiers[layer_name]['X'] > 1:
+                                    new_modifiers[layer_name]['X'] -= 1
+
+        EvogressionCreature(self.target_parameter, layers=self.layers, hunger=100, generation=new_generation, mutability=self.mutability, full_parameter_example=self.full_parameter_example, modifiers=new_modifiers)
+
+
     def __add__(self, other):
         '''
         Using the __add__ ('+') operator to mate the creatures and generate offspring.
