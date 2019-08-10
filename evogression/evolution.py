@@ -320,7 +320,6 @@ class CreatureEvolutionFittest(CreatureEvolution):
         '''Overwrite CreatureEvolution's kill_weak_creatures method'''
         error_sums = self.all_data_error_sums
         median_error = self.current_median_error
-        print(f'median_error: {median_error}')
         self.creatures = [creature for creature in self.creatures if error_sums[creature.modifier_hash] > median_error]
 
 
@@ -330,7 +329,7 @@ class CreatureEvolutionNatural(CreatureEvolution):
     '''
     Evolves creatures by "feeding" them.  The better creatures
     successfully model test data and stay healthy while bad
-    performers get progressivly "hungrier" until they are killed off.
+    performers get progressively "hungrier" until they are killed off.
 
     Cycles of "feast" and "famine" cause the community of creatures to
     grow and shrink with each phase either increasing the diversity of
