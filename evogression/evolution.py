@@ -260,6 +260,23 @@ class CreatureEvolution():
         self.creatures.extend(new_creatures)
 
 
+    def optimize_best_creature(self, iterations=25):
+        '''
+        Use the creature.mutate_to_new_creature method to transform
+        the best_creature into an even better fit.
+        '''
+        print('Optimizing best creature...')
+        best_creature = self.best_creature
+        pp(best_creature.modifiers)
+        for _ in tqdm.tqdm(range(iterations)):
+            mutated_clones = [best_creature] + [best_creature.mutate_to_new_creature() for _ in range(1000)]
+            best_creature, error, median_error, calculated_creatures, all_data_error_sums = find_best_creature(mutated_clones, self.target_parameter, self.standardized_all_data, all_data_error_sums=self.all_data_error_sums)
+            print(f'Best error: ' + '{0:.2E}'.format(error))
+        pp(best_creature.modifiers)
+        self.best_creature = best_creature
+        print('Best creature optimized')
+
+
     def output_best_regression_function_as_module(self, output_filename='regression_function'):
         if self.standardize:
             self.best_creature.output_python_regression_module(output_filename=output_filename, standardizer=self.standardizer, directory='regression_modules', name_ext=f'___{round(self.best_error, 5)}')
@@ -280,6 +297,7 @@ class CreatureEvolutionFittest(CreatureEvolution):
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
             self.evolve_creatures(self.evolution_cycle)
+            self.optimize_best_creature()
 
 
     def evolution_cycle(self):
