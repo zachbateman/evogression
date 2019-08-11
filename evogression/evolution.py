@@ -107,11 +107,10 @@ class CreatureEvolution():
 
     def additional_best_creatures(self) -> list:
         '''
-        sprinkle in additional best_creatures to enhance this behavior
-        also add in their offspring (mutated but close to latest best_creature)
+        Sprinkle in additional mutated best_creatures to enhance this behavior.
         '''
         num_additional_best_creatures = int(round(0.005 * self.target_num_creatures, 0))
-        return [copy.deepcopy(self.best_creature) for _ in range(num_additional_best_creatures)]
+        return [self.best_creature.mutate_to_new_creature() for _ in range(num_additional_best_creatures)]
 
 
     def evolve_creatures(self, evolution_cycle_func=None, use_feast_and_famine=False):
@@ -141,7 +140,7 @@ class CreatureEvolution():
                     for param in self.best_creature.used_parameters():  # only count parameter usage for each NEW best_creature
                         self.parameter_usefulness_count[param] += 1
 
-            self.creatures.extend(self.additional_best_creatures())  # sprinkle in additional best_creatures to encourage top-performing behaviour
+            self.creatures.extend(self.additional_best_creatures())  # sprinkle in additional best_creature mutants
 
             if counter == 1 or new_best_creature:
                 pp(self.parameter_usefulness_count)
