@@ -147,7 +147,7 @@ class CreatureEvolution():
                 pp(self.parameter_usefulness_count)
                 print(f'\n\n\nNEW BEST CREATURE AFTER {counter} ITERATIONS...')
                 print(self.best_creature)
-                print(f'Total Error: ' + '{0:.2E}'.format(error))
+                print('Total Error: ' + '{0:.2E}'.format(error))
                 new_best_creature = False
 
 
@@ -240,7 +240,7 @@ class CreatureEvolution():
     def print_cycle_stats(self, best_creature=None, error=None, median_error: float=0, best_creature_error: float=0) -> None:
         print(f'Total number of creatures:  {len(self.creatures)}')
         print(f'Average Hunger: {round(self.average_creature_hunger, 1)}')
-        print(f'Median error: ' + '{0:.2E}'.format(median_error))
+        print('Median error: ' + '{0:.2E}'.format(median_error))
         print('Best Creature:')
         print(f'  Generation: {best_creature.generation}    Error: ' + '{0:.2E}'.format(error))
 
@@ -265,16 +265,16 @@ class CreatureEvolution():
         Use the creature.mutate_to_new_creature method to transform
         the best_creature into an even better fit.
         '''
-        print('Optimizing best creature...')
+        print('\n\n\nOptimizing best creature...')
         best_creature = self.best_creature
         pp(best_creature.modifiers)
         for _ in tqdm.tqdm(range(iterations)):
             mutated_clones = [best_creature] + [best_creature.mutate_to_new_creature() for _ in range(1000)]
-            best_creature, error, median_error, calculated_creatures, all_data_error_sums = find_best_creature(mutated_clones, self.target_parameter, self.standardized_all_data, all_data_error_sums=self.all_data_error_sums)
-            print(f'Best error: ' + '{0:.2E}'.format(error))
+            best_creature, error, median_error, calculated_creatures, all_data_error_sums = find_best_creature(mutated_clones, self.target_parameter, self.standardized_all_data, standardizer=self.standardizer, all_data_error_sums=self.all_data_error_sums)
+            print(f'Best error: ' + '{0:.6E}'.format(error))
         pp(best_creature.modifiers)
         self.best_creature = best_creature
-        print('Best creature optimized')
+        print('Best creature optimized!\n')
 
 
     def output_best_regression_function_as_module(self, output_filename='regression_function'):
