@@ -13,10 +13,8 @@ import matplotlib.pyplot as plt
 class TestParabolaRegression(unittest.TestCase):
 
     def test_best_creature_parabola_regression_brute_force_3_layer(self):
-        # this method (creating random, independent creatures and picking the best one)
-        # is generating a great match with 100,000 creatures and squared error calculations!!!
-        # creatures = [evogression.EvogressionCreature('y', full_parameter_example={'x': None, 'y': None}, layers=3) for _ in range(100000)]
-        creatures = easy_multip.map(get_3_layer_2d_evogressioncreature, range(100000))
+        # this method creates random, independent creatures and picks the best one
+        creatures = easy_multip.map(get_3_layer_2d_evogressioncreature, range(50000))
 
         best_error = -1
         best_creature = None
