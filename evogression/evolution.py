@@ -274,13 +274,11 @@ class CreatureEvolution():
         print('\n\n\nOptimizing best creature...')
         best_creature = self.best_creature
         pp(best_creature.modifiers)
-        print(best_creature.modifier_hash)
         for _ in tqdm.tqdm(range(iterations)):
             mutated_clones = [best_creature] + [best_creature.mutate_to_new_creature() for _ in range(50000)]
-            result_data = find_best_creature_multip(mutated_clones, self.target_parameter, self.standardized_all_data, all_data_error_sums=self.all_data_error_sums)
+            result_data = find_best_creature_multip(mutated_clones, self.target_parameter, self.standardized_all_data, all_data_error_sums=self.all_data_error_sums, progressbar=False)
             best_creature, error, median_error, calculated_creatures = self.stats_from_find_best_creature_multip_result(result_data)
             print(f'Best error: ' + '{0:.6E}'.format(error))
-            print('Median error: ' + '{0:.6E}'.format(median_error))
         pp(best_creature.modifiers)
         self.best_creature = best_creature
         print('Best creature optimized!\n')
@@ -431,7 +429,7 @@ def calc_error_value(creature, target_parameter: str, data_point: dict, standard
     return error
 
 
-def find_best_creature(creatures: list, target_parameter: str, data: list, standardizer=None, all_data_error_sums: dict={}) -> tuple:
+def find_best_creature(creatures: list, target_parameter: str, data: list, standardizer=None, all_data_error_sums: dict={}, progressbar=True) -> tuple:
     '''
     Determines best EvogressionCreature and returns misc objects (more than otherwise needed)
     so that multiprocessing (easy_multip) can be used.
@@ -443,7 +441,8 @@ def find_best_creature(creatures: list, target_parameter: str, data: list, stand
     append_to_calculated_creatures = calculated_creatures.append  # local variable for speed
     data_length = len(data)
     best_creature = None
-    for creature in tqdm.tqdm(creatures):
+    iterable = tqdm.tqdm(creatures) if progressbar else creatures
+    for creature in iterable:
         try:
             error = all_data_error_sums[creature.modifier_hash]
         except KeyError:
