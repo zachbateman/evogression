@@ -276,8 +276,11 @@ class CreatureEvolution():
         pp(best_creature.modifiers)
         for _ in tqdm.tqdm(range(iterations)):
             mutated_clones = [best_creature] + [best_creature.mutate_to_new_creature() for _ in range(50000)]
-            result_data = find_best_creature_multip(mutated_clones, self.target_parameter, self.standardized_all_data, all_data_error_sums=self.all_data_error_sums, progressbar=False)
-            best_creature, error, median_error, calculated_creatures = self.stats_from_find_best_creature_multip_result(result_data)
+            if self.use_multip:
+                result_data = find_best_creature_multip(mutated_clones, self.target_parameter, self.standardized_all_data, all_data_error_sums=self.all_data_error_sums, progressbar=False)
+                best_creature, error, median_error, calculated_creatures = self.stats_from_find_best_creature_multip_result(result_data)
+            else:
+                best_creature, error, median_error, calculated_creatures = find_best_creature(mutated_clones, self.target_parameter, self.standardized_all_data, all_data_error_sums=self.all_data_error_sums, progressbar=False)
             print(f'Best error: ' + '{0:.6E}'.format(error))
         pp(best_creature.modifiers)
         self.best_creature = best_creature
