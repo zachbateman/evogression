@@ -33,7 +33,8 @@ class CreatureEvolution():
                  standardize: bool=True,
                  use_multip: bool=True,
                  fill_none: bool=True,
-                 initial_creature_creation_multip: bool=True) -> None:
+                 initial_creature_creation_multip: bool=True,
+                 **kwargs) -> None:
 
         self.target_parameter = target_parameter
         self.standardize = standardize
@@ -280,7 +281,8 @@ class CreatureEvolution():
                 result_data = find_best_creature_multip(mutated_clones, self.target_parameter, self.standardized_all_data, all_data_error_sums=self.all_data_error_sums, progressbar=False)
                 best_creature, error, median_error, calculated_creatures = self.stats_from_find_best_creature_multip_result(result_data)
             else:
-                best_creature, error, median_error, calculated_creatures = find_best_creature(mutated_clones, self.target_parameter, self.standardized_all_data, all_data_error_sums=self.all_data_error_sums, progressbar=False)
+                best_creature, error, median_error, calculated_creatures, all_data_error_sums = find_best_creature(mutated_clones, self.target_parameter, self.standardized_all_data, all_data_error_sums=self.all_data_error_sums, progressbar=False)
+                self.all_data_error_sums = {**self.all_data_error_sums, **all_data_error_sums}
             print(f'Best error: ' + '{0:.6E}'.format(error))
         pp(best_creature.modifiers)
         self.best_creature = best_creature
@@ -307,7 +309,8 @@ class CreatureEvolutionFittest(CreatureEvolution):
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
             self.evolve_creatures(self.evolution_cycle)
-            self.optimize_best_creature()
+            if kwargs.get('optimize', True):
+                self.optimize_best_creature()
 
 
     def evolution_cycle(self):

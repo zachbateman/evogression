@@ -8,12 +8,15 @@ from .evolution import CreatureEvolutionFittest
 
 
 
-def evolution_group(data: list, target_param: str='', target_num_creatures: int=10000, num_cycles: int=10, num_groups: int=4) -> List[CreatureEvolutionFittest]:
+def evolution_group(data: list, target_param: str='', target_num_creatures: int=10000, num_cycles: int=10, num_groups: int=4, optimize=True) -> List[CreatureEvolutionFittest]:
     '''
     Generate a list of fully initialized CreatureEvolution objects.
     '''
     arg_groups = [(target_param, data, target_num_creatures, num_cycles) for _ in range(num_groups)]
-    return easy_multip.map(calculate_single_evolution, arg_groups)
+    if optimize:
+        return easy_multip.map(calculate_single_evolution, arg_groups)
+    else:
+        return easy_multip.map(calculate_single_evolution_without_optimization, arg_groups)
 
 
 def calculate_single_evolution(arg_group: list) -> CreatureEvolutionFittest:
@@ -23,6 +26,14 @@ def calculate_single_evolution(arg_group: list) -> CreatureEvolutionFittest:
     '''
     target_param, data, num_cr, num_cy = arg_group
     return CreatureEvolutionFittest(target_param, data, target_num_creatures=num_cr, num_cycles=num_cy, use_multip=False, initial_creature_creation_multip=False)
+
+def calculate_single_evolution_without_optimization(arg_group: list) -> CreatureEvolutionFittest:
+    '''
+    Fully initialize and return a single CreatureEvolution object.
+    Module-level function for arg to easy_multip.
+    '''
+    target_param, data, num_cr, num_cy = arg_group
+    return CreatureEvolutionFittest(target_param, data, target_num_creatures=num_cr, num_cycles=num_cy, use_multip=False, initial_creature_creation_multip=False, optimize=False)
 
 
 def output_group_regression_funcs(group: list):
@@ -67,7 +78,7 @@ def parameter_pruned_evolution_group(data: list, target_param: str='', max_param
 
     num_parameters = len(data[0].keys()) - 1
     while num_parameters > max_parameters:
-        group = evolution_group(data, target_param, target_num_creatures // 2, num_cycles // 2, num_groups)
+        group = evolution_group(data, target_param, target_num_creatures // 2, num_cycles // 2, num_groups, optimize=False)
 
         parameter_usage = [(param, count) for param, count in group_parameter_usage(group).items()]
         random.shuffle(parameter_usage)  # so below filter ignores previous order for equally-ranked parameters
