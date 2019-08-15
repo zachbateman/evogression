@@ -267,7 +267,7 @@ class CreatureEvolution():
         self.creatures.extend(new_creatures)
 
 
-    def optimize_best_creature(self, iterations=5):
+    def optimize_best_creature(self, iterations=30):
         '''
         Use the creature.mutate_to_new_creature method to transform
         the best_creature into an even better fit.
@@ -276,7 +276,7 @@ class CreatureEvolution():
         best_creature = self.best_creature
         pp(best_creature.modifiers)
         for _ in tqdm.tqdm(range(iterations)):
-            mutated_clones = [best_creature] + [best_creature.mutate_to_new_creature() for _ in range(50000)]
+            mutated_clones = [best_creature] + [best_creature.mutate_to_new_creature() for _ in range(1000)]
             if self.use_multip:
                 result_data = find_best_creature_multip(mutated_clones, self.target_parameter, self.standardized_all_data, all_data_error_sums=self.all_data_error_sums, progressbar=False)
                 best_creature, error, median_error, calculated_creatures = self.stats_from_find_best_creature_multip_result(result_data)
