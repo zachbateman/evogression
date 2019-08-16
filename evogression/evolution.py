@@ -184,6 +184,17 @@ class CreatureEvolution():
         return counter + 1
 
 
+    def shrink_error_cache(self):
+        '''
+        Delete first portion of cache to keep from growing forever
+        Python dictionaries are now insertion-ordered, so this should work well
+        '''
+        hash_keys = list(self.all_data_error_sums.keys())
+        if len(hash_keys) > self.target_num_creatures * 10:
+            for key in hash_keys[:self.target_num_creatures]:
+                del self.all_data_error_sums[key]
+
+
     def run_metabolism_creatures(self):
         '''Deduct from each creature's hunger as their complexity demands'''
         for creature in self.creatures:
@@ -241,6 +252,7 @@ class CreatureEvolution():
             best_creature, error, median_error, calculated_creatures, all_data_error_sums = find_best_creature(self.creatures, self.target_parameter, self.standardized_all_data, all_data_error_sums=self.all_data_error_sums, progressbar=progressbar)
             self.all_data_error_sums = {**self.all_data_error_sums, **all_data_error_sums}
         self.creatures = calculated_creatures
+        self.shrink_error_cache()
         return best_creature, error, median_error
 
 
@@ -284,6 +296,7 @@ class CreatureEvolution():
                 best_creature, error, median_error, calculated_creatures, all_data_error_sums = find_best_creature(mutated_clones, self.target_parameter, self.standardized_all_data, all_data_error_sums=self.all_data_error_sums, progressbar=False)
                 self.all_data_error_sums = {**self.all_data_error_sums, **all_data_error_sums}
             print(f'Best error: ' + '{0:.6E}'.format(error))
+            self.shrink_error_cache()
         pp(best_creature.modifiers)
         self.best_creature = best_creature
         print('Best creature optimized!\n')
@@ -309,8 +322,12 @@ class CreatureEvolutionFittest(CreatureEvolution):
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
             self.evolve_creatures(self.evolution_cycle, progressbar=kwargs.get('progressbar', True))
-            if kwargs.get('optimize', True):
+            optimize = kwargs.get('optimize', True)
+            if optimize == 'max':
+                self.optimize_best_creature(iterations=100)
+            elif optimize:
                 self.optimize_best_creature()
+            self.all_data_error_sums = {}  # clear out all_data_error_sums dict to save memory
 
 
     def evolution_cycle(self):
@@ -350,6 +367,7 @@ class CreatureEvolutionNatural(CreatureEvolution):
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
             self.evolve_creatures(evolution_cycle_func=self.evolution_cycle, use_feast_and_famine=True)
+            self.all_data_error_sums = {}  # clear out all_data_error_sums dict to save memory
 
 
     def feed_creatures(self, feast_or_famine: str):

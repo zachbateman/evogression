@@ -25,7 +25,7 @@ def calculate_single_evolution(arg_group: list) -> CreatureEvolutionFittest:
     Module-level function for arg to easy_multip.
     '''
     target_param, data, num_cr, num_cy, progressbar = arg_group
-    return CreatureEvolutionFittest(target_param, data, target_num_creatures=num_cr, num_cycles=num_cy, use_multip=False, initial_creature_creation_multip=False, progressbar=progressbar)
+    return CreatureEvolutionFittest(target_param, data, target_num_creatures=num_cr, num_cycles=num_cy, use_multip=False, initial_creature_creation_multip=False, optimize='max', progressbar=progressbar)
 
 def calculate_single_evolution_without_optimization(arg_group: list) -> CreatureEvolutionFittest:
     '''
