@@ -1,1 +1,2 @@
 tqdm==4.28.1
+easy-multip==0.2.3
