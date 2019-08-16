@@ -8,11 +8,11 @@ from .evolution import CreatureEvolutionFittest
 
 
 
-def evolution_group(data: list, target_param: str='', target_num_creatures: int=10000, num_cycles: int=10, num_groups: int=4, optimize=True) -> List[CreatureEvolutionFittest]:
+def evolution_group(data: list, target_param: str='', target_num_creatures: int=10000, num_cycles: int=10, num_groups: int=4, optimize=True, progressbar=True) -> List[CreatureEvolutionFittest]:
     '''
     Generate a list of fully initialized CreatureEvolution objects.
     '''
-    arg_groups = [(target_param, data, target_num_creatures, num_cycles) for _ in range(num_groups)]
+    arg_groups = [(target_param, data, target_num_creatures, num_cycles, progressbar) for _ in range(num_groups)]
     if optimize:
         return easy_multip.map(calculate_single_evolution, arg_groups)
     else:
@@ -24,16 +24,16 @@ def calculate_single_evolution(arg_group: list) -> CreatureEvolutionFittest:
     Fully initialize and return a single CreatureEvolution object.
     Module-level function for arg to easy_multip.
     '''
-    target_param, data, num_cr, num_cy = arg_group
-    return CreatureEvolutionFittest(target_param, data, target_num_creatures=num_cr, num_cycles=num_cy, use_multip=False, initial_creature_creation_multip=False)
+    target_param, data, num_cr, num_cy, progressbar = arg_group
+    return CreatureEvolutionFittest(target_param, data, target_num_creatures=num_cr, num_cycles=num_cy, use_multip=False, initial_creature_creation_multip=False, progressbar=progressbar)
 
 def calculate_single_evolution_without_optimization(arg_group: list) -> CreatureEvolutionFittest:
     '''
     Fully initialize and return a single CreatureEvolution object.
     Module-level function for arg to easy_multip.
     '''
-    target_param, data, num_cr, num_cy = arg_group
-    return CreatureEvolutionFittest(target_param, data, target_num_creatures=num_cr, num_cycles=num_cy, use_multip=False, initial_creature_creation_multip=False, optimize=False)
+    target_param, data, num_cr, num_cy, progressbar = arg_group
+    return CreatureEvolutionFittest(target_param, data, target_num_creatures=num_cr, num_cycles=num_cy, use_multip=False, initial_creature_creation_multip=False, optimize=False, progressbar=progressbar)
 
 
 def output_group_regression_funcs(group: list):

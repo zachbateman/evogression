@@ -114,7 +114,7 @@ class CreatureEvolution():
         return [self.best_creature.mutate_to_new_creature() for _ in range(num_additional_best_creatures)]
 
 
-    def evolve_creatures(self, evolution_cycle_func=None, use_feast_and_famine=False):
+    def evolve_creatures(self, evolution_cycle_func=None, use_feast_and_famine=False, progressbar=True):
         if evolution_cycle_func is None:
             evolution_cycle_func = self.evolution_cycle
         feast_or_famine = 'famine'
@@ -126,7 +126,7 @@ class CreatureEvolution():
             if use_feast_and_famine:
                 print(f'Current Phase: {feast_or_famine}')
 
-            best_creature, error, median_error = self.calculate_all_and_find_best_creature()
+            best_creature, error, median_error = self.calculate_all_and_find_best_creature(progressbar=progressbar)
 
             self.current_median_error = median_error
             self.best_creatures.append([copy.deepcopy(best_creature), error])
@@ -144,7 +144,7 @@ class CreatureEvolution():
             self.creatures.extend(self.additional_best_creatures())  # sprinkle in additional best_creature mutants
 
             if counter == 1 or new_best_creature:
-                pp(self.parameter_usefulness_count)
+                # pp(self.parameter_usefulness_count)
                 print(f'\n\n\nNEW BEST CREATURE AFTER {counter} ITERATIONS...')
                 print(self.best_creature)
                 print('Total Error: ' + '{0:.2E}'.format(error))
@@ -230,15 +230,15 @@ class CreatureEvolution():
         median_error = sum(bc_list[2] for bc_list in best_creature_lists) / len(best_creature_lists)  # mean of medians of big chunks...
         return best_creature, error, median_error, calculated_creatures
 
-    def calculate_all_and_find_best_creature(self) -> tuple:
+    def calculate_all_and_find_best_creature(self, progressbar=True) -> tuple:
         if self.use_multip:
             if self.standardize:
-                result_data = find_best_creature_multip(self.creatures, self.target_parameter, self.standardized_all_data, standardizer=self.standardizer, all_data_error_sums=self.all_data_error_sums)
+                result_data = find_best_creature_multip(self.creatures, self.target_parameter, self.standardized_all_data, standardizer=self.standardizer, all_data_error_sums=self.all_data_error_sums, progressbar=progressbar)
             else:
-                result_data = find_best_creature_multip(self.creatures, self.target_parameter, self.all_data, all_data_error_sums=self.all_data_error_sums)
+                result_data = find_best_creature_multip(self.creatures, self.target_parameter, self.all_data, all_data_error_sums=self.all_data_error_sums, progressbar=progressbar)
             best_creature, error, median_error, calculated_creatures = self.stats_from_find_best_creature_multip_result(result_data)
         else:
-            best_creature, error, median_error, calculated_creatures, all_data_error_sums = find_best_creature(self.creatures, self.target_parameter, self.standardized_all_data, all_data_error_sums=self.all_data_error_sums)
+            best_creature, error, median_error, calculated_creatures, all_data_error_sums = find_best_creature(self.creatures, self.target_parameter, self.standardized_all_data, all_data_error_sums=self.all_data_error_sums, progressbar=progressbar)
             self.all_data_error_sums = {**self.all_data_error_sums, **all_data_error_sums}
         self.creatures = calculated_creatures
         return best_creature, error, median_error
@@ -308,7 +308,7 @@ class CreatureEvolutionFittest(CreatureEvolution):
 
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
-            self.evolve_creatures(self.evolution_cycle)
+            self.evolve_creatures(self.evolution_cycle, progressbar=kwargs.get('progressbar', True))
             if kwargs.get('optimize', True):
                 self.optimize_best_creature()
 
