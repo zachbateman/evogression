@@ -327,6 +327,10 @@ class CreatureEvolutionFittest(CreatureEvolution):
                 self.optimize_best_creature(iterations=100)
             elif optimize:
                 self.optimize_best_creature()
+
+            if kwargs.get('clear_creatures', False):  # save tons of memory when returning object (helps with multip)
+                self.creatures = [self.best_creature]
+
             self.all_data_error_sums = {}  # clear out all_data_error_sums dict to save memory
 
 
@@ -367,6 +371,10 @@ class CreatureEvolutionNatural(CreatureEvolution):
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
             self.evolve_creatures(evolution_cycle_func=self.evolution_cycle, use_feast_and_famine=True)
+
+            if kwargs.get('clear_creatures', False):  # save tons of memory when returning object (helps with multip)
+                self.creatures = [self.best_creature]
+
             self.all_data_error_sums = {}  # clear out all_data_error_sums dict to save memory
 
 
