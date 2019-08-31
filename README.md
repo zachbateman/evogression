@@ -25,9 +25,9 @@ Evogression is Python package providing an evolutionary algorithm to develop a r
 
 <img src="tests/images/parabola_regression_evolution_test.png" width="550px">
 
- - Evolution algorithm successfully uses a surface to approximate 3D data using two input attributes.  This illustrates how Evogression can successfully model multivariate relationships.
+ - Evolution algorithm successfully uses a surface to approximate 3D data using two input attributes; this illustrates how multivariate relationships can be modeled.  While the case of two inputs is visualized below, any number of input attributes can be used to build a regression function.
 
-<img src="tests/images/surface_regression_evolution_test2.png" width="550px">
+<img src="tests/images/surface_regression_evolution_test3.png" width="550px">
 
 
 
