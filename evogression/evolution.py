@@ -93,7 +93,7 @@ class CreatureEvolution():
 
     def data_checks(self):
         '''Check input data for potential issues'''
-        acceptable_types = {'float', 'int', 'float64'}
+        acceptable_types = {'float', 'int', 'float64', 'int64'}
         def check_data(data, data_name):
             for i, d in enumerate(data):
                 for key, val in d.items():
