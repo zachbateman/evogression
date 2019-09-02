@@ -2,6 +2,23 @@
 
 Evogression is Python package providing an evolutionary algorithm to develop a regression function for a target parameter.  An arbitrary number of input parameters can be used, and data samples need not have all parameters populated to be used in training the regression.
 
+# Quickstart
+
+  - Clone this GitHub repository and run
+    ```
+    python setup.py install
+    ```
+
+  - Format your input data as a list of dictionaries.
+  - Run the following to generate a regression function and then output this function as a python module:
+    ```
+    import evogression
+
+    evolution = evogression.evolution.CreatureEvolutionFittest('target_variable_key', data, target_num_creatures=10000, num_cycles=10)
+    evolution.output_best_regression_function_as_module(add_error_value=False)
+    ```
+  - At this point, there should be a "regression_function.py" file within a newly-created "regression_modules" directory.  The "regression_func" function within this Python module can be imported and used with a dictionary of inputs to generate an estimated output value.
+
 # Current Features
 
   - EvogressionCreature class provides randomized regression functions given a parameter dictionary.  These "creatures" can each predict an output value given an input parameter dictionary either from training data or for new predictions.
