@@ -302,11 +302,16 @@ class CreatureEvolution():
         print('Best creature optimized!\n')
 
 
-    def output_best_regression_function_as_module(self, output_filename='regression_function'):
-        if self.standardize:
-            self.best_creature.output_python_regression_module(output_filename=output_filename, standardizer=self.standardizer, directory='regression_modules', name_ext=f'___{round(self.best_error, 5)}')
+    def output_best_regression_function_as_module(self, output_filename='regression_function', add_error_value=True):
+        if add_error_value:
+            name_ext = f'___{round(self.best_error, 4)}'
         else:
-            self.best_creature.output_python_regression_module(output_filename=output_filename, directory='regression_modules', name_ext=f'___{round(self.best_error, 5)}')
+            name_ext = ''
+
+        if self.standardize:
+            self.best_creature.output_python_regression_module(output_filename=output_filename, standardizer=self.standardizer, directory='regression_modules', name_ext=name_ext)
+        else:
+            self.best_creature.output_python_regression_module(output_filename=output_filename, directory='regression_modules', name_ext=name_ext)
 
 
 
