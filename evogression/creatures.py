@@ -68,7 +68,7 @@ class EvogressionCreature():
 
         parameter_usage_num = 2.5 / (len(self.full_parameter_example) + 1)  # local variables for speed
         rand_rand = random.random
-        rand_tri = random.triangular
+        rand_gauss = random.gauss
         targ_param = self.target_parameter
         gen_param_coeffs = self.generate_parameter_coefficients
         full_param_example_keys = self.full_parameter_example.keys()
@@ -76,7 +76,7 @@ class EvogressionCreature():
         modifiers: dict = {}
         for layer_name in self.layer_str_list:
             modifiers[layer_name] = {}
-            modifiers[layer_name]['N'] = 0 if rand_rand() < 0.2 else rand_tri(-9 * self.mutability, 0, 9 * self.mutability)
+            modifiers[layer_name]['N'] = 0 if rand_rand() < 0.2 else rand_gauss(0, 0.1)
             for param in full_param_example_keys:
                 # resist using parameters if many of them
                 # len(full_param_example) will always be >= 2
