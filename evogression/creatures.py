@@ -247,17 +247,17 @@ class EvogressionCreature():
         this merely makes small changes to the values of some of the coefficients.
         '''
         rand_rand = random.random
-        rand_tri = random.triangular
+        rand_gauss = random.gauss
         new_modifiers = copy.deepcopy(self.modifiers)
         for layer_name in new_modifiers:
             if rand_rand() < 0.5:
-                new_modifiers[layer_name]['N'] += rand_tri(-0.01, 0.01, 0)
+                new_modifiers[layer_name]['N'] += rand_gauss(0, 0.05)
             for param in new_modifiers[layer_name].keys():
                 if param != 'N':
                     for term in new_modifiers[layer_name][param]:
                         if rand_rand() < 0.5:
                             if term != 'X':
-                                new_modifiers[layer_name][param][term] += rand_tri(-0.01, 0.01, 0)
+                                new_modifiers[layer_name][param][term] += rand_gauss(0, 0.05)
                             else:
                                 if rand_rand() < 0.2:
                                     new_modifiers[layer_name][param]['X'] += 1
