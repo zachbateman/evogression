@@ -240,24 +240,29 @@ class EvogressionCreature():
             return self._complexity_cost
 
 
-    def mutate_to_new_creature(self):
+    def mutate_to_new_creature(self, adjustments: str='fast'):
         '''
         Create a new creature based on slightly modifying this creature's modifiers.
         Rather than changing the modifiers as can happen with __add__ing the creatures,
         this merely makes small changes to the values of some of the coefficients.
         '''
+        if adjustments == 'fast':
+            modify_value = 0.05
+        elif adjustments == 'fine':
+            modify_value = 0.005
+
         rand_rand = random.random
         rand_gauss = random.gauss
         new_modifiers = copy.deepcopy(self.modifiers)
         for layer_name in new_modifiers:
             if rand_rand() < 0.5:
-                new_modifiers[layer_name]['N'] += rand_gauss(0, 0.01)
+                new_modifiers[layer_name]['N'] += rand_gauss(0, modify_value)
             for param in new_modifiers[layer_name].keys():
                 if param != 'N':
                     for term in new_modifiers[layer_name][param]:
                         if rand_rand() < 0.5:
                             if term != 'X':
-                                new_modifiers[layer_name][param][term] += rand_gauss(0, 0.01)
+                                new_modifiers[layer_name][param][term] += rand_gauss(0, modify_value)
                             else:
                                 if rand_rand() < 0.2:
                                     new_modifiers[layer_name][param]['X'] += 1
