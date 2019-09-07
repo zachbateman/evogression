@@ -287,8 +287,13 @@ class CreatureEvolution():
         print('\n\n\nOptimizing best creature...')
         best_creature = self.best_creature
         pp(best_creature.modifiers)
-        for _ in tqdm.tqdm(range(iterations)):
-            mutated_clones = [best_creature] + [best_creature.mutate_to_new_creature() for _ in range(1000)]
+        for i in tqdm.tqdm(range(iterations)):
+            if i < iterations / 3:  # quickly mutate creature for first 1/3rd of iterations and then make small, fine mutations
+                adjustments = 'fast'
+            else:
+                adjustments = 'fine'
+
+            mutated_clones = [best_creature] + [best_creature.mutate_to_new_creature(adjustments=adjustments) for _ in range(1000)]
             if self.use_multip:
                 result_data = find_best_creature_multip(mutated_clones, self.target_parameter, self.standardized_all_data, all_data_error_sums=self.all_data_error_sums, progressbar=False)
                 best_creature, error, median_error, calculated_creatures = self.stats_from_find_best_creature_multip_result(result_data)
