@@ -8,6 +8,9 @@ import matplotlib
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import axes3d
 
+import random
+random.seed(10)  # for reproducing the same plot
+
 
 class Test3DSurfaceRegression(unittest.TestCase):
 
