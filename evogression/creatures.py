@@ -259,15 +259,16 @@ class EvogressionCreature():
                 new_modifiers[layer_name]['N'] += rand_gauss(0, modify_value)
             for param in new_modifiers[layer_name].keys():
                 if param != 'N':
-                    for term in new_modifiers[layer_name][param]:
+                    new_mods_layer_param = new_modifiers[layer_name][param]  # local var for speed
+                    for term in new_mods_layer_param:
                         if rand_rand() < 0.5:
                             if term != 'X':
-                                new_modifiers[layer_name][param][term] += rand_gauss(0, modify_value)
+                                new_mods_layer_param[term] += rand_gauss(0, modify_value)
                             else:
                                 if rand_rand() < 0.2:
-                                    new_modifiers[layer_name][param]['X'] += 1
-                                elif rand_rand() < 0.2 and new_modifiers[layer_name][param]['X'] > 1:
-                                    new_modifiers[layer_name][param]['X'] -= 1
+                                    new_mods_layer_param['X'] += 1
+                                elif rand_rand() < 0.2 and new_mods_layer_param['X'] > 1:
+                                    new_mods_layer_param['X'] -= 1
 
         return EvogressionCreature(self.target_parameter, layers=self.layers, hunger=100, generation=self.generation + 1, mutability=self.mutability, full_parameter_example=self.full_parameter_example, modifiers=new_modifiers)
 
