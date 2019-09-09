@@ -51,6 +51,14 @@ class TestCreatureCreation(unittest.TestCase):
                 if i > 1:
                     self.assertTrue('T' in cr.modifiers[f'LAYER_{i}'])
 
+    def test_creature_mutation(self):
+        start_gen = self.creature.generation
+        new_creature = self.creature.mutate_to_new_creature()
+        end_gen = new_creature.generation
+        self.assertTrue(start_gen != end_gen)
+        self.assertTrue(self.creature.modifiers != new_creature.modifiers)
+
+
 
 if __name__ == '__main__':
-    unittest.main()
+    unittest.main(buffer=True)
