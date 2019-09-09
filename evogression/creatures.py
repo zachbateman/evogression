@@ -450,8 +450,13 @@ class EvogressionCreature():
         '''Create a Python module/file with a regression function represented by this EvogressionCreature'''
         if directory != '.' and not os.path.exists(directory):
             os.mkdir(directory)
+
+        if output_filename[-3:] == '.py':  # adding .py later; removing to easily check for periods
+            output_filename = output_filename[:-3]
+
+        output_filename = output_filename.replace('.', '_') # period in filename not valid
         output_filename = os.path.join(directory, output_filename + name_ext + '.py')
-        output_filename = output_filename[:-3].replace('.', '_') + output_filename[-3:]  # period in filename not valid
+
         output_str = self.output_regression_func_as_python_module_string(standardizer=standardizer)
         with open(output_filename, 'w') as f:
             f.write(output_str)
