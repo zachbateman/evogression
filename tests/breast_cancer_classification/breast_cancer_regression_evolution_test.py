@@ -16,37 +16,24 @@ class TestBreastCancerDetectionRegression(unittest.TestCase):
     def test_breast_cancer_detection(self):
         df = pandas.read_csv('breast-cancer-wisconsin.data')
         df.drop('id_num', axis=1, inplace=True)
-        
+        df = df.replace('?', None)
+
         for col in df.columns:
+            vals = df[col].tolist()
+            if '?' in vals:
+                print(vals)
             try:
-                df = df[df[col] != '?']  # filter out rows without full data set.
-            except TypeError:
-                pass
-            df[col] = df[col].map(lambda x: float(x))
-            
+                df[col] = df[col].map(lambda x: float(x) if x is not None else x)
+            except:
+                print(f'ERROR column: {col}')
+
         regression_data = df.to_dict('records')
-        evolution = evogression.evolution.CreatureEvolution('benign2_or_malignant4', regression_data, target_num_creatures=5000, num_cycles=10)
-        evolution.best_creatures[-1][0].output_python_regression_module()
+        evolution = evogression.evolution.CreatureEvolutionFittest('benign2_or_malignant4', regression_data, target_num_creatures=5000, num_cycles=10)
+        evolution.best_creature.output_python_regression_module()
 
-        # x = [point_dict['x'] for point_dict in surface_3d_data]
-        # y = [point_dict['y'] for point_dict in surface_3d_data]
-        # z = [point_dict['z'] for point_dict in surface_3d_data]
-
-        # standardized_3d_data = [evolution.standardizer.convert_parameter_dict_to_standardized(d) for d in surface_3d_data]
-        # z_test = [evolution.standardizer.unstandardize_value('z', evolution.best_creature.calc_target(d)) for d in standardized_3d_data]
-
-        # fig = plt.figure()
-        # ax = fig.add_subplot(111, projection='3d')
-
-        # ax.scatter3D(x, y, z)
-        # ax.scatter3D(x, y, z_test)
-
-        # ax.set_xlabel('x')
-        # ax.set_ylabel('y')
-        # ax.set_zlabel('z')
-        # plt.title('Surface Regression - Evolution Test')
-
-        # plt.show()
+        output_data = evolution.add_predictions_to_data(regression_data)
+        output_df = pandas.DataFrame(output_data)
+        output_df.to_excel('BreastCancerPredictions.xlsx')
 
 
 
