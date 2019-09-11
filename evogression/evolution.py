@@ -287,13 +287,14 @@ class CreatureEvolution():
         print('\n\n\nOptimizing best creature...')
         best_creature = self.best_creature
         pp(best_creature.modifiers)
+        errors = []
         for i in tqdm.tqdm(range(iterations)):
             if i < iterations / 3:  # quickly mutate creature for first 1/3rd of iterations and then make small, fine mutations
                 adjustments = 'fast'
             else:
                 adjustments = 'fine'
 
-            mutated_clones = [best_creature] + [best_creature.mutate_to_new_creature(adjustments=adjustments) for _ in range(1000)]
+            mutated_clones = [best_creature] + [best_creature.mutate_to_new_creature(adjustments=adjustments) for _ in range(500)]
             if self.use_multip:
                 result_data = find_best_creature_multip(mutated_clones, self.target_parameter, self.standardized_all_data, all_data_error_sums=self.all_data_error_sums, progressbar=False)
                 best_creature, error, median_error, calculated_creatures = self.stats_from_find_best_creature_multip_result(result_data)
@@ -302,6 +303,9 @@ class CreatureEvolution():
                 self.all_data_error_sums = {**self.all_data_error_sums, **all_data_error_sums}
             print(f'Best error: ' + '{0:.6E}'.format(error))
             self.shrink_error_cache()
+            errors.append(error)
+            if i > iterations / 3 + 3 and iterations > 10 and error / errors[-3] > 0.995:
+                break  # break out of the loop if it's no longer improving accuracy
         pp(best_creature.modifiers)
         self.best_creature = best_creature
         print('Best creature optimized!\n')
@@ -317,6 +321,33 @@ class CreatureEvolution():
             self.best_creature.output_python_regression_module(output_filename=output_filename, standardizer=self.standardizer, directory='regression_modules', name_ext=name_ext)
         else:
             self.best_creature.output_python_regression_module(output_filename=output_filename, directory='regression_modules', name_ext=name_ext)
+
+    def add_predictions_to_data(self, data: dict, standardized_data: bool=False):
+        '''
+        Add best_creature predictions to data arg (list of dicts) as f'{target}_PREDICTED' new key.
+        Return unstandardized list of dicts.
+        '''
+        pred_key = f'{self.target_parameter}_PREDICTED'
+
+        if not standardized_data and self.standardize:
+            data = [self.standardizer.convert_parameter_dict_to_standardized(d) for d in data]
+
+        for d in data:
+            d[pred_key] = self.best_creature.calc_target(d)
+
+        if self.standardize:
+            unstandardized_data = []
+            for d in data:
+                unstandardized_d = {}
+                for param, value in d.items():
+                    unstandardized_d[param] = self.standardizer.unstandardize_value(self.target_parameter
+                                                                                    if '_PREDICTED' in param else param,
+                                                                                    value)
+                unstandardized_data.append(unstandardized_d)
+        else:
+            unstandardized_data = data
+
+        return unstandardized_data
 
 
 
