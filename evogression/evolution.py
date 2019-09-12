@@ -331,6 +331,15 @@ class CreatureEvolution():
         Return unstandardized list of dicts.
         '''
         pred_key = f'{self.target_parameter}_PREDICTED'
+        none_counter = 0
+        target_param = self.target_parameter  # local var
+        for d in data:
+            if target_param in d and d[target_param] is None:
+                d[target_param] = -99999
+                none_counter += 1
+        if none_counter > 0:
+            print('\nWhile adding predictions to provided data set,\n  None values were found in the target parameter.')
+            print(f'  {none_counter} target parameter None values were replaced with -99999\n')
 
         if not standardized_data and self.standardize:
             data = [self.standardizer.convert_parameter_dict_to_standardized(d) for d in data]
