@@ -63,7 +63,10 @@ class CreatureEvolution():
 
         arg_tup = (target_parameter, self.all_data[0], force_num_layers)
         if initial_creature_creation_multip:
-            self.creatures = easy_multip.map(generate_initial_creature, [arg_tup for _ in range(target_num_creatures)])
+            try:
+                self.creatures = easy_multip.map(generate_initial_creature, [arg_tup for _ in range(target_num_creatures)])
+            except RuntimeError:  # multiprocessing RuntimeError occurs if code not within if __name__ block
+                raise RuntimeError('\n  When using multiprocessing, please ensure your code is running from within a\n  if __name__ == \'__main__\': block!')
         else:
             self.creatures = [generate_initial_creature(arg_tup) for _ in range(target_num_creatures)]
 
