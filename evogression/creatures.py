@@ -34,7 +34,8 @@ class EvogressionCreature():
                  mutability: float=0,
                  full_parameter_example: dict={},
                  no_negative_exponents: bool=True,
-                 modifiers: dict={}) -> None:
+                 modifiers: dict={},
+                 max_layers=None) -> None:
         '''
         Create creature representing a regression function with terms of form: C * (B * value + Z) ** X
         The regression function can also have multiple layers of these terms
@@ -50,7 +51,10 @@ class EvogressionCreature():
         self.full_parameter_example = full_parameter_example
 
         if self.layers == 0:
-            self.layers = random.choice(layer_probabilities)
+            if max_layers and max_layers > 0:
+                self.layers = random.choice([x for x in layer_probabilities if x <= max_layers])
+            else:
+                self.layers = random.choice(layer_probabilities)
         self.layer_list = list(range(1, self.layers + 1))
         self.layer_str_list = [f'LAYER_{layer}' for layer in self.layer_list]
 
