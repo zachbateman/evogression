@@ -112,8 +112,18 @@ class CreatureEvolution():
     def additional_best_creatures(self) -> list:
         '''
         Sprinkle in additional mutated best_creatures to enhance this behavior.
+
+        DON'T WANT VERY MANY as the goal is not to just focus on super-optimizing the
+        best creature found from the first round of evolution.
+        Instead, add a FEW mutations of any given best_creature so that other randomly-generated
+        creatures still have a chance to become the new best!
+
+        (Ideally, evolution cycles come up with minimally-optimized creature with best DESIGNED equation...
+        ...THEN, that creature specifically gets optimized at the end)
         '''
-        num_additional_best_creatures = int(round(0.005 * self.target_num_creatures, 0))
+        num_additional_best_creatures = int(round(0.0005 * self.target_num_creatures, 0))
+        if num_additional_best_creatures < 5:
+            num_additional_best_creatures = 5  # provide at least 5 mutated best_creatures
         return [self.best_creature.mutate_to_new_creature() for _ in range(num_additional_best_creatures)]
 
 
@@ -137,12 +147,13 @@ class CreatureEvolution():
             self.current_median_error = median_error
             new_best_creature = self.record_best_creature(best_creature, error)
             self.print_cycle_stats(best_creature=best_creature, error=error, median_error=median_error, best_creature_error=error)
-            self.creatures.extend(self.additional_best_creatures())  # sprinkle in additional best_creature mutants
 
             if counter == 1 or new_best_creature:
                 print(f'\n\n\nNEW BEST CREATURE AFTER {counter} ITERATIONS...')
                 print(best_creature)
                 print('Total Error: ' + '{0:.2E}'.format(error))
+
+            self.creatures.extend(self.additional_best_creatures())  # sprinkle in additional best_creature mutants
 
             counter = self.check_cycles(counter)
             if self.num_cycles > 0 and counter == self.num_cycles:
@@ -471,7 +482,7 @@ class CreatureEvolutionFittest(CreatureEvolution):
         error_sums = self.all_data_error_sums
         median_error = self.current_median_error
         # next line uses .get(..., 0) to keep creatures if they aren't yet calculated (mutated best_creatures)
-        self.creatures = [creature for creature in self.creatures if error_sums.get(creature.modifier_hash, 0) > median_error]
+        self.creatures = [creature for creature in self.creatures if error_sums.get(creature.modifier_hash, 0) < median_error]
 
 
 
