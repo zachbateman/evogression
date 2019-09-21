@@ -124,9 +124,8 @@ class CreatureEvolution():
         '''
         if evolution_cycle_func is None:
             evolution_cycle_func = self.evolution_cycle
-        feast_or_famine = 'famine'
+
         counter = 1
-        best_creature, best_error, new_best_creature = None, -1, False
         while True:
             print('-----------------------------------------')
             print(f'Cycle - {counter} -')
@@ -136,31 +135,21 @@ class CreatureEvolution():
             best_creature, error, median_error = self.calculate_all_and_find_best_creature(progressbar=progressbar)
 
             self.current_median_error = median_error
-            self.best_creatures.append([copy.deepcopy(best_creature), error])
+            new_best_creature = self.record_best_creature(best_creature, error)
             self.print_cycle_stats(best_creature=best_creature, error=error, median_error=median_error, best_creature_error=error)
-
-            for creature_list in self.best_creatures:
-                if creature_list[1] < best_error or best_error < 0:
-                    best_error = creature_list[1]
-                    self.best_error = best_error
-                    self.best_creature = creature_list[0]
-                    new_best_creature = True
-                    for param in self.best_creature.used_parameters():  # only count parameter usage for each NEW best_creature
-                        self.parameter_usefulness_count[param] += 1
-
             self.creatures.extend(self.additional_best_creatures())  # sprinkle in additional best_creature mutants
 
             if counter == 1 or new_best_creature:
                 print(f'\n\n\nNEW BEST CREATURE AFTER {counter} ITERATIONS...')
-                print(self.best_creature)
+                print(best_creature)
                 print('Total Error: ' + '{0:.2E}'.format(error))
-                new_best_creature = False
 
             counter = self.check_cycles(counter)
             if self.num_cycles > 0 and counter == self.num_cycles:
                 break
 
             if use_feast_and_famine:
+                feast_or_famine = 'famine' if counter <= 2 else feast_or_famine
                 evolution_cycle_func(feast_or_famine)
                 feast_or_famine = 'feast' if len(self.creatures) < self.target_num_creatures else 'famine'
             else:
@@ -181,6 +170,52 @@ class CreatureEvolution():
         self.run_metabolism_creatures()
         self.kill_weak_creatures()
         self.mate_creatures()
+
+
+    def record_best_creature(self, best_creature, error) -> bool:
+        '''
+        Saves a copy of the provided best creature (and its error)
+        into self.best_creatures list.
+
+        Returns True/False depending on if the recorded creature is a new
+        BEST creature (compared to previously recorded best creatures).
+
+        Also record parameters used in regression equation (modifiers dict)
+        to parameter_usefulness_count if a new best error/creatures.
+        '''
+        new_best_creature = False
+        if error < self.best_error:
+            new_best_creature = True
+            # now count parameter usage if better than previous best creatures
+            for param in best_creature.used_parameters():
+                self.parameter_usefulness_count[param] += 1
+
+        self.best_creatures.append([copy.deepcopy(best_creature), error])
+        return new_best_creature
+
+
+    @property
+    def best_creature(self) -> EvogressionCreature:
+        '''
+        Return the best creature available in the self.best_creatures list.
+        '''
+        best_creature, best_error = None, 10 ** 150
+        for creature_list in self.best_creatures:
+            if creature_list[1] < best_error:
+                best_error = creature_list[1]
+                best_creature = creature_list[0]
+        return best_creature
+
+    @property
+    def best_error(self) -> float:
+        '''
+        Return error associated with best creature available in self.best_creatures list.
+        '''
+        best_error = 10 ** 150
+        for creature_list in self.best_creatures:
+            if creature_list[1] < best_error:
+                best_error = creature_list[1]
+        return best_error
 
 
     def check_cycles(self, counter):
@@ -220,17 +255,25 @@ class CreatureEvolution():
         return sum(c.hunger for c in self.creatures) / len(self.creatures)
 
 
-    def return_best_creature(self):
+    def return_best_creature(self, with_error=False):
         '''Return current best creature and standardizer if used'''
+        print('\nDEPRECATION WARNING: "evolution.return_best_creature"')
+        print('  Use evolution.best_creature, evolution.best_error, or evolution.standardizer instead!\n')
         error = -1
         for creature_list in self.best_creatures:
             if creature_list[1] < error or error < 0:
                 error = creature_list[1]
                 best_creature = creature_list[0]
         if self.standardize:
-            return best_creature, self.standardizer
+            if with_error:
+                return best_creature, error, self.standardizer
+            else:
+                return best_creature, self.standardizer
         else:
-            return best_creature
+            if with_error:
+                return best_creature, error
+            else:
+                return best_creature
 
 
     def stats_from_find_best_creature_multip_result(self, result_data) -> tuple:
@@ -292,7 +335,7 @@ class CreatureEvolution():
                 new_creature = creature_group[0] + creature_group[1]
                 if new_creature:
                     new_creatures_append(new_creature)
-            except IndexError:
+            except IndexError:  # occurs when at the end of self.creatures
                 pass
         self.creatures.extend(new_creatures)
 
@@ -304,7 +347,7 @@ class CreatureEvolution():
         '''
         print('\n\n\nOptimizing best creature...')
         best_creature = self.best_creature
-        pp(best_creature.modifiers)
+        print(best_creature)
         errors = []
         for i in tqdm.tqdm(range(iterations)):
             if i < iterations / 3:  # quickly mutate creature for first 1/3rd of iterations and then make small, fine mutations
@@ -324,8 +367,8 @@ class CreatureEvolution():
             errors.append(error)
             if i > iterations / 3 + 3 and iterations > 10 and error / errors[-3] > 0.995:
                 break  # break out of the loop if it's no longer improving accuracy
-        pp(best_creature.modifiers)
-        self.best_creature = best_creature
+        new_best_creature = self.record_best_creature(best_creature, error)
+        print(self.best_creature)
         print('Best creature optimized!\n')
 
 
@@ -399,6 +442,11 @@ class CreatureEvolutionFittest(CreatureEvolution):
             optimize = kwargs.get('optimize', True)
             if optimize == 'max':
                 self.optimize_best_creature(iterations=100)
+            elif type(optimize) == int:
+                if optimize > 0:
+                    self.optimize_best_creature(iterations=optimize)
+                else:
+                    print('Warning!  Optimization cycles must be an int > 0!')
             elif optimize:
                 self.optimize_best_creature()
 
