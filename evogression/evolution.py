@@ -121,10 +121,7 @@ class CreatureEvolution():
         (Ideally, evolution cycles come up with minimally-optimized creature with best DESIGNED equation...
         ...THEN, that creature specifically gets optimized at the end)
         '''
-        num_additional_best_creatures = int(round(0.0005 * self.target_num_creatures, 0))
-        if num_additional_best_creatures < 5:
-            num_additional_best_creatures = 5  # provide at least 5 mutated best_creatures
-        return [self.best_creature.mutate_to_new_creature() for _ in range(num_additional_best_creatures)]
+        return [self.best_creature.mutate_to_new_creature() for _ in range(10)]
 
 
     def evolve_creatures(self, evolution_cycle_func=None, use_feast_and_famine=False, progressbar=True):
@@ -339,7 +336,7 @@ class CreatureEvolution():
     def mate_creatures(self):
         '''Mate creatures to generate new creatures'''
         new_creatures = []
-        new_creatures_append = new_creatures.append
+        new_creatures_append = new_creatures.append  # local var for speed
         for i in range(0, len(self.creatures), 2):
             creature_group = self.creatures[i: i + 2]
             try:
