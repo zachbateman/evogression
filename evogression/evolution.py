@@ -121,7 +121,7 @@ class CreatureEvolution():
         (Ideally, evolution cycles come up with minimally-optimized creature with best DESIGNED equation...
         ...THEN, that creature specifically gets optimized at the end)
         '''
-        return [self.best_creature.mutate_to_new_creature() for _ in range(10)]
+        return [self.best_creature.mutate_to_new_creature() for _ in range(5)]
 
 
     def evolve_creatures(self, evolution_cycle_func=None, use_feast_and_famine=False, progressbar=True):
@@ -371,7 +371,7 @@ class CreatureEvolution():
             print(f'Best error: ' + '{0:.6E}'.format(error))
             self.shrink_error_cache()
             errors.append(error)
-            if i > iterations / 3 + 3 and iterations > 10 and error / errors[-3] > 0.995:
+            if i > iterations / 3 + 3 and iterations > 10 and error / errors[-3] > 0.999:
                 break  # break out of the loop if it's no longer improving accuracy
         new_best_creature = self.record_best_creature(best_creature, error)
         print(self.best_creature)
