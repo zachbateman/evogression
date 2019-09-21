@@ -118,6 +118,10 @@ class CreatureEvolution():
 
 
     def evolve_creatures(self, evolution_cycle_func=None, use_feast_and_famine=False, progressbar=True):
+        '''
+        Main evolution loop that handles results of each loop and
+        keeps track of best creatures/regression equations.
+        '''
         if evolution_cycle_func is None:
             evolution_cycle_func = self.evolution_cycle
         feast_or_famine = 'famine'
@@ -147,12 +151,10 @@ class CreatureEvolution():
             self.creatures.extend(self.additional_best_creatures())  # sprinkle in additional best_creature mutants
 
             if counter == 1 or new_best_creature:
-                # pp(self.parameter_usefulness_count)
                 print(f'\n\n\nNEW BEST CREATURE AFTER {counter} ITERATIONS...')
                 print(self.best_creature)
                 print('Total Error: ' + '{0:.2E}'.format(error))
                 new_best_creature = False
-
 
             counter = self.check_cycles(counter)
             if self.num_cycles > 0 and counter == self.num_cycles:
@@ -166,7 +168,11 @@ class CreatureEvolution():
 
 
     def evolution_cycle(self, feast_or_famine: str):
-        '''Run one cycle of evolution'''
+        '''
+        Default evolution cycle.
+        Run one cycle of evolution that introduces new random creatures,
+        kills weak creatures, and mates the remaining ones.
+        '''
         # Option to add random new creatures each cycle (2.0% of target_num_creatures each time)
         if self.add_random_creatures_each_cycle:
             self.creatures.extend([EvogressionCreature(self.target_parameter, full_parameter_example=self.all_data[0], hunger=80 * random.random() + 10, layers=self.force_num_layers) for _ in range(int(round(0.02 * self.target_num_creatures, 0)))])
@@ -244,12 +250,21 @@ class CreatureEvolution():
         median_error = sum(bc_list[2] for bc_list in best_creature_lists) / len(best_creature_lists)  # mean of medians of big chunks...
         return best_creature, error, median_error, calculated_creatures
 
+
     def calculate_all_and_find_best_creature(self, progressbar=True) -> tuple:
+        '''
+        Find the best creature in all current creatures by calculating each one's
+        total error compared to all the training data.
+        '''
         if self.use_multip:
             if self.standardize:
-                result_data = find_best_creature_multip(self.creatures, self.target_parameter, self.standardized_all_data, standardizer=self.standardizer, all_data_error_sums=self.all_data_error_sums, progressbar=progressbar)
+                result_data = find_best_creature_multip(self.creatures, self.target_parameter,
+                                                                              self.standardized_all_data, standardizer=self.standardizer,
+                                                                              all_data_error_sums=self.all_data_error_sums, progressbar=progressbar)
             else:
-                result_data = find_best_creature_multip(self.creatures, self.target_parameter, self.all_data, all_data_error_sums=self.all_data_error_sums, progressbar=progressbar)
+                result_data = find_best_creature_multip(self.creatures, self.target_parameter,
+                                                                              self.all_data, all_data_error_sums=self.all_data_error_sums,
+                                                                              progressbar=progressbar)
             best_creature, error, median_error, calculated_creatures = self.stats_from_find_best_creature_multip_result(result_data)
         else:
             best_creature, error, median_error, calculated_creatures, all_data_error_sums = find_best_creature(self.creatures, self.target_parameter, self.standardized_all_data, all_data_error_sums=self.all_data_error_sums, progressbar=progressbar)
@@ -315,6 +330,11 @@ class CreatureEvolution():
 
 
     def output_best_regression_function_as_module(self, output_filename='regression_function', add_error_value=True):
+        '''
+        Save this the regression equation/function this evolution has found
+        to be the best into a new Python module so that the function itself
+        can be imported and used in other code.
+        '''
         if add_error_value:
             name_ext = f'___{round(self.best_error, 4)}'
         else:
@@ -324,6 +344,7 @@ class CreatureEvolution():
             self.best_creature.output_python_regression_module(output_filename=output_filename, standardizer=self.standardizer, directory='regression_modules', name_ext=name_ext)
         else:
             self.best_creature.output_python_regression_module(output_filename=output_filename, directory='regression_modules', name_ext=name_ext)
+
 
     def add_predictions_to_data(self, data: dict, standardized_data: bool=False):
         '''
@@ -480,11 +501,19 @@ class CreatureEvolutionNatural(CreatureEvolution):
 
 
 def generate_initial_creature(arg_tup):
+    '''
+    Creates an EvogressionCreature.
+    This is a module-level function so that it can be used by multip.
+    '''
     target_param, full_param_example, layers = arg_tup
     return EvogressionCreature(target_param, full_parameter_example=full_param_example, hunger=80 * random.random() + 10, layers=layers)
 
 
 def feed_creature_groups(arg_tup):
+    '''
+    Calculate the error for each creature for a group of data points and
+    increase the "hunger" for the creatures that are more accurate.
+    '''
     creature_group, food_group, target_parameter, standardizer = arg_tup
     for food_data in food_group:
         best_error, best_creature = 10 ** 150, None

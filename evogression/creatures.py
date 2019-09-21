@@ -37,7 +37,8 @@ class EvogressionCreature():
                  modifiers: dict={}) -> None:
         '''
         Create creature representing a regression function with terms of form: C * (B * value + Z) ** X
-        The regression function can also have multiple layers of these terms.
+        The regression function can also have multiple layers of these terms
+        to create a more complex equation.
         '''
         self.hunger = hunger  # creature dies when self.hunger <= 0
         self.layers = layers
@@ -64,7 +65,12 @@ class EvogressionCreature():
 
 
     def create_initial_modifiers(self) -> dict:
-        '''Generate and return a set of modifiers.'''
+        '''
+        Generate and return a set of modifiers.
+        The EvogressionCreature.modifiers dictionary is the definition of the equation
+        created by this creature.  The dictionary contains the coefficients/parameters
+        assigned to each term as well as the terms and the layers of the equation.
+        '''
 
         parameter_usage_num = 2.5 / (len(self.full_parameter_example) + 1)  # local variables for speed
         rand_rand = random.random
@@ -103,6 +109,10 @@ class EvogressionCreature():
 
 
     def _generate_parameter_coefficients(self):
+        '''
+        Create randomized coefficients/parameters for that can
+        be assigned to a single term in the modifiers dict.
+        '''
         rand_rand = random.random  # local variable for speed
         rand_tri = random.triangular
         rand_choice = random.choice
@@ -129,7 +139,7 @@ class EvogressionCreature():
 
     def simplify_modifiers(self, modifiers: dict={}) -> dict:
         '''
-        Method looks at the mathematics of self.modifiers and simplifies if possible
+        Analyzes the mathematics of self.modifiers and simplifies if possible
         '''
         if modifiers == {}:
             old_modifiers, new_modifiers = self.modifiers, copy.deepcopy(self.modifiers)
