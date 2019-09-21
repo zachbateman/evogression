@@ -3,7 +3,6 @@ import sys
 sys.path.insert(1, '..')
 import evogression
 from test_data import linear_data
-from pprint import pprint as pp
 import matplotlib
 import matplotlib.pyplot as plt
 
@@ -35,7 +34,7 @@ class TestLinearRegression(unittest.TestCase):
         print(f'  creature total error^2:    {round(best_error, 1)}')
 
         print('\nModifiers:')
-        pp(best_creature.modifiers)
+        print(best_creature)
         print('\n'*2)
 
         plt.scatter([d['x'] for d in linear_data], [d['y'] for d in linear_data])
@@ -74,7 +73,7 @@ class TestLinearRegressionLayers(unittest.TestCase):
         print(f'  creature total error^2:    {round(best_error, 1)}')
 
         print('\nModifiers:')
-        pp(best_creature.modifiers)
+        print(best_creature)
         print('\n'*2)
 
         plt.scatter([d['x'] for d in linear_data], [d['y'] for d in linear_data])
@@ -85,6 +84,26 @@ class TestLinearRegressionLayers(unittest.TestCase):
         plt.title('Linear Regression - Brute Force Multiple Layers Test')
         plt.show()
 
+
+class TestLinearRegressionEvolution(unittest.TestCase):
+    def test_best_creature_evolution(self):
+        evolution = evogression.evolution.CreatureEvolutionFittest('y', linear_data, target_num_creatures=10000, num_cycles=3, optimize=5)
+        best_creature =  evolution.best_creature
+        print('\nBest creature found!')
+        print(best_creature)
+
+        predictions = [{'x': i / 2} for i in range(6, 25)]
+        predictions = evolution.add_predictions_to_data(predictions, standardized_data=False)
+        calculation_x_values = [point['x'] for point in predictions]
+        calculated_y_values = [point['y_PREDICTED'] for point in predictions]
+
+        plt.scatter([d['x'] for d in linear_data], [d['y'] for d in linear_data])
+        plt.plot(calculation_x_values, calculated_y_values, 'g--')
+
+        plt.xlabel('x')
+        plt.ylabel('y')
+        plt.title('Linear Regression - Evolution Test')
+        plt.show()
 
 
 if __name__ == '__main__':
