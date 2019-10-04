@@ -132,8 +132,9 @@ class CreatureEvolution():
         if evolution_cycle_func is None:
             evolution_cycle_func = self.evolution_cycle
 
-        counter = 1
+        counter = 0
         while True:
+            counter += 1
             print('-----------------------------------------')
             print(f'Cycle - {counter} -')
             if use_feast_and_famine:
@@ -145,15 +146,14 @@ class CreatureEvolution():
             new_best_creature = self.record_best_creature(best_creature, error)
             self.print_cycle_stats(best_creature=best_creature, error=error, median_error=median_error, best_creature_error=error)
 
-            if counter == 1 or new_best_creature:
-                print(f'\n\n\nNEW BEST CREATURE AFTER {counter} ITERATIONS...')
+            if new_best_creature:
+                print(f'\n\n\nNEW BEST CREATURE AFTER {counter} ITERATION{"S" if counter > 1 else ""}...')
                 print(best_creature)
                 print('Total Error: ' + '{0:.2E}'.format(error))
 
             self.creatures.extend(self.additional_best_creatures())  # sprinkle in additional best_creature mutants
 
-            counter = self.check_cycles(counter)
-            if self.num_cycles > 0 and counter == self.num_cycles:
+            if counter >= self.num_cycles:
                 break
 
             if use_feast_and_famine:
@@ -218,20 +218,13 @@ class CreatureEvolution():
     def best_error(self) -> float:
         '''
         Return error associated with best creature available in self.best_creatures list.
+        If no existing best_creatures, return default huge error.
         '''
         best_error = 10 ** 150
         for creature_list in self.best_creatures:
             if creature_list[1] < best_error:
                 best_error = creature_list[1]
         return best_error
-
-
-    def check_cycles(self, counter: int) -> int:
-        '''Used in evolve_creatures() to handle cycle counting extras'''
-        if counter % 10 == 0:
-            if counter >= 10 and not self.num_cycles > 0:  # only pause if running indefinitely
-                breakpoint()
-        return counter + 1
 
 
     def shrink_error_cache(self):
