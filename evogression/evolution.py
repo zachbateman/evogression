@@ -226,7 +226,7 @@ class CreatureEvolution():
         return best_error
 
 
-    def check_cycles(self, counter):
+    def check_cycles(self, counter: int) -> int:
         '''Used in evolve_creatures() to handle cycle counting extras'''
         if counter % 10 == 0:
             if counter >= 10 and not self.num_cycles > 0:  # only pause if running indefinitely
@@ -282,12 +282,19 @@ class CreatureEvolution():
                 return best_creature
 
 
-    def stats_from_find_best_creature_multip_result(self, result_data) -> tuple:
+    def stats_from_find_best_creature_multip_result(self, result_data: list) -> tuple:
         '''
         Unpack and return metrics from the data provided by the multip version of find_best_creature.
+
+        result_data arg is a list where each 5 items is the output from one find_best_creature call.
+        Specifically, result_data looks like:
+            [EvogressionCreature, best_error, avg_error, calculated_creatures, all_data_error_sums,
+              EvogressionCreature, ...,
+              ...
+            ]
         '''
         calculated_creatures = []
-        best_creature_lists = [result_data[5 * i: 5 * (i + 1)] for i in range(int(len(result_data) / 5))]
+        best_creature_lists = [result_data[5 * i: 5 * (i + 1)] for i in range(int(len(result_data) / 5))]  # make result_data useful
         # best_creature_lists is list with items of form [best_creature, error, avg_error]
         error, best_creature = None, None
         for index, bc_list in enumerate(best_creature_lists):
@@ -395,14 +402,14 @@ class CreatureEvolution():
             self.best_creature.output_python_regression_module(output_filename=output_filename, directory='regression_modules', name_ext=name_ext)
 
 
-    def add_predictions_to_data(self, data: dict, standardized_data: bool=False):
+    def add_predictions_to_data(self, data: List[dict], standardized_data: bool=False) -> List[dict]:
         '''
-        Add best_creature predictions to data arg (list of dicts) as f'{target}_PREDICTED' new key.
+        Add best_creature predictions to data arg as f'{target}_PREDICTED' new key.
         Return unstandardized list of dicts.
         '''
         pred_key = f'{self.target_parameter}_PREDICTED'
         none_counter = 0
-        target_param = self.target_parameter  # local var
+        target_param = self.target_parameter  # local variable for speed
         for d in data:
             if target_param in d and d[target_param] is None:
                 d[target_param] = -99999
@@ -422,9 +429,7 @@ class CreatureEvolution():
             for d in data:
                 unstandardized_d = {}
                 for param, value in d.items():
-                    unstandardized_d[param] = self.standardizer.unstandardize_value(self.target_parameter
-                                                                                    if '_PREDICTED' in param else param,
-                                                                                    value)
+                    unstandardized_d[param] = self.standardizer.unstandardize_value(target_param if '_PREDICTED' in param else param, value)
                 unstandardized_data.append(unstandardized_d)
         else:
             unstandardized_data = data
