@@ -469,7 +469,7 @@ class EvogressionCreature():
             output_filename = output_filename[:-3]
 
         output_filename = output_filename.replace('.', '_') # period in filename not valid
-        output_filename = os.path.join(directory, output_filename + name_ext + '.py')
+        output_filename = os.path.join(directory, output_filename + name_ext.replace('.', '_') + '.py')
 
         output_str = self.output_regression_func_as_python_module_string(standardizer=standardizer)
         with open(output_filename, 'w') as f:
