@@ -233,7 +233,7 @@ class CreatureEvolution():
         Python dictionaries are now insertion-ordered, so this should work well
         '''
         hash_keys = list(self.all_data_error_sums.keys())
-        if len(hash_keys) > self.target_num_creatures * 10:
+        if len(hash_keys) > self.target_num_creatures * 3:
             for key in hash_keys[:self.target_num_creatures]:
                 del self.all_data_error_sums[key]
 
