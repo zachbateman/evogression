@@ -234,8 +234,8 @@ class CreatureEvolution():
         '''
         hash_keys = list(self.all_data_error_sums.keys())
         if len(hash_keys) > self.target_num_creatures * 3:
-            for key in hash_keys[:self.target_num_creatures]:
-                del self.all_data_error_sums[key]
+            keys_to_keep = set(hash_keys[:self.target_num_creatures])
+            self.all_data_error_sums = {key: val for key, val in self.all_data_error_sums.items() if key in keys_to_keep}
 
 
     def run_metabolism_creatures(self):
@@ -317,7 +317,7 @@ class CreatureEvolution():
             best_creature, error, median_error, calculated_creatures = self.stats_from_find_best_creature_multip_result(result_data)
         else:
             best_creature, error, median_error, calculated_creatures, all_data_error_sums = find_best_creature(self.creatures, self.target_parameter, self.standardized_all_data, all_data_error_sums=self.all_data_error_sums, progressbar=progressbar)
-            self.all_data_error_sums = {**self.all_data_error_sums, **all_data_error_sums}
+            self.all_data_error_sums = all_data_error_sums #{**self.all_data_error_sums, **all_data_error_sums}
         self.creatures = calculated_creatures
         self.shrink_error_cache()
         return best_creature, error, median_error
