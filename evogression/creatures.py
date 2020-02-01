@@ -55,8 +55,8 @@ class EvogressionCreature():
                 self.layers = random.choice([x for x in layer_probabilities if x <= max_layers])
             else:
                 self.layers = random.choice(layer_probabilities)
-        self.layer_list = list(range(1, self.layers + 1))
-        self.layer_str_list = [f'LAYER_{layer}' for layer in self.layer_list]
+        self.layer_tup = tuple(range(1, self.layers + 1))
+        self.layer_str_list = [f'LAYER_{layer}' for layer in self.layer_tup]
 
         if modifiers == {}:
             if full_parameter_example == {}:
@@ -201,7 +201,7 @@ class EvogressionCreature():
             return calc_target_cython.calc_target_cython(parameters, self.modifiers, self.layer_str_list)
         except:  # if cython extension not available
             T = None  # has to be None on first layer
-            for layer in self.layer_list:
+            for layer in self.layer_tup:
                 T = self._calc_single_layer_target(parameters, layer, previous_T=T)
             return T
 
