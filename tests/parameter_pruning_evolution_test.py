@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 class TestManyDimensionParameterPruningRegression(unittest.TestCase):
 
     def test_best_creature_parabola_regression_evolution(self):
-        pruned_evolution_group = evogression.evolution_group.parameter_pruned_evolution_group(many_d_data, target_param='Target', max_parameters=7, target_num_creatures=300, num_cycles=7, num_groups=6)
+        pruned_evolution_group = evogression.evolution_group.parameter_pruned_evolution_group(many_d_data, target_param='Target', max_parameters=15, target_num_creatures=100, num_cycles=3, num_groups=3)
 
         pp(evogression.evolution_group.group_parameter_usage(pruned_evolution_group))
         evogression.evolution_group.output_group_regression_funcs(pruned_evolution_group)
@@ -27,4 +27,4 @@ if __name__ == '__main__':
     suite = unittest.TestLoader().discover('.')
     def run_tests():
         unittest.TextTestRunner().run(suite)
-    cProfile.run('unittest.main()', 'parabola_test.profile')
+    cProfile.run('unittest.main()', 'parameter_pruning_test.profile')

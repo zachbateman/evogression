@@ -7,6 +7,7 @@ import copy
 import random
 import tqdm
 import warnings
+from collections import defaultdict
 import easy_multip
 from pprint import pprint as pp
 from .creatures import EvogressionCreature
@@ -51,7 +52,7 @@ class CreatureEvolution():
         self.current_generation = 1
         self.all_data_error_sums: dict = {}
         self.best_creatures: list = []
-        self.parameter_usefulness_count: dict={key: 0 for key in all_data[0] if key != target_parameter}
+        self.parameter_usefulness_count: dict=defaultdict(int)
 
         if self.standardize:
             self.standardizer = Standardizer(self.all_data)

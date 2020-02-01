@@ -3,6 +3,7 @@ Module containing high-level evogression functionality to fit and summarize regr
 '''
 from typing import List, Dict
 import random
+from collections import defaultdict
 import easy_multip
 from .evolution import CreatureEvolutionFittest
 
@@ -49,7 +50,7 @@ def group_parameter_usage(group: list) -> Dict[str, int]:
     '''
     Combine each CreatureEvolution's .parameter_usefulness_count dicts to see which attributes are important.
     '''
-    combined_parameter_usefulness = {key: 0 for key in group[0].parameter_usefulness_count}
+    combined_parameter_usefulness = defaultdict(int)
     for cr_ev in group:
         for param, count in cr_ev.parameter_usefulness_count.items():
             combined_parameter_usefulness[param] += count
