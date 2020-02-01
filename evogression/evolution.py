@@ -80,7 +80,7 @@ class CreatureEvolution():
         parameters_adjusted = []
         for param in self.all_data[0].keys():
             if param != self.target_parameter:
-                values = [d[param] for d in self.all_data if d[param] is not None]
+                values = [val for val in self.all_data.values() if val is not None]
                 median = statistics.median(values)
                 for d in self.all_data:
                     if d[param] is None:
