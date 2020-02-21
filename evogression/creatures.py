@@ -29,7 +29,6 @@ class EvogressionCreature():
     def __init__(self,
                  target_parameter: str,
                  layers: int=0,
-                 hunger: int=100,
                  generation: int=1,
                  mutability: float=0,
                  full_parameter_example: dict={},
@@ -41,7 +40,6 @@ class EvogressionCreature():
         The regression function can also have multiple layers of these terms
         to create a more complex equation.
         '''
-        self.hunger = hunger  # creature dies when self.hunger <= 0
         self.layers = layers
         self.generation = generation
         self.mutability = 0.1 * (random.random() + 0.5) if mutability == 0 else mutability
@@ -243,8 +241,8 @@ class EvogressionCreature():
     @property
     def complexity_cost(self):
         '''
-        Calculate an int to reduce hunger by based on the complexity of this creature.
-        The idea is to penalize more complex models and thereby create a tendency
+        Calculate an value representing the complexity of this creature.
+        The idea is to possibly penalize more complex models and thereby create a tendency
         to develop a simpler model.
         '''
         try:
@@ -284,7 +282,7 @@ class EvogressionCreature():
                                 elif rand_rand() < 0.2 and new_mods_layer_param['X'] > 1:
                                     new_mods_layer_param['X'] -= 1
 
-        return EvogressionCreature(self.target_parameter, layers=self.layers, hunger=100, generation=self.generation + 1, mutability=self.mutability, full_parameter_example=self.full_parameter_example, modifiers=new_modifiers)
+        return EvogressionCreature(self.target_parameter, layers=self.layers, generation=self.generation + 1, mutability=self.mutability, full_parameter_example=self.full_parameter_example, modifiers=new_modifiers)
 
 
     def __add__(self, other):
@@ -295,12 +293,6 @@ class EvogressionCreature():
         '''
         rand_rand = random.random  # local variable for speed
         self_layers, other_layers = self.layers, other.layers
-
-        combined_hunger = self.hunger + other.hunger
-        chance_of_mating = (combined_hunger - 100) / 100
-
-        if rand_rand() < (1 - chance_of_mating):
-            return None
 
         # Generate new number of layers
         if self_layers == other_layers:
@@ -405,7 +397,6 @@ class EvogressionCreature():
                         if param in other_modifiers[layer_name] and (rand_rand() < 0.5 or force_keep_param):
                             create_new_coefficients(new_modifiers, [other_modifiers], layer_name, coefficients)
 
-
         # Chance to add or remove parameter modifiers
         remove_modifiers = []
         add_modifiers = []
@@ -432,18 +423,11 @@ class EvogressionCreature():
                 C, B, Z, X = self.generate_parameter_coefficients()
                 new_modifiers[add_tup[0]][add_tup[1]] = {'C': C, 'B': B, 'Z': Z, 'X': X}
 
-        if combined_hunger > 150:
-            self.hunger -= 25
-            other.hunger -= 25
-        elif combined_hunger > 100:
-            self.hunger -= 10
-            other.hunger -= 10
-
-        return EvogressionCreature(self.target_parameter, layers=new_layers, hunger=100, generation=self.generation, mutability=new_mutability, full_parameter_example=self.full_parameter_example, modifiers=new_modifiers)
+        return EvogressionCreature(self.target_parameter, layers=new_layers, generation=self.generation, mutability=new_mutability, full_parameter_example=self.full_parameter_example, modifiers=new_modifiers)
 
 
     def __copy__(self):
-        return EvogressionCreature(self.target_parameter, layers=self.layers, hunger=self.hunger, generation=self.generation, mutability=self.mutability, modifiers=self.modifiers)
+        return EvogressionCreature(self.target_parameter, layers=self.layers, generation=self.generation, mutability=self.mutability, modifiers=self.modifiers)
 
 
     def __repr__(self) -> str:
@@ -451,7 +435,11 @@ class EvogressionCreature():
         for layer in self.modifiers:
             printout += f'\n  Modifiers {layer}'
             for param, coeffs in self.modifiers[layer].items():
-                printout += f'\n     {param}: {coeffs}'
+                if param == 'N':
+                    rounded_coeffs = round(coeffs, 6)
+                else:
+                    rounded_coeffs = {k: round(val, 6) for k, val in coeffs.items()}
+                printout += f'\n     {param}: {rounded_coeffs}'
         printout += '\n'
         return printout
 

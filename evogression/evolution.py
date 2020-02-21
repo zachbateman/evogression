@@ -77,17 +77,19 @@ class CreatureEvolution():
         Find median value of each input parameter and
         then replace any None values with this median.
         '''
+        # Remove any data points that have None for the target/result parameter
+        self.all_data = [d for d in self.all_data if d[self.target_parameter] is not None]
+
         parameters_adjusted = []
         for param in self.all_data[0].keys():
             if param != self.target_parameter:
-                values = [val for val in self.all_data.values() if val is not None]
-                median = statistics.median(values)
-                for d in self.all_data:
-                    if d[param] is None:
-                        parameters_adjusted.append(param)
-                        d[param] = median
-        # Remove any data points that have None for the target/result parameter
-        self.all_data = [d for d in self.all_data if d[self.target_parameter] is not None]
+                values = [d[param] for d in self.all_data if d[param] is not None]
+                if len(values) < len(self.all_data):  # check length so don't have to do below if no replacements
+                    median = statistics.median(values)
+                    for d in self.all_data:
+                        if d[param] is None:
+                            parameters_adjusted.append(param)
+                            d[param] = median
 
         if len(parameters_adjusted) >= 1:
             print('Data None values filled with median for the following parameters:')
@@ -173,10 +175,9 @@ class CreatureEvolution():
         '''
         # Option to add random new creatures each cycle (2.0% of target_num_creatures each time)
         if self.add_random_creatures_each_cycle:
-            self.creatures.extend([EvogressionCreature(self.target_parameter, full_parameter_example=self.all_data[0], hunger=80 * random.random() + 10, layers=self.force_num_layers) for _ in range(int(round(0.02 * self.target_num_creatures, 0)))])
+            self.creatures.extend([EvogressionCreature(self.target_parameter, full_parameter_example=self.all_data[0], layers=self.force_num_layers) for _ in range(int(round(0.02 * self.target_num_creatures, 0)))])
 
         random.shuffle(self.creatures)  # used to mix up new creatures in among multip and randomize feeding groups
-        self.run_metabolism_creatures()
         self.kill_weak_creatures()
         self.mate_creatures()
 
@@ -239,20 +240,9 @@ class CreatureEvolution():
             self.all_data_error_sums = {key: val for key, val in self.all_data_error_sums.items() if key in keys_to_keep}
 
 
-    def run_metabolism_creatures(self):
-        '''Deduct from each creature's hunger as their complexity demands'''
-        for creature in self.creatures:
-            creature.hunger -= creature.complexity_cost
-
-
     def kill_weak_creatures(self):
-        '''Remove all creatures whose hunger has dropped to 0 or below'''
-        self.creatures = [creature for creature in self.creatures if creature.hunger > 0]
-
-
-    @property
-    def average_creature_hunger(self):
-        return sum(c.hunger for c in self.creatures) / len(self.creatures)
+        '''Remove half of the creatures randomly (self.creatures was previously shuffled)'''
+        self.creatures = self.creatures[:len(self.creatures)//2]
 
 
     def return_best_creature(self, with_error=False):
@@ -326,7 +316,6 @@ class CreatureEvolution():
 
     def print_cycle_stats(self, best_creature=None, error=None, median_error: float=0, best_creature_error: float=0) -> None:
         print(f'Total number of creatures:  {len(self.creatures)}')
-        print(f'Average Hunger: {round(self.average_creature_hunger, 1)}')
         print('Median error: ' + '{0:.2E}'.format(median_error))
         print('Best Creature:')
         print(f'  Generation: {best_creature.generation}    Error: ' + '{0:.2E}'.format(error))
@@ -467,7 +456,7 @@ class CreatureEvolutionFittest(CreatureEvolution):
         self.mate_creatures()
 
         # Add random new creatures each cycle to get back to target num creatures
-        self.creatures.extend([EvogressionCreature(self.target_parameter, full_parameter_example=self.all_data[0], hunger=80 * random.random() + 10, layers=self.force_num_layers) for _ in range(int(round(self.target_num_creatures - len(self.creatures), 0)))])
+        self.creatures.extend([EvogressionCreature(self.target_parameter, full_parameter_example=self.all_data[0], layers=self.force_num_layers) for _ in range(int(round(self.target_num_creatures - len(self.creatures), 0)))])
         random.shuffle(self.creatures)  # used to mix up new creatures in among multip
 
 
@@ -481,101 +470,13 @@ class CreatureEvolutionFittest(CreatureEvolution):
 
 
 
-class CreatureEvolutionNatural(CreatureEvolution):
-    '''
-    Evolves creatures by "feeding" them.  The better creatures
-    successfully model test data and stay healthy while bad
-    performers get progressively "hungrier" until they are killed off.
-
-    Cycles of "feast" and "famine" cause the community of creatures to
-    grow and shrink with each phase either increasing the diversity of
-    creatures (regression equations) or decreasing the diversity by
-    killing off the lower-performing creatures.
-    '''
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-
-        with warnings.catch_warnings():
-            warnings.simplefilter('ignore')
-            self.evolve_creatures(evolution_cycle_func=self.evolution_cycle, use_feast_and_famine=True)
-
-            if kwargs.get('clear_creatures', False):  # save tons of memory when returning object (helps with multip)
-                self.creatures = [self.best_creature]
-
-            self.all_data_error_sums = {}  # clear out all_data_error_sums dict to save memory
-
-
-    def feed_creatures(self, feast_or_famine: str):
-        '''
-        "feed" groups of creatures at a once.
-        creature with closest calc_target() to target gets to "eat" the data
-        '''
-        if feast_or_famine == 'feast':
-            group_size = self.feast_group_size
-        elif feast_or_famine == 'famine':
-            group_size = self.famine_group_size
-
-        all_food_data = self.standardized_all_data if self.standardize else self.all_data
-
-        rand_choice = random.choice  # local variable for speed
-        if self.use_multip:
-            creature_groups = (creature_group for creature_group in (self.creatures[group_size * i:group_size * (i + 1)] for i in range(0, len(self.creatures) // group_size)))
-            food_groups = ([rand_choice(all_food_data) for _ in range(5)] for i in range(0, len(self.creatures) // group_size))
-            feeding_arg_tups = [(creature_group, food_group, self.target_parameter, self.standardizer) for creature_group, food_group in zip(creature_groups, food_groups)]
-            hunger_modified_creatures = easy_multip.map(feed_creature_groups, feeding_arg_tups)
-            self.creatures = [creature for sublist in hunger_modified_creatures for creature in sublist]
-        else:
-            target_parameter = self.target_parameter  # local variable for speed
-            standardizer = self.standardizer  # local variable for speed
-            for i in range(0, len(self.creatures) // group_size):
-                creature_group = self.creatures[group_size * i:group_size * (i + 1)]
-                for food_data in [rand_choice(all_food_data) for _ in range(5)]:
-                    best_error, best_creature = None, None
-                    for creature in creature_group:
-                        error = calc_error_value(creature, target_parameter, food_data, standardizer)
-                        if best_error is None or error < best_error:
-                            best_error, best_creature = error, creature
-                    best_creature.hunger += 6
-
-
-    def evolution_cycle(self, feast_or_famine: str):
-        '''Run one cycle of evolution'''
-        # Option to add random new creatures each cycle (2.0% of target_num_creatures each time)
-        if self.add_random_creatures_each_cycle:
-            self.creatures.extend([EvogressionCreature(self.target_parameter, full_parameter_example=self.all_data[0], hunger=80 * random.random() + 10, layers=self.force_num_layers) for _ in range(int(round(0.02 * self.target_num_creatures, 0)))])
-
-        random.shuffle(self.creatures)  # used to mix up new creatures in among multip and randomize feeding groups
-        self.feed_creatures(feast_or_famine)
-        self.run_metabolism_creatures()
-        self.kill_weak_creatures()
-        self.mate_creatures()
-
-
-
-
 def generate_initial_creature(arg_tup):
     '''
     Creates an EvogressionCreature.
     This is a module-level function so that it can be used by multip.
     '''
     target_param, full_param_example, layers = arg_tup
-    return EvogressionCreature(target_param, full_parameter_example=full_param_example, hunger=80 * random.random() + 10, layers=layers)
-
-
-def feed_creature_groups(arg_tup):
-    '''
-    Calculate the error for each creature for a group of data points and
-    increase the "hunger" for the creatures that are more accurate.
-    '''
-    creature_group, food_group, target_parameter, standardizer = arg_tup
-    for food_data in food_group:
-        best_error, best_creature = 10 ** 150, None
-        for creature in creature_group:
-            error = calc_error_value(creature, target_parameter, food_data, standardizer)
-            if error < best_error:
-                best_error, best_creature = error, creature
-        best_creature.hunger += 6
-    return creature_group
+    return EvogressionCreature(target_param, full_parameter_example=full_param_example, layers=layers)
 
 
 def calc_error_value(creature, target_parameter: str, data_point: dict, standardizer=None) -> float:
