@@ -1,2 +1,2 @@
-tqdm==4.28.1
+tqdm==4.43.0
 easy-multip==0.2.3
