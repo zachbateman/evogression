@@ -27,7 +27,7 @@ class CreatureEvolution():
     def __init__(self,
                  target_parameter: str,
                  all_data: List[Dict[str, float]],
-                 target_num_creatures: int=30000,
+                 num_creatures: int=30000,
                  add_random_creatures_each_cycle: bool=True,
                  num_cycles: int=0,
                  force_num_layers: int=0,
@@ -43,7 +43,7 @@ class CreatureEvolution():
         if fill_none:
             self.fill_none_with_median()
 
-        self.target_num_creatures = target_num_creatures
+        self.num_creatures = num_creatures
         self.add_random_creatures_each_cycle = add_random_creatures_each_cycle
         self.num_cycles = num_cycles
         self.force_num_layers = force_num_layers
@@ -65,11 +65,11 @@ class CreatureEvolution():
         arg_tup = (target_parameter, self.all_data[0], force_num_layers)
         if initial_creature_creation_multip:
             try:
-                self.creatures = easy_multip.map(generate_initial_creature, [arg_tup for _ in range(target_num_creatures)])
+                self.creatures = easy_multip.map(generate_initial_creature, [arg_tup for _ in range(num_creatures)])
             except RuntimeError:  # multiprocessing RuntimeError occurs if code not within if __name__ block
                 raise RuntimeError('\n  When using multiprocessing, please ensure your code is running from within a\n  if __name__ == \'__main__\': block!')
         else:
-            self.creatures = [generate_initial_creature(arg_tup) for _ in range(target_num_creatures)]
+            self.creatures = [generate_initial_creature(arg_tup) for _ in range(num_creatures)]
 
 
     def fill_none_with_median(self):
@@ -162,7 +162,7 @@ class CreatureEvolution():
             if use_feast_and_famine:
                 feast_or_famine = 'famine' if counter <= 2 else feast_or_famine
                 evolution_cycle_func(feast_or_famine)
-                feast_or_famine = 'feast' if len(self.creatures) < self.target_num_creatures else 'famine'
+                feast_or_famine = 'feast' if len(self.creatures) < self.num_creatures else 'famine'
             else:
                 evolution_cycle_func()
 
@@ -173,9 +173,9 @@ class CreatureEvolution():
         Run one cycle of evolution that introduces new random creatures,
         kills weak creatures, and mates the remaining ones.
         '''
-        # Option to add random new creatures each cycle (2.0% of target_num_creatures each time)
+        # Option to add random new creatures each cycle (2.0% of num_creatures each time)
         if self.add_random_creatures_each_cycle:
-            self.creatures.extend([EvogressionCreature(self.target_parameter, full_parameter_example=self.all_data[0], layers=self.force_num_layers) for _ in range(int(round(0.02 * self.target_num_creatures, 0)))])
+            self.creatures.extend([EvogressionCreature(self.target_parameter, full_parameter_example=self.all_data[0], layers=self.force_num_layers) for _ in range(int(round(0.02 * self.num_creatures, 0)))])
 
         random.shuffle(self.creatures)  # used to mix up new creatures in among multip and randomize feeding groups
         self.kill_weak_creatures()
@@ -235,8 +235,8 @@ class CreatureEvolution():
         Python dictionaries are now insertion-ordered, so this should work well
         '''
         hash_keys = list(self.all_data_error_sums.keys())
-        if len(hash_keys) > self.target_num_creatures * 3:
-            keys_to_keep = set(hash_keys[:self.target_num_creatures])
+        if len(hash_keys) > self.num_creatures * 3:
+            keys_to_keep = set(hash_keys[:self.num_creatures])
             self.all_data_error_sums = {key: val for key, val in self.all_data_error_sums.items() if key in keys_to_keep}
 
 
@@ -456,7 +456,7 @@ class CreatureEvolutionFittest(CreatureEvolution):
         self.mate_creatures()
 
         # Add random new creatures each cycle to get back to target num creatures
-        self.creatures.extend([EvogressionCreature(self.target_parameter, full_parameter_example=self.all_data[0], layers=self.force_num_layers) for _ in range(int(round(self.target_num_creatures - len(self.creatures), 0)))])
+        self.creatures.extend([EvogressionCreature(self.target_parameter, full_parameter_example=self.all_data[0], layers=self.force_num_layers) for _ in range(int(round(self.num_creatures - len(self.creatures), 0)))])
         random.shuffle(self.creatures)  # used to mix up new creatures in among multip
 
 

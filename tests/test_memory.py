@@ -23,7 +23,7 @@ class TestMemory(unittest.TestCase):
             (50000, 10),
             (50000, 30),
             ]
-        evolutions = [evogression.evolution.CreatureEvolutionFittest('y', parabola_data, target_num_creatures=t[0], num_cycles=t[1], optimize=False, use_multip=True, clear_creatures=True) for t in options]
+        evolutions = [evogression.evolution.CreatureEvolutionFittest('y', parabola_data, num_creatures=t[0], num_cycles=t[1], optimize=False, use_multip=True, clear_creatures=True) for t in options]
 
         memory_strings = [json.dumps([cr.__dict__ for cr in ev.creatures])
                           + json.dumps(ev.all_data)

@@ -16,7 +16,7 @@ class TestNoneFilling(unittest.TestCase):
         test_data[1] = {'x': 5, 'y': None}
         test_data[4] = {'x': None, 'y': 11.2}
         try:
-            evolution = evogression.evolution.CreatureEvolution('y', test_data, target_num_creatures=100, num_cycles=1, use_multip=False, initial_creature_creation_multip=False)
+            evolution = evogression.evolution.CreatureEvolution('y', test_data, num_creatures=100, num_cycles=1, use_multip=False, initial_creature_creation_multip=False)
             test_passed = True
         except TypeError:
             test_passed = False
