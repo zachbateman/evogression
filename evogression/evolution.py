@@ -34,7 +34,6 @@ class CreatureEvolution():
                  standardize: bool=True,
                  use_multip: bool=True,
                  fill_none: bool=True,
-                 initial_creature_creation_multip: bool=True,
                  **kwargs) -> None:
 
         self.target_parameter = target_parameter
@@ -61,15 +60,8 @@ class CreatureEvolution():
             self.standardizer = None
 
         self.data_checks()
-
-        arg_tup = (target_parameter, self.all_data[0], force_num_layers)
-        if initial_creature_creation_multip:
-            try:
-                self.creatures = easy_multip.map(generate_initial_creature, [arg_tup for _ in range(num_creatures)])
-            except RuntimeError:  # multiprocessing RuntimeError occurs if code not within if __name__ block
-                raise RuntimeError('\n  When using multiprocessing, please ensure your code is running from within a\n  if __name__ == \'__main__\': block!')
-        else:
-            self.creatures = [generate_initial_creature(arg_tup) for _ in range(num_creatures)]
+        self.creatures = [EvogressionCreature(target_parameter, full_parameter_example=self.all_data[0], layers=force_num_layers)
+                                    for _ in tqdm.tqdm(range(num_creatures))]
 
 
     def fill_none_with_median(self):
@@ -470,13 +462,7 @@ class CreatureEvolutionFittest(CreatureEvolution):
 
 
 
-def generate_initial_creature(arg_tup):
-    '''
-    Creates an EvogressionCreature.
-    This is a module-level function so that it can be used by multip.
-    '''
-    target_param, full_param_example, layers = arg_tup
-    return EvogressionCreature(target_param, full_parameter_example=full_param_example, layers=layers)
+
 
 
 def calc_error_value(creature, target_parameter: str, data_point: dict, standardizer=None) -> float:
