@@ -9,8 +9,8 @@ tracemalloc.start()
 
 
 def main():
-    # evolution = evogression.evolution.CreatureEvolutionFittest('y', parabola_data, num_creatures=10000, num_cycles=10, use_multip=False, initial_creature_creation_multip=False, optimize=3)
-    evolution = evogression.evolution.CreatureEvolutionFittest('y', parabola_data, num_creatures=10000, num_cycles=5, use_multip=False, initial_creature_creation_multip=False, optimize=3)
+    # evolution = evogression.Evolution('y', parabola_data, num_creatures=10000, num_cycles=10, use_multip=False, initial_creature_creation_multip=False, optimize=3)
+    evolution = evogression.Evolution('y', parabola_data, num_creatures=10000, num_cycles=5, use_multip=False, initial_creature_creation_multip=False, optimize=3)
 
 
 

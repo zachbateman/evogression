@@ -14,7 +14,7 @@ with open('README.md', 'r') as f:
 
 
 setup(name='evogression',
-      version='0.1.0',
+      version='0.2.0',
       packages=['evogression'],
       license='MIT',
       author='Zach Bateman',
@@ -22,7 +22,7 @@ setup(name='evogression',
       long_description=long_description,
       long_description_content_type='text/markdown',
       url='https://github.com/zachbateman/evogression.git',
-      download_url='https://github.com/zachbateman/evogression/archive/v_0.1.0.tar.gz',
+      download_url='https://github.com/zachbateman/evogression/archive/v_0.2.0.tar.gz',
       keywords=['REGRESSION', 'MACHINE', 'LEARNING', 'EVOLUTION'],
       install_requires=['tqdm', 'easy_multip'],
       classifiers=['Development Status :: 3 - Alpha',

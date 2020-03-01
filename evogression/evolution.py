@@ -16,7 +16,7 @@ from .standardize import Standardizer
 
 
 
-class CreatureEvolution():
+class BaseEvolution():
     '''
     Creates a framework for evolving groups of creatures.
     This class is designed to be subclassed into more
@@ -28,9 +28,9 @@ class CreatureEvolution():
     def __init__(self,
                  target_parameter: str,
                  all_data: List[Dict[str, float]],
-                 num_creatures: int=30000,
+                 num_creatures: int=10000,
                  add_random_creatures_each_cycle: bool=True,
-                 num_cycles: int=0,
+                 num_cycles: int=10,
                  force_num_layers: int=0,
                  standardize: bool=True,
                  use_multip: bool=True,
@@ -91,7 +91,13 @@ class CreatureEvolution():
 
 
     def data_checks(self):
-        '''Check cleaned input data for potential issues'''
+        '''
+        Check cleaned input data for potential issues.
+        At the point when this is called, there should be no issues with
+        the data to be used; data-cleaning methods are called earlier.
+
+        If this method prints errors, we need to write more data-cleaning capabilities to handle those cases!
+        '''
         acceptable_types = {'float', 'int', 'float64', 'int64'}
         issues = []
         def check_data(data, data_name):
@@ -419,8 +425,10 @@ class CreatureEvolution():
 
 
 
-class CreatureEvolutionFittest(CreatureEvolution):
+class Evolution(BaseEvolution):
     '''
+    MAIN/REFERENCE EVOLUTION ALOGORITHM
+
     Evolves creatures by killing off the worst performers in
     each cycle and then randomly generating many new creatures.
     '''

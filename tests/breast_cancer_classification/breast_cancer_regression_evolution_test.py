@@ -28,7 +28,7 @@ class TestBreastCancerDetectionRegression(unittest.TestCase):
                 print(f'ERROR column: {col}')
 
         regression_data = df.to_dict('records')
-        evolution = evogression.evolution.CreatureEvolutionFittest('benign2_or_malignant4', regression_data, target_num_creatures=5000, num_cycles=10)
+        evolution = evogression.Evolution('benign2_or_malignant4', regression_data, target_num_creatures=5000, num_cycles=10)
         evolution.best_creature.output_python_regression_module()
 
         output_data = evolution.add_predictions_to_data(regression_data)

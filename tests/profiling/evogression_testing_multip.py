@@ -8,7 +8,7 @@ import evogression
 
 
 def main():
-    evolution = evogression.evolution.CreatureEvolution('z', surface_3d_data, num_creatures=5000, num_cycles=5, use_multip=True)
+    evolution = evogression.Evolution('z', surface_3d_data, num_creatures=5000, num_cycles=5, use_multip=True)
 
 
 

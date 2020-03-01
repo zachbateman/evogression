@@ -5,11 +5,11 @@ from typing import List, Dict
 import random
 from collections import defaultdict
 import easy_multip
-from .evolution import CreatureEvolutionFittest
+from .evolution import Evolution
 
 
 
-def evolution_group(data: list, target_param: str='', num_creatures: int=10000, num_cycles: int=10, num_groups: int=4, optimize=True, progressbar=True) -> List[CreatureEvolutionFittest]:
+def evolution_group(data: list, target_param: str='', num_creatures: int=10000, num_cycles: int=10, num_groups: int=4, optimize=True, progressbar=True) -> List[Evolution]:
     '''
     Generate a list of fully initialized CreatureEvolution objects.
     '''
@@ -20,21 +20,21 @@ def evolution_group(data: list, target_param: str='', num_creatures: int=10000, 
         return easy_multip.map(calculate_single_evolution_without_optimization, arg_groups)
 
 
-def calculate_single_evolution(arg_group: list) -> CreatureEvolutionFittest:
+def calculate_single_evolution(arg_group: list) -> Evolution:
     '''
     Fully initialize and return a single CreatureEvolution object.
     Module-level function for arg to easy_multip.
     '''
     target_param, data, num_cr, num_cy, progressbar = arg_group
-    return CreatureEvolutionFittest(target_param, data, num_creatures=num_cr, num_cycles=num_cy, use_multip=False, initial_creature_creation_multip=False, optimize='max', progressbar=progressbar, clear_creatures=True)
+    return Evolution(target_param, data, num_creatures=num_cr, num_cycles=num_cy, use_multip=False, initial_creature_creation_multip=False, optimize='max', progressbar=progressbar, clear_creatures=True)
 
-def calculate_single_evolution_without_optimization(arg_group: list) -> CreatureEvolutionFittest:
+def calculate_single_evolution_without_optimization(arg_group: list) -> Evolution:
     '''
     Fully initialize and return a single CreatureEvolution object.
     Module-level function for arg to easy_multip.
     '''
     target_param, data, num_cr, num_cy, progressbar = arg_group
-    return CreatureEvolutionFittest(target_param, data, num_creatures=num_cr, num_cycles=num_cy, use_multip=False, initial_creature_creation_multip=False, optimize=False, progressbar=progressbar, clear_creatures=True)
+    return Evolution(target_param, data, num_creatures=num_cr, num_cycles=num_cy, use_multip=False, initial_creature_creation_multip=False, optimize=False, progressbar=progressbar, clear_creatures=True)
 
 
 def output_group_regression_funcs(group: list):
@@ -57,9 +57,9 @@ def group_parameter_usage(group: list) -> Dict[str, int]:
     return combined_parameter_usefulness
 
 
-def parameter_pruned_evolution_group(data: list, target_param: str='', max_parameters: int=10, num_creatures: int=10000, num_cycles: int=10, num_groups: int=4) -> List[CreatureEvolutionFittest]:
+def parameter_pruned_evolution_group(data: list, target_param: str='', max_parameters: int=10, num_creatures: int=10000, num_cycles: int=10, num_groups: int=4) -> List[Evolution]:
     '''
-    Generate successive groups of CreatureEvolutionFittest objects and prune least-used
+    Generate successive groups of Evolution objects and prune least-used
     parameters from the input data each round until only the most useful parameters remain.
     Finally, run a full-blown evolution cycles with the remaining parameters
     for the saved regression modules.
