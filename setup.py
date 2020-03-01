@@ -13,7 +13,7 @@ extensions = [
 
 
 setup(name='evogression',
-      version='0.2.2',
+      version='0.2.3',
       packages=find_packages(),
       license='MIT',
       author='Zach Bateman',
@@ -21,7 +21,7 @@ setup(name='evogression',
       long_description=long_description,
       long_description_content_type='text/markdown',
       url='https://github.com/zachbateman/evogression.git',
-      download_url='https://github.com/zachbateman/evogression/archive/v_0.2.2.tar.gz',
+      download_url='https://github.com/zachbateman/evogression/archive/v_0.2.3.tar.gz',
       keywords=['REGRESSION', 'MACHINE', 'LEARNING', 'EVOLUTION'],
       install_requires=['tqdm', 'easy_multip'],
       classifiers=['Development Status :: 3 - Alpha',
