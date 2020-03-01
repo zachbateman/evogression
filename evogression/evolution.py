@@ -364,6 +364,8 @@ class BaseEvolution():
             print(f'Best error: ' + '{0:.6E}'.format(error))
             self.shrink_error_cache()
             errors.append(error)
+            if error == 0:
+                break  # break out of loop if no error/perfect regression
             if i > iterations / 3 + 3 and iterations > 10 and error / errors[-3] > 0.999:
                 break  # break out of the loop if it's no longer improving accuracy
         new_best_creature = self.record_best_creature(best_creature, error)
