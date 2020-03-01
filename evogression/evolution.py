@@ -5,6 +5,7 @@ from typing import List, Dict
 import statistics
 import copy
 import random
+import math
 import tqdm
 import warnings
 from collections import defaultdict
@@ -70,16 +71,16 @@ class CreatureEvolution():
         then replace any None values with this median.
         '''
         # Remove any data points that have None for the target/result parameter
-        self.all_data = [d for d in self.all_data if d[self.target_parameter] is not None]
+        self.all_data = [d for d in self.all_data if d[self.target_parameter] is not None and not math.isnan(d[self.target_parameter])]
 
         parameters_adjusted = []
         for param in self.all_data[0].keys():
             if param != self.target_parameter:
-                values = [d[param] for d in self.all_data if d[param] is not None]
+                values = [d[param] for d in self.all_data if d[param] is not None and not math.isnan(d[param])]
                 if len(values) < len(self.all_data):  # check length so don't have to do below if no replacements
                     median = statistics.median(values)
                     for d in self.all_data:
-                        if d[param] is None:
+                        if d[param] is None or math.isnan(d[param]):
                             parameters_adjusted.append(param)
                             d[param] = median
 
@@ -90,18 +91,22 @@ class CreatureEvolution():
 
 
     def data_checks(self):
-        '''Check input data for potential issues'''
+        '''Check cleaned input data for potential issues'''
         acceptable_types = {'float', 'int', 'float64', 'int64'}
+        issues = []
         def check_data(data, data_name):
             for i, d in enumerate(data):
                 for key, val in d.items():
                     # val > & < checks are way of checking for nan without needing to require numpy import
                     if type(val).__name__ not in acceptable_types or not (val >= 0 or val <= 0):
-                        print(f'ERROR!  NAN values detected in {data_name}!')
-                        print(f'Index: {i}  key: {key}  value: {val}  type: {type(val).__name__}')
-                        breakpoint()
+                        issues.append((data_name, i, key, val))
+
         check_data(self.all_data, 'all_data')
         check_data(self.standardized_all_data, 'standardized_all_data')
+        for issue in issues:
+            data_name, i, key, val = issue
+            print(f'\nERROR!  NAN values detected in {data_name}!')
+            print(f'Index: {i}  key: {key}  value: {val}  type: {type(val).__name__}')
 
 
     def additional_best_creatures(self) -> list:
