@@ -1,7 +1,7 @@
 '''
 Module containing evolution algorithms for regression.
 '''
-from typing import List, Dict
+from typing import List, Dict, Union
 import statistics
 import copy
 import random
@@ -390,11 +390,13 @@ class BaseEvolution():
             self.best_creature.output_python_regression_module(output_filename=output_filename, directory='regression_modules', name_ext=name_ext)
 
 
-    def add_predictions_to_data(self, data: List[dict], standardized_data: bool=False) -> List[dict]:
+    def add_predictions_to_data(self, data: List[Dict[str, float]], standardized_data: bool=False) -> List[dict]:
         '''
         Add best_creature predictions to data arg as f'{target}_PREDICTED' new key.
         Return unstandardized list of dicts.
         '''
+        warnings.warn('.add_predictions_to_data() will be removed; please use .predict() instead', DeprecationWarning)
+
         pred_key = f'{self.target_parameter}_PREDICTED'
         none_counter = 0
         target_param = self.target_parameter  # local variable for speed
@@ -423,6 +425,48 @@ class BaseEvolution():
             unstandardized_data = data
 
         return unstandardized_data
+
+
+    def predict(self, data: Union[Dict[str, float], List[Dict[str, float]]], standardized_data: bool=False):
+        '''
+        Add best_creature predictions to data arg as f'{target}_PREDICTED' new key.
+        Return unstandardized dict or list of dicts depending on provided arg.
+        '''
+        pred_key = f'{self.target_parameter}_PREDICTED'
+        target_param = self.target_parameter  # local variable for speed
+
+        if type(data) == list:
+            if not standardized_data and self.standardize:
+                data = [self.standardizer.convert_parameter_dict_to_standardized(d) for d in data]
+            for d in data:
+                d[pred_key] = self.best_creature.calc_target(d)
+
+            if self.standardize:
+                unstandardized_data = []
+                for d in data:
+                    unstandardized_d = {}
+                    for param, value in d.items():
+                        unstandardized_d[param] = self.standardizer.unstandardize_value(target_param if '_PREDICTED' in param else param, value)
+                    unstandardized_data.append(unstandardized_d)
+            else:
+                unstandardized_data = data
+            return unstandardized_data
+
+        elif type(data) == dict:
+            if not standardized_data and self.standardize:
+                data = self.standardizer.convert_parameter_dict_to_standardized(data)
+            data[pred_key] = self.best_creature.calc_target(data)
+
+            if self.standardize:
+                unstandardized_data = {}
+                for param, value in data.items():
+                    unstandardized_data[param] = self.standardizer.unstandardize_value(target_param if '_PREDICTED' in param else param, value)
+            else:
+                unstandardized_data = data
+            return unstandardized_data
+
+        else:
+            print('Error!  "data" arg provided to .predict() must be a dict or list of dicts.')
 
 
 
