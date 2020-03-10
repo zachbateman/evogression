@@ -22,9 +22,6 @@ class BaseEvolution():
     This class is designed to be subclassed into more
     specific evolution algorithms.
     '''
-    feast_group_size = 2
-    famine_group_size = 50
-
     def __init__(self,
                  target_parameter: str,
                  all_data: List[Dict[str, float]],
@@ -130,7 +127,7 @@ class BaseEvolution():
         return [self.best_creature.mutate_to_new_creature() for _ in range(5)]
 
 
-    def evolve_creatures(self, evolution_cycle_func=None, use_feast_and_famine=False, progressbar=True):
+    def evolve_creatures(self, evolution_cycle_func=None, progressbar=True):
         '''
         Main evolution loop that handles results of each loop and
         keeps track of best creatures/regression equations.
@@ -143,8 +140,6 @@ class BaseEvolution():
             counter += 1
             print('-----------------------------------------')
             print(f'Cycle - {counter} -')
-            if use_feast_and_famine:
-                print(f'Current Phase: {feast_or_famine}')
 
             best_creature, error, median_error = self.calculate_all_and_find_best_creature(progressbar=progressbar)
 
@@ -162,15 +157,10 @@ class BaseEvolution():
             if counter >= self.num_cycles:
                 break
 
-            if use_feast_and_famine:
-                feast_or_famine = 'famine' if counter <= 2 else feast_or_famine
-                evolution_cycle_func(feast_or_famine)
-                feast_or_famine = 'feast' if len(self.creatures) < self.num_creatures else 'famine'
-            else:
-                evolution_cycle_func()
+            evolution_cycle_func()
 
 
-    def evolution_cycle(self, feast_or_famine: str):
+    def evolution_cycle(self):
         '''
         Default evolution cycle.
         Run one cycle of evolution that introduces new random creatures,
