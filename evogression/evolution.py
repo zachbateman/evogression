@@ -136,27 +136,20 @@ class BaseEvolution():
             evolution_cycle_func = self.evolution_cycle
 
         counter = 0
-        while True:
+        while counter < self.num_cycles:
             counter += 1
-            print('-----------------------------------------')
-            print(f'Cycle - {counter} -')
+            print('----------------------------------------' + f'\nCycle - {counter} -')
 
             best_creature, error, median_error = self.calculate_all_and_find_best_creature(progressbar=progressbar)
-
             self.current_median_error = median_error
-            new_best_creature = self.record_best_creature(best_creature, error)
             self.print_cycle_stats(best_creature=best_creature, error=error, median_error=median_error, best_creature_error=error)
 
-            if new_best_creature:
+            if self.record_best_creature(best_creature, error):
                 print(f'\n\n\nNEW BEST CREATURE AFTER {counter} ITERATION{"S" if counter > 1 else ""}...')
                 print(best_creature)
                 print('Total Error: ' + '{0:.2E}'.format(error))
 
             self.creatures.extend(self.additional_best_creatures())  # sprinkle in additional best_creature mutants
-
-            if counter >= self.num_cycles:
-                break
-
             evolution_cycle_func()
 
 
