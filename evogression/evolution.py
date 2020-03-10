@@ -248,27 +248,6 @@ class BaseEvolution():
         self.creatures = self.creatures[:len(self.creatures)//2]
 
 
-    def return_best_creature(self, with_error=False):
-        '''Return current best creature and standardizer if used'''
-        print('\nDEPRECATION WARNING: "evolution.return_best_creature"')
-        print('  Use evolution.best_creature, evolution.best_error, or evolution.standardizer instead!\n')
-        error = -1
-        for creature_list in self.best_creatures:
-            if creature_list[1] < error or error < 0:
-                error = creature_list[1]
-                best_creature = creature_list[0]
-        if self.standardize:
-            if with_error:
-                return best_creature, error, self.standardizer
-            else:
-                return best_creature, self.standardizer
-        else:
-            if with_error:
-                return best_creature, error
-            else:
-                return best_creature
-
-
     def stats_from_find_best_creature_multip_result(self, result_data: list) -> tuple:
         '''
         Unpack and return metrics from the data provided by the multip version of find_best_creature.
@@ -392,6 +371,8 @@ class BaseEvolution():
 
     def add_predictions_to_data(self, data: List[Dict[str, float]], standardized_data: bool=False) -> List[dict]:
         '''
+        DEPRECATED AND WILL BE REMOVED IN FAVOR OF .predict()
+
         Add best_creature predictions to data arg as f'{target}_PREDICTED' new key.
         Return unstandardized list of dicts.
         '''
