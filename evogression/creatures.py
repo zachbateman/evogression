@@ -63,7 +63,7 @@ class EvogressionCreature():
         else:
             self.modifiers = modifiers
 
-        self.modifier_hash = hash(repr(self.modifiers))  # used for caching purposes!
+        self.error_sum = 0
 
 
     def create_initial_modifiers(self) -> dict:

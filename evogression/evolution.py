@@ -47,7 +47,6 @@ class BaseEvolution():
         self.use_multip = use_multip
 
         self.current_generation = 1
-        self.all_data_error_sums: dict = {}
         self.best_creatures: list = []
         self.parameter_usefulness_count: dict=defaultdict(int)
 
@@ -215,17 +214,6 @@ class BaseEvolution():
         return best_error
 
 
-    def shrink_error_cache(self):
-        '''
-        Delete first portion of cache to keep from growing forever
-        Python dictionaries are now insertion-ordered, so this should work well
-        '''
-        hash_keys = list(self.all_data_error_sums.keys())
-        if len(hash_keys) > self.num_creatures * 3:
-            keys_to_keep = set(hash_keys[:self.num_creatures])
-            self.all_data_error_sums = {key: val for key, val in self.all_data_error_sums.items() if key in keys_to_keep}
-
-
     def kill_weak_creatures(self):
         '''Remove half of the creatures randomly (self.creatures was previously shuffled)'''
         self.creatures = self.creatures[:len(self.creatures)//2]
@@ -237,7 +225,7 @@ class BaseEvolution():
 
         result_data arg is a list where each 5 items is the output from one find_best_creature call.
         Specifically, result_data looks like:
-            [EvogressionCreature, best_error, avg_error, calculated_creatures, all_data_error_sums,
+            [EvogressionCreature, best_error, avg_error, calculated_creatures,
               EvogressionCreature, ...,
               ...
             ]
@@ -251,7 +239,6 @@ class BaseEvolution():
             if error is None or bc_list[1] < error:
                 error = bc_list[1]
                 best_creature = bc_list[0]
-            self.all_data_error_sums = {**self.all_data_error_sums, **bc_list[4]}  # recreate all_data_error_sums cache with results including updated cache values
         median_error = sum(bc_list[2] for bc_list in best_creature_lists) / len(best_creature_lists)  # mean of medians of big chunks...
         return best_creature, error, median_error, calculated_creatures
 
@@ -264,18 +251,15 @@ class BaseEvolution():
         if self.use_multip:
             if self.standardize:
                 result_data = find_best_creature_multip(self.creatures, self.target_parameter,
-                                                                              self.standardized_all_data, standardizer=self.standardizer,
-                                                                              all_data_error_sums=self.all_data_error_sums, progressbar=progressbar)
+                                                                             self.standardized_all_data, standardizer=self.standardizer,
+                                                                             progressbar=progressbar)
             else:
                 result_data = find_best_creature_multip(self.creatures, self.target_parameter,
-                                                                              self.all_data, all_data_error_sums=self.all_data_error_sums,
-                                                                              progressbar=progressbar)
+                                                                              self.all_data, progressbar=progressbar)
             best_creature, error, median_error, calculated_creatures = self.stats_from_find_best_creature_multip_result(result_data)
         else:
-            best_creature, error, median_error, calculated_creatures, all_data_error_sums = find_best_creature(self.creatures, self.target_parameter, self.standardized_all_data, all_data_error_sums=self.all_data_error_sums, progressbar=progressbar)
-            self.all_data_error_sums = all_data_error_sums #{**self.all_data_error_sums, **all_data_error_sums}
+            best_creature, error, median_error, calculated_creatures = find_best_creature(self.creatures, self.target_parameter, self.standardized_all_data, progressbar=progressbar)
         self.creatures = calculated_creatures
-        self.shrink_error_cache()
         return best_creature, error, median_error
 
 
@@ -318,13 +302,11 @@ class BaseEvolution():
 
             mutated_clones = [best_creature] + [best_creature.mutate_to_new_creature(adjustments=adjustments) for _ in range(500)]
             if self.use_multip:
-                result_data = find_best_creature_multip(mutated_clones, self.target_parameter, self.standardized_all_data, all_data_error_sums=self.all_data_error_sums, progressbar=False)
+                result_data = find_best_creature_multip(mutated_clones, self.target_parameter, self.standardized_all_data, progressbar=False)
                 best_creature, error, median_error, calculated_creatures = self.stats_from_find_best_creature_multip_result(result_data)
             else:
-                best_creature, error, median_error, calculated_creatures, all_data_error_sums = find_best_creature(mutated_clones, self.target_parameter, self.standardized_all_data, all_data_error_sums=self.all_data_error_sums, progressbar=False)
-                self.all_data_error_sums = {**self.all_data_error_sums, **all_data_error_sums}
+                best_creature, error, median_error, calculated_creatures = find_best_creature(mutated_clones, self.target_parameter, self.standardized_all_data, progressbar=False)
             print(f'Best error: ' + '{0:.6E}'.format(error))
-            self.shrink_error_cache()
             errors.append(error)
             if error == 0:
                 break  # break out of loop if no error/perfect regression
@@ -391,12 +373,14 @@ class BaseEvolution():
         return unstandardized_data
 
 
-    def predict(self, data: Union[Dict[str, float], List[Dict[str, float]]], standardized_data: bool=False, prediction_key: str=f'{self.target_parameter}_PREDICTED'):
+    def predict(self, data: Union[Dict[str, float], List[Dict[str, float]]], standardized_data: bool=False, prediction_key: str=''):
         '''
         Add best_creature predictions to data arg as f'{target}_PREDICTED' new key.
         Return unstandardized dict or list of dicts depending on provided arg.
         '''
         target_param = self.target_parameter  # local variable for speed
+        if prediction_key == '':
+            prediction_key = f'{target_param}_PREDICTED'
 
         if type(data) == list:
             if not standardized_data and self.standardize:
@@ -461,8 +445,6 @@ class Evolution(BaseEvolution):
             if kwargs.get('clear_creatures', False):  # save tons of memory when returning object (helps with multip)
                 self.creatures = [self.best_creature]
 
-            self.all_data_error_sums = {}  # clear out all_data_error_sums dict to save memory
-
 
     def evolution_cycle(self):
         '''Run one cycle of evolution'''
@@ -476,10 +458,8 @@ class Evolution(BaseEvolution):
 
     def kill_weak_creatures(self):
         '''Overwrite CreatureEvolution's kill_weak_creatures method'''
-        error_sums = self.all_data_error_sums
         median_error = self.current_median_error
-        # next line uses .get(..., 0) to keep creatures if they aren't yet calculated (mutated best_creatures)
-        self.creatures = [creature for creature in self.creatures if error_sums.get(creature.modifier_hash, 0) < median_error]
+        self.creatures = [creature for creature in self.creatures if creature.error_sum < median_error]
 
 
 
@@ -505,7 +485,7 @@ def calc_error_value(creature, target_parameter: str, data_point: dict, standard
     return error
 
 
-def find_best_creature(creatures: list, target_parameter: str, data: list, standardizer=None, all_data_error_sums: dict={}, progressbar=True) -> tuple:
+def find_best_creature(creatures: list, target_parameter: str, data: list, standardizer=None, progressbar=True) -> tuple:
     '''
     Determines best EvogressionCreature and returns misc objects (more than otherwise needed)
     so that multiprocessing (easy_multip) can be used.
@@ -519,11 +499,9 @@ def find_best_creature(creatures: list, target_parameter: str, data: list, stand
     best_creature = None
     iterable = tqdm.tqdm(creatures) if progressbar else creatures
     for creature in iterable:
-        try:
-            error = all_data_error_sums[creature.modifier_hash]
-        except KeyError:
-            error = sum([calc_error_value(creature, target_parameter, data_point, standardizer) for data_point in data]) / data_length
-            all_data_error_sums[creature.modifier_hash] = error
+        if not creature.error_sum:
+            creature.error_sum = sum([calc_error_value(creature, target_parameter, data_point, standardizer) for data_point in data]) / data_length
+        error = creature.error_sum
 
         append_to_calculated_creatures(creature)
         if error < best_error or best_error < 0:
@@ -531,5 +509,5 @@ def find_best_creature(creatures: list, target_parameter: str, data: list, stand
             best_creature = creature
         append_to_errors(error)
     avg_error = sorted(errors)[len(errors) // 2]  # MEDIAN error
-    return (best_creature, best_error, avg_error, calculated_creatures, all_data_error_sums)
+    return (best_creature, best_error, avg_error, calculated_creatures)
 find_best_creature_multip = easy_multip.decorators.use_multip(find_best_creature)
