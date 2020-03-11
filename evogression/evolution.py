@@ -294,10 +294,9 @@ class BaseEvolution():
         best_creature = self.best_creature
         print(best_creature)
         errors = []
+        adjustments = 'fast'  # start out with larger, faster mutations
         for i in tqdm.tqdm(range(iterations)):
-            if i < iterations / 3:  # quickly mutate creature for first 1/3rd of iterations and then make small, fine mutations
-                adjustments = 'fast'
-            else:
+            if i > iterations / 3:  # quickly mutate creature for first 1/3rd of iterations and then make small, fine mutations
                 adjustments = 'fine'
 
             mutated_clones = [best_creature] + [best_creature.mutate_to_new_creature(adjustments=adjustments) for _ in range(500)]
@@ -310,8 +309,11 @@ class BaseEvolution():
             errors.append(error)
             if error == 0:
                 break  # break out of loop if no error/perfect regression
-            if i > iterations / 3 + 3 and iterations > 10 and error / errors[-3] > 0.999:
-                break  # break out of the loop if it's no longer improving accuracy
+            if i > 5 and error / errors[-3] > 0.9999:
+                if adjustments == 'fast':
+                    adjustments = 'fine'
+                else:
+                    break  # break out of the loop if it's no longer improving accuracy
         new_best_creature = self.record_best_creature(best_creature, error)
         print(self.best_creature)
         print('Best creature optimized!\n')
@@ -458,7 +460,7 @@ class Evolution(BaseEvolution):
 
     def kill_weak_creatures(self):
         '''Overwrite CreatureEvolution's kill_weak_creatures method'''
-        median_error = self.current_median_error
+        median_error = self.current_median_error  # local for speed
         self.creatures = [creature for creature in self.creatures if creature.error_sum < median_error]
 
 
