@@ -223,7 +223,7 @@ class BaseEvolution():
         '''
         Unpack and return metrics from the data provided by the multip version of find_best_creature.
 
-        result_data arg is a list where each 5 items is the output from one find_best_creature call.
+        result_data arg is a list where each 4 items is the output from one find_best_creature call.
         Specifically, result_data looks like:
             [EvogressionCreature, best_error, avg_error, calculated_creatures,
               EvogressionCreature, ...,
@@ -231,7 +231,7 @@ class BaseEvolution():
             ]
         '''
         calculated_creatures = []
-        best_creature_lists = [result_data[5 * i: 5 * (i + 1)] for i in range(int(len(result_data) / 5))]  # make result_data useful
+        best_creature_lists = [result_data[4 * i: 4 * (i + 1)] for i in range(int(len(result_data) / 4))]  # make result_data useful
         # best_creature_lists is list with items of form [best_creature, error, avg_error]
         error, best_creature = None, None
         for index, bc_list in enumerate(best_creature_lists):
@@ -300,11 +300,13 @@ class BaseEvolution():
                 adjustments = 'fine'
 
             mutated_clones = [best_creature] + [best_creature.mutate_to_new_creature(adjustments=adjustments) for _ in range(500)]
+
             if self.use_multip:
                 result_data = find_best_creature_multip(mutated_clones, self.target_parameter, self.standardized_all_data, progressbar=False)
                 best_creature, error, median_error, calculated_creatures = self.stats_from_find_best_creature_multip_result(result_data)
             else:
                 best_creature, error, median_error, calculated_creatures = find_best_creature(mutated_clones, self.target_parameter, self.standardized_all_data, progressbar=False)
+
             print(f'Best error: ' + '{0:.6E}'.format(error))
             errors.append(error)
             if error == 0:
@@ -314,7 +316,7 @@ class BaseEvolution():
                     adjustments = 'fine'
                 else:
                     break  # break out of the loop if it's no longer improving accuracy
-        new_best_creature = self.record_best_creature(best_creature, error)
+        self.record_best_creature(best_creature, error)
         print(self.best_creature)
         print('Best creature optimized!\n')
 
@@ -395,7 +397,7 @@ class BaseEvolution():
                 for d in data:
                     unstandardized_d = {}
                     for param, value in d.items():
-                        unstandardized_d[param] = self.standardizer.unstandardize_value(target_param if '_PREDICTED' in param else param, value)
+                        unstandardized_d[param] = self.standardizer.unstandardize_value(target_param if param == prediction_key else param, value)
                     unstandardized_data.append(unstandardized_d)
             else:
                 unstandardized_data = data

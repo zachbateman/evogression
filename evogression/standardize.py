@@ -43,7 +43,10 @@ class Standardizer():
         '''
         new_param_dict = {}
         for param, value in param_dict.items():
-            new_param_dict[param] = (value - self.data_modifiers[param]['mean']) / self.data_modifiers[param]['stdev']
+            try:
+                new_param_dict[param] = (value - self.data_modifiers[param]['mean']) / self.data_modifiers[param]['stdev']
+            except KeyError:  # parameter not previously seen
+                new_param_dict[param] = value
         return new_param_dict
 
     def get_standardized_data(self):
@@ -53,5 +56,8 @@ class Standardizer():
         '''
         Convert a single value back into what it was/would have been without standardization
         '''
-        data_mods_param = self.data_modifiers[param]  # local variable for speed
-        return value * data_mods_param['stdev'] + data_mods_param['mean']
+        try:
+            data_mods_param = self.data_modifiers[param]  # local variable for speed
+            return value * data_mods_param['stdev'] + data_mods_param['mean']
+        except KeyError:  # parameter not previously seen
+            return value
