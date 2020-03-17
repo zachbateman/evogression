@@ -20,6 +20,22 @@ class TestPredictionMethods(unittest.TestCase):
             test_passed = False
         self.assertTrue(test_passed)
 
+    def test_max_layers(self):
+        evolution = evogression.Evolution('y', linear_data, max_layers=2, num_creatures=10000, num_cycles=1, use_multip=False)
+        single_layer, double_layer = 0, 0
+        for cr in evolution.creatures:
+            if cr.layers == 1:
+                single_layer += 1
+            elif cr.layers == 2:
+                double_layer += 1
+            else:
+                print(cr.layers)
+        print(f'{single_layer=}')
+        print(f'{double_layer=}')
+        print(single_layer+double_layer)
+
+        self.assertTrue(max((cr.layers for cr in evolution.creatures)) <= 2)
+
 
 
 if __name__ == '__main__':

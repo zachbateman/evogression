@@ -11,6 +11,7 @@ import warnings
 from collections import defaultdict
 import easy_multip
 from pprint import pprint as pp
+from . import creatures
 from .creatures import EvogressionCreature
 from .standardize import Standardizer
 
@@ -29,6 +30,7 @@ class BaseEvolution():
                  add_random_creatures_each_cycle: bool=True,
                  num_cycles: int=10,
                  force_num_layers: int=0,
+                 max_layers=None,
                  standardize: bool=True,
                  use_multip: bool=True,
                  fill_none: bool=True,
@@ -44,6 +46,9 @@ class BaseEvolution():
         self.add_random_creatures_each_cycle = add_random_creatures_each_cycle
         self.num_cycles = num_cycles
         self.force_num_layers = force_num_layers
+        self.max_layers = max_layers
+        # reset module-level layer_probabilities list used by creatues to not have more than max_layers as options
+        # creatures.layer_probabilities = [n for n in creatures.layer_probabilities if n <= max_layers]
         self.use_multip = use_multip
 
         self.current_generation = 1
@@ -57,7 +62,7 @@ class BaseEvolution():
             self.standardizer = None
 
         self.data_checks()
-        self.creatures = [EvogressionCreature(target_parameter, full_parameter_example=self.all_data[0], layers=force_num_layers)
+        self.creatures = [EvogressionCreature(target_parameter, full_parameter_example=self.all_data[0], layers=force_num_layers, max_layers=max_layers)
                                     for _ in tqdm.tqdm(range(num_creatures))]
 
 
@@ -160,7 +165,7 @@ class BaseEvolution():
         '''
         # Option to add random new creatures each cycle (2.0% of num_creatures each time)
         if self.add_random_creatures_each_cycle:
-            self.creatures.extend([EvogressionCreature(self.target_parameter, full_parameter_example=self.all_data[0], layers=self.force_num_layers) for _ in range(int(round(0.02 * self.num_creatures, 0)))])
+            self.creatures.extend([EvogressionCreature(self.target_parameter, full_parameter_example=self.all_data[0], layers=self.force_num_layers, max_layers=self.max_layers) for _ in range(int(round(0.02 * self.num_creatures, 0)))])
 
         random.shuffle(self.creatures)  # used to mix up new creatures in among multip and randomize feeding groups
         self.kill_weak_creatures()
@@ -456,7 +461,7 @@ class Evolution(BaseEvolution):
         self.mate_creatures()
 
         # Add random new creatures each cycle to get back to target num creatures
-        self.creatures.extend([EvogressionCreature(self.target_parameter, full_parameter_example=self.all_data[0], layers=self.force_num_layers) for _ in range(int(round(self.num_creatures - len(self.creatures), 0)))])
+        self.creatures.extend([EvogressionCreature(self.target_parameter, full_parameter_example=self.all_data[0], layers=self.force_num_layers, max_layers=self.max_layers) for _ in range(int(round(self.num_creatures - len(self.creatures), 0)))])
         random.shuffle(self.creatures)  # used to mix up new creatures in among multip
 
 

@@ -53,6 +53,7 @@ class EvogressionCreature():
                 self.layers = random.choice([x for x in layer_probabilities if x <= max_layers])
             else:
                 self.layers = random.choice(layer_probabilities)
+        self.max_layers = max_layers
         self.layer_tup = tuple(range(1, self.layers + 1))
         self.layer_str_list = [f'LAYER_{layer}' for layer in self.layer_tup]
 
@@ -306,6 +307,8 @@ class EvogressionCreature():
         if rand_rand() < 0.05:  # mutation to number of layers
             if rand_rand() < 0.5 and new_layers > 1:
                 new_layers -= 1
+            elif new_layers == self.max_layers or new_layers == other.max_layers:
+                pass
             else:
                 new_layers += 1
 
