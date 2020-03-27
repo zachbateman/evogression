@@ -30,6 +30,7 @@ class EvogressionCreature():
                  target_parameter: str,
                  layers: int=0,
                  generation: int=1,
+                 offspring: int=0,  # indicates if creature is a result of adding previous creatures
                  mutability: float=0,
                  full_parameter_example: dict={},
                  no_negative_exponents: bool=True,
@@ -42,6 +43,7 @@ class EvogressionCreature():
         '''
         self.layers = layers
         self.generation = generation
+        self.offspring = offspring
         self.mutability = 0.1 * (random.random() + 0.5) if mutability == 0 else mutability
 
         self.no_negative_exponents = no_negative_exponents
@@ -284,7 +286,8 @@ class EvogressionCreature():
                                 elif rand_rand() < 0.2 and new_mods_layer_param['X'] > 1:
                                     new_mods_layer_param['X'] -= 1
 
-        return EvogressionCreature(self.target_parameter, layers=self.layers, generation=self.generation + 1, mutability=self.mutability, full_parameter_example=self.full_parameter_example, modifiers=new_modifiers)
+        return EvogressionCreature(self.target_parameter, layers=self.layers, generation=self.generation + 1, mutability=self.mutability,
+                                              full_parameter_example=self.full_parameter_example, modifiers=new_modifiers, max_layers=self.max_layers)
 
 
     def __add__(self, other):
@@ -427,15 +430,22 @@ class EvogressionCreature():
                 C, B, Z, X = self.generate_parameter_coefficients()
                 new_modifiers[add_tup[0]][add_tup[1]] = {'C': C, 'B': B, 'Z': Z, 'X': X}
 
-        return EvogressionCreature(self.target_parameter, layers=new_layers, generation=self.generation, mutability=new_mutability, full_parameter_example=self.full_parameter_example, modifiers=new_modifiers)
+        try:
+            new_max_layers = max((self.max_layers, other.max_layers))
+        except TypeError:  # if one has None as max_layers
+            new_max_layers = None
+
+        return EvogressionCreature(self.target_parameter, layers=new_layers, max_layers=new_max_layers, generation=self.generation,
+                                              mutability=new_mutability, full_parameter_example=self.full_parameter_example, modifiers=new_modifiers,
+                                              offspring=max((self.offspring, other.offspring))+1)
 
 
     def __copy__(self):
-        return EvogressionCreature(self.target_parameter, layers=self.layers, generation=self.generation, mutability=self.mutability, modifiers=self.modifiers)
+        return EvogressionCreature(self.target_parameter, layers=self.layers, max_layers=self.max_layers, generation=self.generation, mutability=self.mutability, modifiers=self.modifiers)
 
 
     def __repr__(self) -> str:
-        printout = f'EvogressionCreature - Generation: {self.generation}'
+        printout = f'EvogressionCreature - Generation: {self.generation} - Offspring: {self.offspring}'
         for layer in self.modifiers:
             printout += f'\n  Modifiers {layer}'
             for param, coeffs in self.modifiers[layer].items():

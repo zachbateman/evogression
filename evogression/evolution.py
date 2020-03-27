@@ -47,7 +47,7 @@ class BaseEvolution():
         self.num_cycles = num_cycles
         self.force_num_layers = force_num_layers
         self.max_layers = max_layers
-        # reset module-level layer_probabilities list used by creatues to not have more than max_layers as options
+        # could reset module-level layer_probabilities list used by creatues to not have more than max_layers as options
         # creatures.layer_probabilities = [n for n in creatures.layer_probabilities if n <= max_layers]
         self.use_multip = use_multip
 

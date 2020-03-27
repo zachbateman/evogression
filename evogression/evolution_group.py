@@ -9,37 +9,30 @@ from .evolution import Evolution
 
 
 
-def evolution_group(data: list, target_param: str='', num_creatures: int=10000, num_cycles: int=10, num_groups: int=4, optimize=True, progressbar=True) -> List[Evolution]:
+def evolution_group(data: list, target_param: str='', num_creatures: int=10000, num_cycles: int=10, group_size: int=4, **kwargs) -> List[Evolution]:
     '''
-    Generate a list of fully initialized CreatureEvolution objects.
+    Generate a list of fully initialized Evolution objects.
+    Any Evolution kwargs may be provided.
     '''
-    arg_groups = [(target_param, data, num_creatures, num_cycles, progressbar) for _ in range(num_groups)]
-    if optimize:
-        return easy_multip.map(calculate_single_evolution, arg_groups)
-    else:
-        return easy_multip.map(calculate_single_evolution_without_optimization, arg_groups)
+    if 'use_multip' in kwargs:
+        del kwargs['use_multip']
+        print('Disabling use_multip for Evolution generation in evolution_group.  Using multip for separate Evolution initializations.')
+    arg_groups = [(target_param, data, num_creatures, num_cycles, kwargs) for _ in range(group_size)]
+    return easy_multip.map(calculate_single_evolution, arg_groups)
 
 
-def calculate_single_evolution(arg_group: list) -> Evolution:
+def calculate_single_evolution(arg_group: tuple) -> Evolution:
     '''
-    Fully initialize and return a single CreatureEvolution object.
+    Fully initialize and return a single Evolution object.
     Module-level function for arg to easy_multip.
     '''
-    target_param, data, num_cr, num_cy, progressbar = arg_group
-    return Evolution(target_param, data, num_creatures=num_cr, num_cycles=num_cy, use_multip=False, initial_creature_creation_multip=False, optimize='max', progressbar=progressbar, clear_creatures=True)
-
-def calculate_single_evolution_without_optimization(arg_group: list) -> Evolution:
-    '''
-    Fully initialize and return a single CreatureEvolution object.
-    Module-level function for arg to easy_multip.
-    '''
-    target_param, data, num_cr, num_cy, progressbar = arg_group
-    return Evolution(target_param, data, num_creatures=num_cr, num_cycles=num_cy, use_multip=False, initial_creature_creation_multip=False, optimize=False, progressbar=progressbar, clear_creatures=True)
+    target_param, data, num_cr, num_cy, kwargs = arg_group
+    return Evolution(target_param, data, num_creatures=num_cr, num_cycles=num_cy, use_multip=False, clear_creatures=True, **kwargs)
 
 
 def output_group_regression_funcs(group: list):
     '''
-    Take list of CreatureEvolution objects and output their
+    Take list of Evolution objects and output their
     best regressions to a "regression_modules" subdir.
     '''
     for cr_ev in group:
@@ -48,7 +41,7 @@ def output_group_regression_funcs(group: list):
 
 def group_parameter_usage(group: list) -> Dict[str, int]:
     '''
-    Combine each CreatureEvolution's .parameter_usefulness_count dicts to see which attributes are important.
+    Combine each Evolution's .parameter_usefulness_count dicts to see which attributes are important.
     '''
     combined_parameter_usefulness = defaultdict(int)
     for cr_ev in group:
