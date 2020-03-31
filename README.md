@@ -29,7 +29,7 @@ Evogression is Python package providing an evolutionary algorithm to develop a r
   - The goal of the subclasses/evolution algorithms is to generate a group of creatures which then compete to most accurately model the training data.  Creatures are rewarded when they are better at modeling results than their peers, and a survival-of-the-fittest situation emerges.  Creatures may be "mated" with resulting offspring having a combination of the parent creatures' regression characteristics along with some mutation.
   - Evolution evolves creatures by killing off the worst performers in each cycle and then randomly generating many new creatures.
 
-  - evolution_group.py provides high-level approaches to regression by running multiple evolution groups.
+  - groups.py provides high-level approaches to regression by running multiple evolution groups.
   - Parameter pruning algorithm can determine the most useful attributes in a dataset and progressively discard the least useful data while determining a best fit equation for the target attribute.
 
 # Testing
