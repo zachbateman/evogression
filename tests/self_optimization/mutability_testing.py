@@ -12,7 +12,7 @@ from functools import lru_cache
 
 
 
-def main1():
+def test1():
     data = [d for i, d in enumerate(surface_3d_data) if i % 10 == 0]
     standardizer = evogression.standardize.Standardizer(data)
     standardized_data = standardizer.get_standardized_data()
@@ -22,7 +22,7 @@ def main1():
     def unst_val_actuals(param, val):
         return unst_val(param, val)
 
-    creatures = easy_multip.map(get_evogressioncreature, range(50000))
+    creatures = easy_multip.map(get_evogressioncreature, range(30000))
     for cr in creatures:
         cr.error = 0
 
@@ -46,11 +46,10 @@ def main1():
 
 
 def get_evogressioncreature(iteration):
-    return evogression.EvogressionCreature('z', full_parameter_example={'x': None, 'y': None, 'z': None},
-                                           mutability = 0.5 * (iteration / 50000))
+    return evogression.EvogressionCreature('z', full_parameter_example={'x': None, 'y': None, 'z': None})
 
 
-def main2():
+def test2():
     data = [d for i, d in enumerate(surface_3d_data) if i % 10 == 0]
     standardizer = evogression.standardize.Standardizer(data)
     standardized_data = standardizer.get_standardized_data()
@@ -58,7 +57,7 @@ def main2():
 
     mutability_best_errors = {}
     for mutability in tqdm.tqdm([0.00001, 0.0001, 0.001, 0.01, 0.05, 0.1, 0.25, 0.5, 0.75, 1.0]):
-        creatures = [evogression.EvogressionCreature('z', full_parameter_example={'x': None, 'y': None, 'z': None}, mutability=mutability)
+        creatures = [evogression.EvogressionCreature('z', full_parameter_example={'x': None, 'y': None, 'z': None})
                                 for _ in range(1500)]
 
         for cr in creatures:
@@ -72,7 +71,7 @@ def main2():
                     cr.error = 10 ** 10
 
         errors = sorted(cr.error for cr in creatures)
-        mutability_best_errors[mutability] = errors[:30]
+        mutability_best_errors[mutability] = errors[:100]
 
     mutabilities = []
     errors = []
@@ -83,12 +82,12 @@ def main2():
     df = pandas.DataFrame()
     df['Mutability'] = mutabilities
     df['Error'] = errors
-    statplot.scatterplot(df, xvar='Mutability', yvar='Error', alpha=0.3)
+    statplot.scatterplot(df, xvar='Mutability', yvar='Error', alpha=0.3, xlog=True)
     statplot.distribution_plot(df, bin_col='Mutability', result_col='Error')
 
 
 
 
 if __name__ == '__main__':
-    main1()
-    main2()
+    test1()
+    test2()

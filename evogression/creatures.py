@@ -32,7 +32,6 @@ class EvogressionCreature():
                  layers: int=0,
                  generation: int=1,
                  offspring: int=0,  # indicates if creature is a result of adding previous creatures
-                 mutability: float=0,
                  full_parameter_example: dict={},
                  no_negative_exponents: bool=True,
                  modifiers: dict={},
@@ -45,7 +44,6 @@ class EvogressionCreature():
         self.layers = layers
         self.generation = generation
         self.offspring = offspring
-        self.mutability = 0.1 * (random.random() + 0.5) if mutability == 0 else mutability
 
         self.no_negative_exponents = no_negative_exponents
         self.target_parameter = target_parameter
@@ -110,7 +108,7 @@ class EvogressionCreature():
 
     def generate_parameter_coefficients(self):
         try:  # optimize for cython-available case
-            return generate_parameter_coefficients_calc.generate_parameter_coefficients_calc(self.mutability, self.no_negative_exponents)
+            return generate_parameter_coefficients_calc.generate_parameter_coefficients_calc(self.no_negative_exponents)
         except NameError:
             return self._generate_parameter_coefficients()
 
@@ -123,10 +121,9 @@ class EvogressionCreature():
         rand_rand = random.random  # local variable for speed
         rand_tri = random.triangular
         rand_choice = random.choice
-        mutability = self.mutability  # local variable for speed
-        C = 1 if rand_rand() < 0.4 else rand_tri(-3 * mutability, 1, 3 * mutability)
-        B = 1 if rand_rand() < 0.3 else rand_tri(-6 * mutability, 1, 6 * mutability)
-        Z = 0 if rand_rand() < 0.4 else rand_tri(-9 * mutability, 0, 9 * mutability)
+        C = 1 if rand_rand() < 0.4 else rand_tri(0, 2, 1)
+        B = 1 if rand_rand() < 0.3 else rand_tri(0, 2, 1)
+        Z = 0 if rand_rand() < 0.4 else rand_tri(-2, 2, 0)
         if rand_rand() < 0.5:
             C = -C
         if rand_rand() < 0.5:
@@ -287,7 +284,7 @@ class EvogressionCreature():
                                 elif rand_rand() < 0.2 and new_mods_layer_param['X'] > 1:
                                     new_mods_layer_param['X'] -= 1
 
-        return EvogressionCreature(self.target_parameter, layers=self.layers, generation=self.generation + 1, mutability=self.mutability,
+        return EvogressionCreature(self.target_parameter, layers=self.layers, generation=self.generation + 1,
                                               full_parameter_example=self.full_parameter_example, modifiers=new_modifiers, max_layers=self.max_layers)
 
 
@@ -298,6 +295,7 @@ class EvogressionCreature():
         also includes some mutation.
         '''
         rand_rand = random.random  # local variable for speed
+        rand_tri = random.triangular
         self_layers, other_layers = self.layers, other.layers
 
         # Generate new number of layers
@@ -318,17 +316,6 @@ class EvogressionCreature():
 
         new_generation = max(self.generation, other.generation) + 1
 
-        def mutate_multiplier(mutability) -> float:
-            return 1 + mutability * (rand_rand() - 0.5) / 25
-
-        # Generate new mutability
-        new_mutability = (self.mutability + other.mutability) / 2
-        new_mutability *= 3 * mutate_multiplier(new_mutability)
-        if new_mutability > 30:  # HAVE TO LIMIT MUTABILITY OR EVOLUTION BECOMES UNSTABLE AND THROWS ERRORS!!!
-            new_mutability = 30
-        elif new_mutability < 0:  # mutability can't be negative!!!
-            new_mutability = 0.001
-
         # Generate new modifier layer(s) based on self and other
         def get_possible_parameters(full_param_example, target_parameter):
             pos_params = ['N', 'T']
@@ -343,11 +330,11 @@ class EvogressionCreature():
             for coef in coefficients:
                 new_coef = sum(mods[layer_name][param][coef] for mods in modifier_list) / len_modifier_list
                 if coef == 'X':
-                    new_coef = round(new_coef * mutate_multiplier(new_mutability), 0)
+                    new_coef = round(new_coef * rand_tri(0.7, 1.3, 1), 0)
                     if self.no_negative_exponents and new_coef < 0:
                         new_coef = 0
                 else:
-                    new_coef *= mutate_multiplier(new_mutability)
+                    new_coef *= rand_tri(0.7, 1.3, 1)
                 new_mods_layername_param[coef] = new_coef
 
 
@@ -365,23 +352,23 @@ class EvogressionCreature():
                     if layer_name in self_modifiers and layer_name in other_modifiers:
                         if param in self_modifiers[layer_name] and param in other_modifiers[layer_name]:
                             new_N = (self_modifiers[layer_name][param] + other_modifiers[layer_name][param]) / 2
-                            new_N *= mutate_multiplier(new_mutability)
+                            new_N *= rand_tri(0.7, 1.3, 1)
                             new_modifiers[layer_name]['N'] = new_N
                         elif param in self_modifiers[layer_name]:
-                            new_N = self_modifiers[layer_name][param] * mutate_multiplier(new_mutability)
+                            new_N = self_modifiers[layer_name][param] * rand_tri(0.7, 1.3, 1)
                             new_modifiers[layer_name]['N'] = new_N
                         elif param in other_modifiers[layer_name]:
-                            new_N = other_modifiers[layer_name][param] * mutate_multiplier(new_mutability)
+                            new_N = other_modifiers[layer_name][param] * rand_tri(0.7, 1.3, 1)
                             new_modifiers[layer_name]['N'] = new_N
                     elif layer_name in self_modifiers:
-                        new_N = self_modifiers[layer_name][param] * mutate_multiplier(new_mutability)
+                        new_N = self_modifiers[layer_name][param] * rand_tri(0.7, 1.3, 1)
                         new_modifiers[layer_name]['N'] = new_N
                     elif layer_name in other_modifiers:
                         try:
                             new_N = other_modifiers[layer_name][param]
                         except KeyError:
                             breakpoint()
-                        new_N *= mutate_multiplier(new_mutability)
+                        new_N *= rand_tri(0.7, 1.3, 1)
                         new_modifiers[layer_name]['N'] = new_N
 
                 else:  # param is one of ['T', 'B', 'C', 'X', 'Z']
@@ -411,11 +398,11 @@ class EvogressionCreature():
         for layer in range(1, new_layers + 1):
             layer_name = f'LAYER_{layer}'
             for param, values in new_modifiers[layer_name].items():
-                if rand_rand() < 0.01 * new_mutability and param != 'T':
+                if rand_rand() < 0.01 and param != 'T':
                     remove_modifiers.append((layer_name, param))
             for param in possible_parameters:
                 if param not in new_modifiers[layer_name]:
-                    if rand_rand() < 0.01 * new_mutability or (layer > 1 and param == 'T'):
+                    if rand_rand() < 0.01 or (layer > 1 and param == 'T'):
                         add_modifiers.append((layer_name, param))
 
         for remove_tup in remove_modifiers:
@@ -426,7 +413,7 @@ class EvogressionCreature():
 
         for add_tup in add_modifiers:
             if add_tup[1] == 'N':
-                new_modifiers[add_tup[0]]['N'] = 0 if rand_rand() < 0.2 else random.gauss(0, new_mutability)
+                new_modifiers[add_tup[0]]['N'] = 0 if rand_rand() < 0.2 else random.gauss(0, 1)
             else:
                 C, B, Z, X = self.generate_parameter_coefficients()
                 new_modifiers[add_tup[0]][add_tup[1]] = {'C': C, 'B': B, 'Z': Z, 'X': X}
@@ -437,12 +424,12 @@ class EvogressionCreature():
             new_max_layers = None
 
         return EvogressionCreature(self.target_parameter, layers=new_layers, max_layers=new_max_layers, generation=self.generation,
-                                              mutability=new_mutability, full_parameter_example=self.full_parameter_example, modifiers=new_modifiers,
+                                              full_parameter_example=self.full_parameter_example, modifiers=new_modifiers,
                                               offspring=max((self.offspring, other.offspring))+1)
 
 
     def __copy__(self):
-        return EvogressionCreature(self.target_parameter, layers=self.layers, max_layers=self.max_layers, generation=self.generation, mutability=self.mutability, modifiers=self.modifiers)
+        return EvogressionCreature(self.target_parameter, layers=self.layers, max_layers=self.max_layers, generation=self.generation, modifiers=self.modifiers)
 
 
     def __repr__(self) -> str:

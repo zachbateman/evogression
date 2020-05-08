@@ -4,7 +4,7 @@ Cython implementation of EvogressionCreature._generate_parameter_coefficients()
 import random
 
 
-cpdef tuple generate_parameter_coefficients_calc(double mutability, no_negative_exponents):
+cpdef tuple generate_parameter_coefficients_calc(no_negative_exponents):
 
     cpdef double C
     cpdef double B
@@ -15,9 +15,9 @@ cpdef tuple generate_parameter_coefficients_calc(double mutability, no_negative_
     rand_tri = random.triangular
     rand_choice = random.choice
 
-    C = 1 if rand_rand() < 0.4 else rand_tri(-3 * mutability, 1, 3 * mutability)
-    B = 1 if rand_rand() < 0.3 else rand_tri(-6 * mutability, 1, 6 * mutability)
-    Z = 0 if rand_rand() < 0.4 else rand_tri(-9 * mutability, 0, 9 * mutability)
+    C = 1 if rand_rand() < 0.4 else rand_tri(0, 2, 1)
+    B = 1 if rand_rand() < 0.3 else rand_tri(0, 2, 1)
+    Z = 0 if rand_rand() < 0.4 else rand_tri(-2, 2, 0)
     if rand_rand() < 0.5:
         C = -C
     if rand_rand() < 0.5:
