@@ -1,6 +1,7 @@
 from setuptools import setup, find_packages
 from setuptools.extension import Extension
 from Cython.Build import cythonize
+from evogression import __version__
 
 
 with open('README.md', 'r') as f:
@@ -13,7 +14,7 @@ extensions = [
 
 
 setup(name='evogression',
-      version='0.4.1',
+      version=__version__,
       packages=find_packages(),
       license='MIT',
       author='Zach Bateman',
@@ -21,7 +22,7 @@ setup(name='evogression',
       long_description=long_description,
       long_description_content_type='text/markdown',
       url='https://github.com/zachbateman/evogression.git',
-      download_url='https://github.com/zachbateman/evogression/archive/v_0.4.1.tar.gz',
+      download_url='https://github.com/zachbateman/evogression/archive/v_' + __version__ + '.tar.gz',
       keywords=['REGRESSION', 'MACHINE', 'LEARNING', 'EVOLUTION'],
       install_requires=['tqdm', 'easy_multip'],
       classifiers=['Development Status :: 3 - Alpha',

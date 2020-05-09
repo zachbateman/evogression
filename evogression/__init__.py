@@ -1,3 +1,5 @@
+from ._version import __version__
+
 from . import evolution
 from .evolution import Evolution
 from .creatures import EvogressionCreature
