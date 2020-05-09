@@ -15,12 +15,10 @@ except ImportError:
     cython_available = False
 
 try:
-    from . import generate_parameter_coefficients_calc
-    param_coeff_cython_available = True
+    from .generate_parameter_coefficients_calc import generate_parameter_coefficients_calc
 except ImportError:
     print('\nUnable to import Cython generate_parameter_coefficients_calc module!')
     print('Calculations will run slightly slower...\n')
-    param_coeff_cython_available = False
 
 
 layer_probabilities = [1] * 5 + [2] * 3 + [3] * 2 + [4] * 1
@@ -33,7 +31,6 @@ class EvogressionCreature():
                  generation: int=1,
                  offspring: int=0,  # indicates if creature is a result of adding previous creatures
                  full_parameter_example: dict={},
-                 no_negative_exponents: bool=True,
                  modifiers: dict={},
                  max_layers=None) -> None:
         '''
@@ -45,7 +42,6 @@ class EvogressionCreature():
         self.generation = generation
         self.offspring = offspring
 
-        self.no_negative_exponents = no_negative_exponents
         self.target_parameter = target_parameter
         self.full_parameter_example = full_parameter_example
 
@@ -108,7 +104,7 @@ class EvogressionCreature():
 
     def generate_parameter_coefficients(self):
         try:  # optimize for cython-available case
-            return generate_parameter_coefficients_calc.generate_parameter_coefficients_calc(self.no_negative_exponents)
+            return generate_parameter_coefficients_calc()
         except NameError:
             return self._generate_parameter_coefficients()
 
@@ -118,9 +114,8 @@ class EvogressionCreature():
         Create randomized coefficients/parameters for that can
         be assigned to a single term in the modifiers dict.
         '''
-        rand_rand = random.random  # local variable for speed
-        rand_tri = random.triangular
-        rand_choice = random.choice
+        rand_rand = random.random  # local for speed
+        rand_tri = random.triangular  # local for speed
         C = 1 if rand_rand() < 0.4 else rand_tri(0, 2, 1)
         B = 1 if rand_rand() < 0.3 else rand_tri(0, 2, 1)
         Z = 0 if rand_rand() < 0.4 else rand_tri(-2, 2, 0)
@@ -128,10 +123,7 @@ class EvogressionCreature():
             C = -C
         if rand_rand() < 0.5:
             B = -B
-        if self.no_negative_exponents:
-            X = 1 if rand_rand() < 0.4 else rand_choice([0] * 1 + [2] * 5 + [3] * 2)
-        else:
-            X = 1 if rand_rand() < 0.4 else rand_choice([-2] * 1 + [-1] * 5 + [0] * 3 + [2] * 5 + [3] * 1)
+        X = 1 if rand_rand() < 0.4 else random.choice([0, 2, 2, 2, 2, 2, 3, 3])
         return C, B, Z, X
 
 
@@ -317,7 +309,7 @@ class EvogressionCreature():
                 new_coef = sum(mods[layer_name][param][coef] for mods in modifier_list) / len_modifier_list
                 if coef == 'X':
                     new_coef = round(new_coef * rand_tri(0.7, 1.3, 1), 0)
-                    if self.no_negative_exponents and new_coef < 0:
+                    if new_coef < 0:
                         new_coef = 0
                 else:
                     new_coef *= rand_tri(0.7, 1.3, 1)
