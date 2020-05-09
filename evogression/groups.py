@@ -36,7 +36,7 @@ def output_group_regression_funcs(group: list):
     best regressions to a "regression_modules" subdir.
     '''
     for cr_ev in group:
-        cr_ev.output_best_regression_function_as_module()
+        cr_ev.output_best_regression()
 
 
 def group_parameter_usage(group: list) -> Dict[str, int]:

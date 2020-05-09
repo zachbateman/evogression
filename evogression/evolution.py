@@ -468,7 +468,7 @@ class Evolution(BaseEvolution):
         (Ideally, evolution cycles come up with minimally-optimized creatures with best DESIGNED equation...
         ...THEN, the best creature specifically gets optimized at the end)
         '''
-        error_cutoff = (self.best_error + self.median_error) / 2
+        error_cutoff = (self.best_error + self.current_median_error) / 2
         top_mutations = [cr.mutate_to_new_creature() for cr in self.creatures if cr.error_sum < error_cutoff]
         self.creatures.extend(top_mutations)
 

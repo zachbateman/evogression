@@ -87,13 +87,13 @@ class TestLinearRegressionLayers(unittest.TestCase):
 
 class TestLinearRegressionEvolution(unittest.TestCase):
     def test_best_creature_evolution(self):
-        evolution = evogression.evolution.CreatureEvolutionFittest('y', linear_data, num_creatures=10000, num_cycles=3, optimize=5)
+        evolution = evogression.Evolution('y', linear_data, num_creatures=10000, num_cycles=3, optimize=5)
         best_creature =  evolution.best_creature
         print('\nBest creature found!')
         print(best_creature)
 
         predictions = [{'x': i / 2} for i in range(6, 25)]
-        predictions = evolution.add_predictions_to_data(predictions, standardized_data=False)
+        predictions = evolution.predict(predictions)
         calculation_x_values = [point['x'] for point in predictions]
         calculated_y_values = [point['y_PREDICTED'] for point in predictions]
 
