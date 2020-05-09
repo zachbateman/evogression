@@ -326,7 +326,7 @@ class BaseEvolution():
         print('Best creature optimized!\n')
 
 
-    def output_best_regression_function_as_module(self, output_filename='regression_function', add_error_value=True):
+    def output_best_regression(self, output_filename='regression_function', add_error_value=False):
         '''
         Save this the regression equation/function this evolution has found
         to be the best into a new Python module so that the function itself

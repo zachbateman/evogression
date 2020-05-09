@@ -15,7 +15,7 @@ Evogression is Python package providing an evolutionary algorithm to develop a r
     import evogression
 
     evolution = evogression.Evolution('target_variable_key', data, num_creatures=10000, num_cycles=10)
-    evolution.output_best_regression_function_as_module(add_error_value=False)
+    evolution.output_best_regression()
     ```
   - NOTE: Evogression attempts to build Cython modules on install to speed up calculations.  If Evogression is unable to build these modules, it will use backup Python functions.  You may want to use a lower number for "num_creatures" and/or "num_cycles" to speed up program execution if not using Cython.
   - At this point, there will be a "regression_function.py" file within a newly-created "regression_modules" directory.  The "regression_func" function within this Python module can be imported and used with a dictionary of inputs to generate an estimated output value.
