@@ -240,20 +240,6 @@ class EvogressionCreature():
         return T
 
 
-    @property
-    def complexity_cost(self):
-        '''
-        Calculate an value representing the complexity of this creature.
-        The idea is to possibly penalize more complex models and thereby create a tendency
-        to develop a simpler model.
-        '''
-        try:
-            return self._complexity_cost
-        except:
-            self._complexity_cost = 15 + int(round(sum(len(layer_dict) for layer_dict in self.modifiers.values()) / 4, 0))
-            return self._complexity_cost
-
-
     def mutate_to_new_creature(self, adjustments: str='fast'):
         '''
         Create a new creature based on slightly modifying this creature's modifiers.
