@@ -116,21 +116,6 @@ class BaseEvolution():
             print(f'Index: {i}  key: {key}  value: {val}  type: {type(val).__name__}')
 
 
-    def additional_best_creatures(self) -> list:
-        '''
-        Sprinkle in additional mutated best_creatures to enhance this behavior.
-
-        DON'T WANT VERY MANY as the goal is not to just focus on super-optimizing the
-        best creature found from the first round of evolution.
-        Instead, add a FEW mutations of any given best_creature so that other randomly-generated
-        creatures still have a chance to become the new best!
-
-        (Ideally, evolution cycles come up with minimally-optimized creature with best DESIGNED equation...
-        ...THEN, that creature specifically gets optimized at the end)
-        '''
-        return [self.best_creature.mutate_to_new_creature() for _ in range(5)]
-
-
     def evolve_creatures(self, evolution_cycle_func=None, progressbar=True):
         '''
         Main evolution loop that handles results of each loop and
@@ -153,7 +138,6 @@ class BaseEvolution():
                 print(best_creature)
                 print('Total Error: ' + '{0:.2E}'.format(error))
 
-            self.creatures.extend(self.additional_best_creatures())  # sprinkle in additional best_creature mutants
             evolution_cycle_func()
 
 
@@ -278,13 +262,14 @@ class BaseEvolution():
     def mate_creatures(self):
         '''Mate creatures to generate new creatures'''
         new_creatures = []
-        new_creatures_append = new_creatures.append  # local var for speed
+        append = new_creatures.append  # local for speed
+        self_creatures = self.creatures  # local for speed
         for i in range(0, len(self.creatures), 2):
-            creature_group = self.creatures[i: i + 2]
+            creature_group = self_creatures[i: i + 2]
             try:
                 new_creature = creature_group[0] + creature_group[1]
                 if new_creature:
-                    new_creatures_append(new_creature)
+                    append(new_creature)
             except IndexError:  # occurs when at the end of self.creatures
                 pass
         self.creatures.extend(new_creatures)
@@ -458,6 +443,7 @@ class Evolution(BaseEvolution):
     def evolution_cycle(self):
         '''Run one cycle of evolution'''
         self.kill_weak_creatures()
+        self.mutate_top_creatures()
         self.mate_creatures()
 
         # Add random new creatures each cycle to get back to target num creatures
@@ -471,6 +457,20 @@ class Evolution(BaseEvolution):
         self.creatures = [creature for creature in self.creatures if creature.error_sum < median_error]
 
 
+    def mutate_top_creatures(self):
+        '''
+        Sprinkle in additional mutated top (~25%) creatures to enhance their behavior.
+
+        Goal is not to just focus on super-optimizing at this point but to encourage growth
+        in the better-but still diverse-group of creatures.
+        Other randomly-generated creatures still have a chance to become the new best!
+
+        (Ideally, evolution cycles come up with minimally-optimized creatures with best DESIGNED equation...
+        ...THEN, the best creature specifically gets optimized at the end)
+        '''
+        error_cutoff = (self.best_error + self.median_error) / 2
+        top_mutations = [cr.mutate_to_new_creature() for cr in self.creatures if cr.error_sum < error_cutoff]
+        self.creatures.extend(top_mutations)
 
 
 
