@@ -476,22 +476,20 @@ class Evolution(BaseEvolution):
 
 
 
-def calc_error_value(creature, target_parameter: str, data_point: dict, standardizer=None) -> float:
+def calc_error_value(creature, target_parameter: str, data_point: dict, unstandardize_func=None) -> float:
     '''
     Calculate the error between a creature's predicted value and the actual value.
-    data_point must ALREADY be standardized if using a standardizer!!!
+    data_point must ALREADY be standardized if using unstandarize_func!!!
     '''
     target_calc = creature.calc_target(data_point)
     data_point_calc = data_point[target_parameter]
-    if standardizer is not None:
-        unstandardize_value = standardizer.unstandardize_value
-        target_calc = unstandardize_value(target_parameter, target_calc)
-        data_point_calc = unstandardize_value(target_parameter, data_point_calc)
+    if unstandardize_func:
+        target_calc = unstandardize_func(target_parameter, target_calc)
+        data_point_calc = unstandardize_func(target_parameter, data_point_calc)
     try:
-        error = (target_calc - data_point_calc) ** 2.0  # sometimes generates "RuntimeWarning: overflow encountered in double_scalars"
+        return (target_calc - data_point_calc) ** 2.0  # sometimes generates "RuntimeWarning: overflow encountered in double_scalars"
     except OverflowError:  # if error is too big to store, give huge arbitrary error
-        error = 10 ** 150
-    return error
+        return 10 ** 150
 
 
 def find_best_creature(creatures: list, target_parameter: str, data: list, standardizer=None, progressbar=True) -> tuple:
@@ -507,9 +505,10 @@ def find_best_creature(creatures: list, target_parameter: str, data: list, stand
     data_length = len(data)
     best_creature = None
     iterable = tqdm.tqdm(creatures) if progressbar else creatures
+    unstandardize_func = standardizer.unstandardize_value if standardizer else None  # local for speed
     for creature in iterable:
         if not creature.error_sum:
-            creature.error_sum = sum([calc_error_value(creature, target_parameter, data_point, standardizer) for data_point in data]) / data_length
+            creature.error_sum = sum([calc_error_value(creature, target_parameter, data_point, unstandardize_func) for data_point in data]) / data_length
         error = creature.error_sum
 
         append_to_calculated_creatures(creature)
