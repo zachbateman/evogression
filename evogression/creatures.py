@@ -10,13 +10,15 @@ try:
     from .calc_target_cython import calc_target_cython
 except ImportError:
     print('\nUnable to import Cython calc_target_cython module!')
-    print('Calculations will run slower...\n')
+    print('Calculations will run slower...')
+    print('  -> (If running Windows 7, try using Python 3.7 instead of 3.8+)\n')
 
 try:
     from .generate_parameter_coefficients_calc import generate_parameter_coefficients_calc
 except ImportError:
     print('\nUnable to import Cython generate_parameter_coefficients_calc module!')
-    print('Calculations will run slower...\n')
+    print('Calculations will run slower...')
+    print('  -> (If running Windows 7, try using Python 3.7 instead of 3.8+)\n')
 
 
 layer_probabilities = [1] * 5 + [2] * 3 + [3] * 2 + [4] * 1
