@@ -7,18 +7,16 @@ import os
 from ._version import __version__
 from pprint import pprint as pp
 try:
-    from . import calc_target_cython
-    cython_available = True
+    from .calc_target_cython import calc_target_cython
 except ImportError:
     print('\nUnable to import Cython calc_target_cython module!')
-    print('Calculations will run significantly slower...\n')
-    cython_available = False
+    print('Calculations will run slower...\n')
 
 try:
     from .generate_parameter_coefficients_calc import generate_parameter_coefficients_calc
 except ImportError:
     print('\nUnable to import Cython generate_parameter_coefficients_calc module!')
-    print('Calculations will run slightly slower...\n')
+    print('Calculations will run slower...\n')
 
 
 layer_probabilities = [1] * 5 + [2] * 3 + [3] * 2 + [4] * 1
@@ -190,7 +188,7 @@ class EvogressionCreature():
         Apply the creature's modifiers to the parameters to calculate an attempt at target
         '''
         try:
-            return calc_target_cython.calc_target_cython(parameters, self.modifiers, self.layer_str_list)
+            return calc_target_cython(parameters, self.modifiers, self.layer_str_list)
         except:  # if cython extension not available
             T = None  # has to be None on first layer
             for layer in self.layer_tup:
