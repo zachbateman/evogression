@@ -10,6 +10,7 @@ import tqdm
 import warnings
 from collections import defaultdict
 import easy_multip
+from pandas import DataFrame
 from pprint import pprint as pp
 from . import creatures
 from .creatures import EvogressionCreature
@@ -25,7 +26,7 @@ class BaseEvolution():
     '''
     def __init__(self,
                  target_parameter: str,
-                 all_data: List[Dict[str, float]],
+                 all_data: Union[List[Dict[str, float]], DataFrame],
                  num_creatures: int=10000,
                  add_random_creatures_each_cycle: bool=True,
                  num_cycles: int=10,
@@ -38,7 +39,11 @@ class BaseEvolution():
 
         self.target_parameter = target_parameter
         self.standardize = standardize
-        self.all_data = all_data
+
+        if type(all_data) == DataFrame:
+            self.all_data = all_data.to_dict('records')
+        else:
+            self.all_data = all_data
         if fill_none:
             self.fill_none_with_median()
 
@@ -328,16 +333,20 @@ class BaseEvolution():
             self.best_creature.output_python_regression_module(output_filename=output_filename, directory='regression_modules', name_ext=name_ext)
 
 
-    def predict(self, data: Union[Dict[str, float], List[Dict[str, float]]], standardized_data: bool=False, prediction_key: str=''):
+    def predict(self, data: Union[Dict[str, float], List[Dict[str, float]], DataFrame], standardized_data: bool=False, prediction_key: str=''):
         '''
         Add best_creature predictions to data arg as f'{target}_PREDICTED' new key.
-        Return unstandardized dict or list of dicts depending on provided arg.
+        Return unstandardized dict or list of dicts or DataFrame depending on provided arg.
         '''
         target_param = self.target_parameter  # local variable for speed
         if prediction_key == '':
             prediction_key = f'{target_param}_PREDICTED'
 
-        if type(data) == list:
+        is_dataframe = True if type(data) == DataFrame else False
+        if is_dataframe:
+            data = data.to_dict('records')  # will get processed as list
+
+        if type(data) == list:  # DataFrames also get processed here
             if not standardized_data and self.standardize:
                 data = [self.standardizer.convert_parameter_dict_to_standardized(d) for d in data]
             for d in data:
@@ -352,6 +361,8 @@ class BaseEvolution():
                     unstandardized_data.append(unstandardized_d)
             else:
                 unstandardized_data = data
+            if is_dataframe:
+                unstandardized_data = DataFrame(unstandardized_data)
             return unstandardized_data
 
         elif type(data) == dict:
@@ -368,7 +379,7 @@ class BaseEvolution():
             return unstandardized_data
 
         else:
-            print('Error!  "data" arg provided to .predict() must be a dict or list of dicts.')
+            print('Error!  "data" arg provided to .predict() must be a dict or list of dicts or DataFrame.')
 
 
 
