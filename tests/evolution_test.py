@@ -3,6 +3,9 @@ import sys
 sys.path.insert(1, '..')
 import evogression
 from test_data import linear_data
+from test_data_many_dimensions import data as many_d_data
+from pprint import pprint as pp
+
 
 
 class TestPredictionMethods(unittest.TestCase):
@@ -30,13 +33,21 @@ class TestPredictionMethods(unittest.TestCase):
                 double_layer += 1
             else:
                 print(cr.layers)
-        print(f'{single_layer=}')
-        print(f'{double_layer=}')
+        print(f'{single_layer}')
+        print(f'{double_layer}')
         print(single_layer+double_layer)
-
         self.assertTrue(max((cr.layers for cr in evolution.creatures)) <= 2)
+
+    def test_param_usage_counts(self):
+        evolution = evogression.Evolution('Target', many_d_data, num_creatures=300, num_cycles=30, use_multip=False, optimize=False)
+        pp(evolution.parameter_usefulness_count)
+        d = dict(evolution.parameter_usefulness_count)
+        self.assertTrue(len(d) > 1)
+        self.assertTrue(sum(d.values()) > 3)
+        self.assertTrue(True)
+
 
 
 
 if __name__ == '__main__':
-    unittest.main()
+    unittest.main(buffer=True)

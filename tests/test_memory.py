@@ -30,7 +30,6 @@ class TestMemory(unittest.TestCase):
                           + json.dumps(ev.all_data_error_sums)
                           + json.dumps([crlist[0].__dict__ for crlist in ev.best_creatures]) for ev in evolutions]
 
-
         memory_strings = [{'creatures': len(json.dumps([cr.__dict__ for cr in ev.creatures])),
                            'all_data': len(json.dumps(ev.all_data)),
                            'error_sums': len(json.dumps(ev.all_data_error_sums)),
@@ -38,8 +37,6 @@ class TestMemory(unittest.TestCase):
                                 for ev in evolutions]
         for i, d in enumerate(memory_strings):
             memory_strings[i]['total'] = sum(d.values())
-
-
 
         print('\n\nString sizes of jsoned evolutions:')
         for option, ms in zip(options, memory_strings):
