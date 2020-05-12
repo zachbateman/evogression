@@ -3,6 +3,7 @@ import sys
 sys.path.insert(1, '..')
 import evogression
 from test_data import linear_data
+from test_data_many_dimensions import data as many_d_data
 
 
 class TestGroupFunctions(unittest.TestCase):
@@ -13,6 +14,12 @@ class TestGroupFunctions(unittest.TestCase):
         layer_counts = [evo.best_creature.max_layers for evo in group]
         self.assertTrue(max(layer_counts) <= 2)
 
+
+    def test_parameter_usage_count(self):
+        group = evogression.groups.evolution_group(many_d_data, target_param='Target', num_creatures=500, num_cycles=10, group_size=3, optimize=False)
+        for ev in group:
+            print(ev.parameter_usefulness_count)
+            self.assertTrue(len(ev.parameter_usefulness_count) > 0)
 
 
 
