@@ -47,7 +47,7 @@ class BaseEvolution():
         if fill_none:
             self.fill_none_with_median()
 
-        self.num_creatures = num_creatures
+        self.num_creatures = int(num_creatures)
         self.add_random_creatures_each_cycle = add_random_creatures_each_cycle
         self.num_cycles = num_cycles
         self.force_num_layers = force_num_layers
@@ -68,7 +68,7 @@ class BaseEvolution():
 
         self.data_checks()
         self.creatures = [EvogressionCreature(target_parameter, full_parameter_example=self.all_data[0], layers=force_num_layers, max_layers=max_layers)
-                                    for _ in tqdm.tqdm(range(num_creatures))]
+                                    for _ in tqdm.tqdm(range(self.num_creatures))]
 
 
     def fill_none_with_median(self):

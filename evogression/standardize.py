@@ -45,6 +45,8 @@ class Standardizer():
         for param, value in param_dict.items():
             try:
                 new_param_dict[param] = (value - self.data_modifiers[param]['mean']) / self.data_modifiers[param]['stdev']
+            except ZeroDivisionError:  # if value is a constant, stdev is 0
+                new_param_dict[param] = value - self.data_modifiers[param]['mean']
             except KeyError:  # parameter not previously seen
                 new_param_dict[param] = value
         return new_param_dict
