@@ -335,7 +335,7 @@ class BaseEvolution():
             self.best_creature.output_python_regression_module(output_filename=output_filename, directory='regression_modules', name_ext=name_ext)
 
 
-    def predict(self, data: Union[Dict[str, float], List[Dict[str, float]], DataFrame], standardized_data: bool=False, prediction_key: str=''):
+    def predict(self, data: Union[Dict[str, float], List[Dict[str, float]], DataFrame], prediction_key: str='', standardized_data: bool=False):
         '''
         Add best_creature predictions to data arg as f'{target}_PREDICTED' new key.
         Return unstandardized dict or list of dicts or DataFrame depending on provided arg.
