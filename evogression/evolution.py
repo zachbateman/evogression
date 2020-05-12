@@ -210,7 +210,7 @@ class BaseEvolution():
 
     def kill_weak_creatures(self):
         '''Remove half of the creatures randomly (self.creatures was previously shuffled)'''
-        self.creatures = self.creatures[:len(self.creatures)//2]
+        self.creatures = self.creatures[:len(self.num_creatures)//2]
 
 
     def stats_from_find_best_creature_multip_result(self, result_data: list) -> tuple:
@@ -266,17 +266,19 @@ class BaseEvolution():
 
     def mate_creatures(self):
         '''Mate creatures to generate new creatures'''
+        rand_rand = random.random
         new_creatures = []
         append = new_creatures.append  # local for speed
         self_creatures = self.creatures  # local for speed
         for i in range(0, len(self.creatures), 2):
-            creature_group = self_creatures[i: i + 2]
-            try:
-                new_creature = creature_group[0] + creature_group[1]
-                if new_creature:
-                    append(new_creature)
-            except IndexError:  # occurs when at the end of self.creatures
-                pass
+            if rand_rand() < 0.5:  # only a 50% chance of mating (cuts down on calcs and issues of too many creatures each cycle)
+                creature_group = self_creatures[i: i + 2]
+                try:
+                    new_creature = creature_group[0] + creature_group[1]
+                    if new_creature:
+                        append(new_creature)
+                except IndexError:  # occurs when at the end of self.creatures
+                    pass
         self.creatures.extend(new_creatures)
 
 
@@ -419,7 +421,12 @@ class Evolution(BaseEvolution):
         self.mate_creatures()
 
         # Add random new creatures each cycle to get back to target num creatures
-        self.creatures.extend([EvogressionCreature(self.target_parameter, full_parameter_example=self.all_data[0], layers=self.force_num_layers, max_layers=self.max_layers) for _ in range(int(round(self.num_creatures - len(self.creatures), 0)))])
+        # Or... cut out extra creatures if have too many (small chance of happening)
+        if len(self.creatures) < self.num_creatures:
+            self.creatures.extend([EvogressionCreature(self.target_parameter, full_parameter_example=self.all_data[0], layers=self.force_num_layers, max_layers=self.max_layers)
+                                           for _ in range(int(round(self.num_creatures - len(self.creatures), 0)))])
+        elif len(self.creatures) > self.num_creatures:
+            self.creatures = self.creatures[:self.num_creatures]
         random.shuffle(self.creatures)  # used to mix up new creatures in among multip
 
 
@@ -432,6 +439,7 @@ class Evolution(BaseEvolution):
     def mutate_top_creatures(self):
         '''
         Sprinkle in additional mutated top (~25%) creatures to enhance their behavior.
+        And... LIMIT to max 25% (after many iterations, can approach identical arrors and cutoff breaks down.
 
         Goal is not to just focus on super-optimizing at this point but to encourage growth
         in the better-but still diverse-group of creatures.
@@ -442,7 +450,7 @@ class Evolution(BaseEvolution):
         '''
         error_cutoff = (self.best_error + self.current_median_error) / 2
         top_mutations = [cr.mutate_to_new_creature() for cr in self.creatures if cr.error_sum < error_cutoff]
-        self.creatures.extend(top_mutations)
+        self.creatures.extend(top_mutations[:self.num_creatures//4])
 
 
 
@@ -488,6 +496,6 @@ def find_best_creature(creatures: list, target_parameter: str, data: list, stand
             best_error = error
             best_creature = creature
         append_to_errors(error)
-    avg_error = sorted(errors)[len(errors) // 2]  # MEDIAN error
-    return (best_creature, best_error, avg_error, calculated_creatures)
+    median_error = sorted(errors)[len(errors) // 2]  # MEDIAN error
+    return (best_creature, best_error, median_error, calculated_creatures)
 find_best_creature_multip = easy_multip.decorators.use_multip(find_best_creature)
