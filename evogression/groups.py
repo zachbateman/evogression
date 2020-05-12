@@ -50,13 +50,20 @@ def group_parameter_usage(group: list) -> Dict[str, int]:
     return combined_parameter_usefulness
 
 
-def parameter_pruned_evolution_group(data: list, target_param: str='', max_parameters: int=10, num_creatures: int=10000, num_cycles: int=10, num_groups: int=4) -> List[Evolution]:
+def parameter_pruned_evolution_group(data: list, target_param: str='', max_parameters: int=10, num_creatures: int=10000, num_cycles: int=10, group_size: int=4) -> List[Evolution]:
     '''
     Generate successive groups of Evolution objects and prune least-used
     parameters from the input data each round until only the most useful parameters remain.
     Finally, run a full-blown evolution cycles with the remaining parameters
     for the saved regression modules.
+
+    USE LARGE >>> num_cycles <<< TO INTEGRATE MORE STATISTICALLY VALID PARAMETER USAGE NUMBERS BEFORE REMOVING PARAMETERS
     '''
+    if num_creatures < 1000 or num_cycles < 10:
+        print('\n> ERROR!  parameter_pruned_evolution_group() can be unstable (infinite loop)\n  if num_creatures and/or num_cycles args are too small.')
+        print('  Please use a minimum num_creatures of 1000 and a minimum num_cycles of 10.\n  Higher values num_cycles are encouraged!\n')
+        return
+
     def num_param_to_eliminate(num_extra_param: int) -> int:
         '''Determine how many worst-performing parameters to elimintate in a given round'''
         if num_extra_param > 50:
@@ -72,19 +79,20 @@ def parameter_pruned_evolution_group(data: list, target_param: str='', max_param
 
     num_parameters = len(data[0].keys()) - 1
     while num_parameters > max_parameters:
-        group = evolution_group(data, target_param, num_creatures // 2, num_cycles // 2, num_groups, optimize=False)
+        group = evolution_group(data, target_param, num_creatures // 1.6, num_cycles // 1.6, group_size, optimize=False)
 
         parameter_usage = [(param, count) for param, count in group_parameter_usage(group).items()]
         random.shuffle(parameter_usage)  # so below filter ignores previous order for equally-ranked parameters
         ranked_parameters = sorted(parameter_usage, key=lambda tup: tup[1])
         print(ranked_parameters)
+
         dead_params = [t[0] for t in ranked_parameters[:num_param_to_eliminate(num_parameters - max_parameters)]]
         for data_point in data:
             for param in dead_params:
                 del data_point[param]
         num_parameters = len(data[0].keys()) - 1
 
-    final_group = evolution_group(data, target_param, num_creatures, num_cycles, num_groups)
+    final_group = evolution_group(data, target_param, num_creatures, num_cycles, group_size)
     print('parameter_pruned_evolution_group complete.  Final Parameter usage counts below:')
     for param, count in group_parameter_usage(final_group).items():
         print(f'  {count}: {param}')
