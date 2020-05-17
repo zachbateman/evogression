@@ -31,7 +31,6 @@ class BaseEvolution():
                  target_parameter: str,
                  all_data: Union[List[Dict[str, float]], DataFrame],
                  num_creatures: int=10000,
-                 add_random_creatures_each_cycle: bool=True,
                  num_cycles: int=10,
                  force_num_layers: int=0,
                  max_layers=None,
@@ -51,15 +50,11 @@ class BaseEvolution():
             self.fill_none_with_median()
 
         self.num_creatures = int(num_creatures)
-        self.add_random_creatures_each_cycle = add_random_creatures_each_cycle
-        self.num_cycles = num_cycles
-        self.force_num_layers = force_num_layers
+        self.num_cycles = int(num_cycles)
+        self.force_num_layers = int(force_num_layers)
         self.max_layers = max_layers
-        # could reset module-level layer_probabilities list used by creatues to not have more than max_layers as options
-        # creatures.layer_probabilities = [n for n in creatures.layer_probabilities if n <= max_layers]
         self.use_multip = use_multip
 
-        self.current_generation = 1
         self.best_creatures: list = []
         self.parameter_usefulness_count: dict=defaultdict(int)
 
@@ -82,14 +77,15 @@ class BaseEvolution():
         # Remove any data points that have None for the target/result parameter
         self.all_data = [d for d in self.all_data if d[self.target_parameter] is not None and not math.isnan(d[self.target_parameter])]
 
+        is_nan = math.isnan  # local for speed
         parameters_adjusted = []
         for param in self.all_data[0].keys():
             if param != self.target_parameter:
-                values = [d[param] for d in self.all_data if d[param] is not None and not math.isnan(d[param])]
+                values = [d[param] for d in self.all_data if d[param] is not None and not is_nan(d[param])]
                 if len(values) < len(self.all_data):  # check length so don't have to do below if no replacements
                     median = statistics.median(values)
                     for d in self.all_data:
-                        if d[param] is None or math.isnan(d[param]):
+                        if d[param] is None or is_nan(d[param]):
                             parameters_adjusted.append(param)
                             d[param] = median
 
@@ -156,14 +152,12 @@ class BaseEvolution():
 
     def evolution_cycle(self):
         '''
-        Default evolution cycle.
+        DEFAULT EVOLUTION CYCLE (meant to be replaced in subclasses)
         Run one cycle of evolution that introduces new random creatures,
         kills weak creatures, and mates the remaining ones.
         '''
-        # Option to add random new creatures each cycle (2.0% of num_creatures each time)
-        if self.add_random_creatures_each_cycle:
-            self.creatures.extend([EvogressionCreature(self.target_parameter, full_parameter_example=self.all_data[0], layers=self.force_num_layers, max_layers=self.max_layers) for _ in range(int(round(0.02 * self.num_creatures, 0)))])
-
+        # Add random new creatures each cycle (2.0% of num_creatures each time)
+        self.creatures.extend([EvogressionCreature(self.target_parameter, full_parameter_example=self.all_data[0], layers=self.force_num_layers, max_layers=self.max_layers) for _ in range(int(round(0.02 * self.num_creatures, 0)))])
         random.shuffle(self.creatures)  # used to mix up new creatures in among multip and randomize feeding groups
         self.kill_weak_creatures()
         self.mate_creatures()
@@ -290,10 +284,10 @@ class BaseEvolution():
         self.creatures.extend(new_creatures)
 
 
-    def optimize_best_creature(self, iterations=30):
+    def optimize_best_creature(self, iterations=30) -> None:
         '''
-        Use the creature.mutate_to_new_creature method to transform
-        the best_creature into an even better fit.
+        Use the creature.mutate_to_new_creature method to
+        transform the best_creature into an even better fit.
         '''
         print('\n\n\nOptimizing best creature...')
         best_creature = self.best_creature
@@ -326,16 +320,13 @@ class BaseEvolution():
         print('Best creature optimized!\n')
 
 
-    def output_best_regression(self, output_filename='regression_function', add_error_value=False):
+    def output_best_regression(self, output_filename='regression_function', add_error_value=False) -> None:
         '''
         Save this the regression equation/function this evolution has found
         to be the best into a new Python module so that the function itself
         can be imported and used in other code.
         '''
-        if add_error_value:
-            name_ext = f'___{round(self.best_error, 4)}'
-        else:
-            name_ext = ''
+        name_ext = f'___{round(self.best_error, 4)}' if add_error_value else ''
 
         if self.standardize:
             self.best_creature.output_python_regression_module(output_filename=output_filename, standardizer=self.standardizer, directory='regression_modules', name_ext=name_ext)
@@ -418,11 +409,11 @@ class Evolution(BaseEvolution):
             elif optimize:
                 self.optimize_best_creature()
 
-            if kwargs.get('clear_creatures', False):  # save tons of memory when returning object (helps with multip)
+            if kwargs.get('clear_creatures', False):  # save tons of memory when returning object (helps with multiprocessing)
                 self.creatures = [self.best_creature]
 
 
-    def evolution_cycle(self):
+    def evolution_cycle(self) -> None:
         '''Run one cycle of evolution'''
         self.kill_weak_creatures()
         self.mutate_top_creatures()
@@ -438,13 +429,13 @@ class Evolution(BaseEvolution):
         random.shuffle(self.creatures)  # used to mix up new creatures in among multip
 
 
-    def kill_weak_creatures(self):
+    def kill_weak_creatures(self) -> None:
         '''Overwrite CreatureEvolution's kill_weak_creatures method'''
         median_error = self.current_median_error  # local for speed
         self.creatures = [creature for creature in self.creatures if creature.error_sum < median_error]
 
 
-    def mutate_top_creatures(self):
+    def mutate_top_creatures(self) -> None:
         '''
         Sprinkle in additional mutated top (~25%) creatures to enhance their behavior.
         And... LIMIT to max 25% (after many iterations, can approach identical arrors and cutoff breaks down.
@@ -488,6 +479,7 @@ def find_best_creature(creatures: list, target_parameter: str, data: list, stand
     best_error = -1  # to start loop
     errors: list = []
     append_to_errors = errors.append  # local variable for speed
+    _sum = sum  # local for speed
     calculated_creatures: list = []
     append_to_calculated_creatures = calculated_creatures.append  # local variable for speed
     data_length = len(data)
@@ -496,7 +488,7 @@ def find_best_creature(creatures: list, target_parameter: str, data: list, stand
     unstandardize_func = standardizer.unstandardize_value if standardizer else None  # local for speed
     for creature in iterable:
         if not creature.error_sum:
-            creature.error_sum = sum([calc_error_value(creature, target_parameter, data_point, unstandardize_func) for data_point in data]) / data_length
+            creature.error_sum = _sum([calc_error_value(creature, target_parameter, data_point, unstandardize_func) for data_point in data]) / data_length
         error = creature.error_sum
 
         append_to_calculated_creatures(creature)
