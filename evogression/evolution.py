@@ -23,6 +23,9 @@ class BaseEvolution():
     Creates a framework for evolving groups of creatures.
     This class is designed to be subclassed into more
     specific evolution algorithms.
+
+    Input data must have all numeric values (or None) and
+    CANNOT have a column named "N" or "T".
     '''
     def __init__(self,
                  target_parameter: str,
@@ -119,6 +122,11 @@ class BaseEvolution():
             data_name, i, key, val = issue
             print(f'\nERROR!  NAN values detected in {data_name}!')
             print(f'Index: {i}  key: {key}  value: {val}  type: {type(val).__name__}')
+
+        if 'N' in self.all_data[0]:
+            raise InputDataFormatError('ERROR!  Parameter "N" detected in data.  Cannot use "N" or "T" as parameters.')
+        if 'T' in self.all_data[0]:
+            raise InputDataFormatError('ERROR!  Parameter "T" detected in data.  Cannot use "N" or "T" as parameters.')
 
 
     def evolve_creatures(self, evolution_cycle_func=None, progressbar=True):
@@ -499,3 +507,12 @@ def find_best_creature(creatures: list, target_parameter: str, data: list, stand
     median_error = sorted(errors)[len(errors) // 2]  # MEDIAN error
     return (best_creature, best_error, median_error, calculated_creatures)
 find_best_creature_multip = easy_multip.decorators.use_multip(find_best_creature)
+
+
+
+class InputDataFormatError(Exception):
+    def __init__(self, *args):
+        self.message = args[0] if args else None
+
+    def __str__(self):
+        return '\n' + str(self.message) if self.message else '\n'

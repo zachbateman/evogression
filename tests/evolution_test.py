@@ -46,6 +46,14 @@ class TestPredictionMethods(unittest.TestCase):
         self.assertTrue(sum(d.values()) > 3)
         self.assertTrue(True)
 
+    def test_bad_data_N(self):
+        self.assertRaises(evogression.evolution.InputDataFormatError,
+            evogression.Evolution, 'a', [{'a': 5, 'b': 5, 'N': 6}, {'a': 6, 'b': 6, 'N': 7}])
+
+    def test_bad_data_T(self):
+        self.assertRaises(evogression.evolution.InputDataFormatError,
+            evogression.Evolution, 'a', [{'a': 5, 'b': 5, 'T': 6}, {'a': 6, 'b': 6, 'T': 7}])
+
 
 
 
