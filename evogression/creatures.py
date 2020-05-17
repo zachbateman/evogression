@@ -442,7 +442,7 @@ class EvogressionCreature():
         output_str = self.output_regression_func_as_python_module_string(standardizer=standardizer)
         with open(output_filename, 'w') as f:
             f.write(output_str)
-        print(f'EvogressionCreature modifiers outputted as regression function Python module!')
+        print(f'EvogressionCreature modifiers saved as regression function Python module!')
 
 
     def output_regression_func_as_python_module_string(self, standardizer=None) -> str:

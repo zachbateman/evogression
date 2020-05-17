@@ -1,2 +1,3 @@
 tqdm==4.43.0
 easy-multip==0.2.3
+pandas>=0.25.0
