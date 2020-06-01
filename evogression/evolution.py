@@ -374,7 +374,7 @@ class BaseEvolution():
             if self.standardize:
                 unstandardized_data = {}
                 for param, value in data.items():
-                    unstandardized_data[param] = self.standardizer.unstandardize_value(target_param if '_PREDICTED' in param else param, value)
+                    unstandardized_data[param] = self.standardizer.unstandardize_value(target_param if param == prediction_key else param, value)
             else:
                 unstandardized_data = data
             return unstandardized_data
