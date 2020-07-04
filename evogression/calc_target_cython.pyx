@@ -19,10 +19,38 @@ cdef double calc_single_layer_target_cython(dict parameters, dict modifiers, str
     cdef double value
     cdef dict layer_modifiers = modifiers[layer_name]
 
+    cdef dict mods
+    cdef double C, B, Z, X
+
     for param, value in parameters.items():
-        T += param_value_component(layer_modifiers, param, value)
+        try:
+            mods = layer_modifiers[param]
+            C = mods['C']
+            B = mods['B']
+            Z = mods['Z']
+            X = mods['X']
+            T += C * (B * value + Z) ** X
+        except KeyError:  # if param is not in self.modifiers[layer_name]
+            pass
+        except ZeroDivisionError:  # could occur if exponent is negative
+            pass
+        except OverflowError:
+            T += 10 ** 150  # really big number should make this creature die if crazy bad calculations (overflow)
+
     if previous_T != -99999:
-        T += param_value_component(layer_modifiers, 'T', previous_T)
+        try:
+            mods = layer_modifiers['T']
+            C = mods['C']
+            B = mods['B']
+            Z = mods['Z']
+            X = mods['X']
+            T += C * (B * previous_T + Z) ** X
+        except KeyError:  # if param is not in self.modifiers[layer_name]
+            pass
+        except ZeroDivisionError:  # could occur if exponent is negative
+            pass
+        except OverflowError:
+            T += 10 ** 150  # really big number should make this creature die if crazy bad calculations (overflow)
 
     try:
         T += layer_modifiers['N']
@@ -30,24 +58,3 @@ cdef double calc_single_layer_target_cython(dict parameters, dict modifiers, str
         pass
 
     return T
-
-
-
-cdef double param_value_component(dict layer_modifiers, str param, double value):
-
-    cdef dict mods
-    cdef double C, B, Z, X
-
-    try:
-        mods = layer_modifiers[param]
-        C = mods['C']
-        B = mods['B']
-        Z = mods['Z']
-        X = mods['X']
-        return C * (B * value + Z) ** X
-    except KeyError:  # if param is not in self.modifiers[layer_name]
-        return 0
-    except ZeroDivisionError:  # could occur if exponent is negative
-        return 0
-    except OverflowError:
-        return 10 ** 150  # really big number should make this creature die if crazy bad calculations (overflow)
