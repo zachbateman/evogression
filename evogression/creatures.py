@@ -23,6 +23,14 @@ except ImportError:
 
 layer_probabilities = [1] * 5 + [2] * 3 + [3] * 2 + [4] * 1
 
+def fast_copy(d: dict):
+    '''Used as a faster alternative to copy.deepcopy for copying to a new dict'''
+    output = d.copy()
+    for key, value in output.items():
+        output[key] = fast_copy(value) if isinstance(value, dict) else value
+    return output
+
+
 class EvogressionCreature():
 
     def __init__(self,
@@ -244,7 +252,7 @@ class EvogressionCreature():
 
         rand_rand = random.random
         rand_gauss = random.gauss
-        new_modifiers = copy.deepcopy(self.modifiers)
+        new_modifiers = fast_copy(self.modifiers)
         for layer_name in new_modifiers:
             if rand_rand() < 0.5:
                 new_modifiers[layer_name]['N'] += rand_gauss(0, modify_value)
@@ -291,21 +299,22 @@ class EvogressionCreature():
             else:
                 new_layers += 1
 
-        new_generation = max(self.generation, other.generation) + 1
-
         # Generate new modifier layer(s) based on self and other
         def get_possible_parameters(full_param_example, target_parameter):
             pos_params = ['N', 'T']
             pos_params.extend(sorted(key for key in full_param_example if key != target_parameter))
             return pos_params
 
-        def create_new_coefficients(new_modifiers: dict, modifier_list: list, layer_name: str, coefficients) -> None:
+        def create_new_coefficients(new_modifiers: dict, modifier_list: list, layer_name: str) -> None:
             '''Modifies new_modifiers in place'''
-            new_modifiers[layer_name][param] = {}
             len_modifier_list = len(modifier_list)  # local variable for speed
+            new_modifiers[layer_name][param] = {}
             new_mods_layername_param = new_modifiers[layer_name][param]  # local variable for speed
-            for coef in coefficients:
-                new_coef = sum(mods[layer_name][param][coef] for mods in modifier_list) / len_modifier_list
+            for coef in ['C', 'B', 'Z', 'X']:
+                if len_modifier_list == 2:
+                    new_coef = (modifier_list[0][layer_name][param][coef] + modifier_list[1][layer_name][param][coef]) / 2
+                else:  # just one set of modifiers
+                    new_coef = modifier_list[0][layer_name][param][coef]
                 if coef == 'X':
                     new_coef = round(new_coef * rand_tri(0.7, 1.3, 1), 0)
                     if new_coef < 0:
@@ -316,7 +325,6 @@ class EvogressionCreature():
 
 
         possible_parameters = get_possible_parameters(self.full_parameter_example, self.target_parameter)
-        coefficients = ['C', 'B', 'Z', 'X']
         new_modifiers = {f'LAYER_{layer}': {'N': 0} for layer in range(1, new_layers + 1)}
 
         self_modifiers = self.modifiers  # local variable for speed
@@ -353,21 +361,21 @@ class EvogressionCreature():
                     if layer_name in self_modifiers and layer_name in other_modifiers:
                         if param != 'T' or layer > 1:
                             if param in self_modifiers[layer_name] and param in other_modifiers[layer_name]:
-                                create_new_coefficients(new_modifiers, [self_modifiers, other_modifiers], layer_name, coefficients)
+                                create_new_coefficients(new_modifiers, [self_modifiers, other_modifiers], layer_name)
 
                         elif param in self_modifiers[layer_name] and (rand_rand() < 0.5 or force_keep_param):
-                            create_new_coefficients(new_modifiers, [self_modifiers], layer_name, coefficients)
+                            create_new_coefficients(new_modifiers, [self_modifiers], layer_name)
 
                         elif param in other_modifiers[layer_name] and (rand_rand() < 0.5 or force_keep_param):
-                            create_new_coefficients(new_modifiers, [other_modifiers], layer_name, coefficients)
+                            create_new_coefficients(new_modifiers, [other_modifiers], layer_name)
 
                     elif layer_name in self_modifiers:
                         if param in self_modifiers[layer_name] and (rand_rand() < 0.5 or force_keep_param):
-                            create_new_coefficients(new_modifiers, [self_modifiers], layer_name, coefficients)
+                            create_new_coefficients(new_modifiers, [self_modifiers], layer_name)
 
                     elif layer_name in other_modifiers:
                         if param in other_modifiers[layer_name] and (rand_rand() < 0.5 or force_keep_param):
-                            create_new_coefficients(new_modifiers, [other_modifiers], layer_name, coefficients)
+                            create_new_coefficients(new_modifiers, [other_modifiers], layer_name)
 
         # Chance to add or remove parameter modifiers
         remove_modifiers = []
@@ -441,7 +449,7 @@ class EvogressionCreature():
         output_str = self.output_regression_func_as_python_module_string(standardizer=standardizer)
         with open(output_filename, 'w') as f:
             f.write(output_str)
-        print(f'EvogressionCreature modifiers saved as regression function Python module!')
+        print('EvogressionCreature modifiers saved as regression function Python module!')
 
 
     def output_regression_func_as_python_module_string(self, standardizer=None) -> str:
@@ -466,10 +474,10 @@ class EvogressionCreature():
                         else:
                             s += f"            standardized_data['{param}'] = value - {round(modifier_dict['mean'], 6)}\n"
                 if '()' in s[-10:]:
-                    s += f"        pass\n"
-                s += f"    parameters = standardized_data\n\n"
+                    s += "        pass\n"
+                s += "    parameters = standardized_data\n\n"
             else:
-                s += f"    # No standardizer used for regression\n\n"
+                s += "    # No standardizer used for regression\n\n"
             s += "    T = 0  # T is the value from the previous layer if multiple layers\n\n"
 
         for layer in range(1, len(modifiers) + 1):

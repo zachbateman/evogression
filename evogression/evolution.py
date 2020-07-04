@@ -11,8 +11,6 @@ import warnings
 from collections import defaultdict
 import easy_multip
 from pandas import DataFrame
-from pprint import pprint as pp
-from . import creatures
 from .creatures import EvogressionCreature
 from .standardize import Standardizer
 
@@ -306,7 +304,7 @@ class BaseEvolution():
             else:
                 best_creature, error, median_error, calculated_creatures = find_best_creature(mutated_clones, self.target_parameter, self.standardized_all_data, progressbar=False)
 
-            print(f'Best error: ' + '{0:.6E}'.format(error))
+            print('Best error: ' + '{0:.6E}'.format(error))
             errors.append(error)
             if error == 0:
                 break  # break out of loop if no error/perfect regression
@@ -482,13 +480,14 @@ def find_best_creature(creatures: list, target_parameter: str, data: list, stand
     _sum = sum  # local for speed
     calculated_creatures: list = []
     append_to_calculated_creatures = calculated_creatures.append  # local variable for speed
+    _calc_error_value = calc_error_value  # local for speed
     data_length = len(data)
     best_creature = None
     iterable = tqdm.tqdm(creatures) if progressbar else creatures
     unstandardize_func = standardizer.unstandardize_value if standardizer else None  # local for speed
     for creature in iterable:
         if not creature.error_sum:
-            creature.error_sum = _sum([calc_error_value(creature, target_parameter, data_point, unstandardize_func) for data_point in data]) / data_length
+            creature.error_sum = _sum([_calc_error_value(creature, target_parameter, data_point, unstandardize_func) for data_point in data]) / data_length
         error = creature.error_sum
 
         append_to_calculated_creatures(creature)
