@@ -71,7 +71,6 @@ class EvogressionCreature():
         created by this creature.  The dictionary contains the coefficients/parameters
         assigned to each term as well as the terms and the layers of the equation.
         '''
-
         parameter_usage_num = 2.5 / (len(self.full_parameter_example) + 1)  # local variables for speed
         rand_rand = random.random
         rand_gauss = random.gauss
@@ -81,9 +80,7 @@ class EvogressionCreature():
 
         modifiers: dict = {}
         for layer_name in self.layer_str_list:
-            modifiers[layer_name] = {}
-            layer_modifiers = modifiers[layer_name]  # save reference to avoid repeated lookups in below loop
-            layer_modifiers['N'] = 0 if rand_rand() < 0.2 else rand_gauss(0, 0.1)
+            layer_modifiers = {'N': 0} if rand_rand() < 0.2 else {'N': rand_gauss(0, 0.1)}
             for param in full_param_example_keys:
                 # resist using parameters if many of them
                 # len(full_param_example) will always be >= 2
@@ -98,6 +95,8 @@ class EvogressionCreature():
                 if X == 0:  # want every layer > 1 to include a T term!!
                     X = 1
                 layer_modifiers['T'] = {'C': C, 'B': B, 'Z': Z, 'X': X}
+
+            modifiers[layer_name] = layer_modifiers
 
         return modifiers
 
