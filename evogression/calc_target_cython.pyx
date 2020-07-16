@@ -32,8 +32,6 @@ cdef double calc_single_layer_target_cython(dict parameters, dict modifiers, str
             T += C * (B * value + Z) ** X
         except KeyError:  # if param is not in self.modifiers[layer_name]
             pass
-        except ZeroDivisionError:  # could occur if exponent is negative
-            pass
         except OverflowError:
             T += 10 ** 150  # really big number should make this creature die if crazy bad calculations (overflow)
 
@@ -46,8 +44,6 @@ cdef double calc_single_layer_target_cython(dict parameters, dict modifiers, str
             X = mods['X']
             T += C * (B * previous_T + Z) ** X
         except KeyError:  # if param is not in self.modifiers[layer_name]
-            pass
-        except ZeroDivisionError:  # could occur if exponent is negative
             pass
         except OverflowError:
             T += 10 ** 150  # really big number should make this creature die if crazy bad calculations (overflow)
