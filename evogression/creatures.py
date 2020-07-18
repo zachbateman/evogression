@@ -284,29 +284,15 @@ class EvogressionCreature():
         '''
         rand_rand = random.random  # local variable for speed
         rand_tri = random.triangular
-        self_layers, other_layers = self.layers, other.layers
 
         # Generate new number of layers
-        if self_layers == other_layers:
-            new_layers = int(self_layers)
-        elif abs(self_layers - other_layers) < 1:
-            new_layers = int(self_layers) if rand_rand() < 0.5 else int(other_layers)
-        else:
-            new_layers = int(round((self_layers + other_layers) / 2, 0))
-
-        if rand_rand() < 0.05:  # mutation to number of layers
-            if rand_rand() < 0.5 and new_layers > 1:
+        new_layers = int(round((self.layers + other.layers) / 2, 0))  # average (same if both are same number)
+        # Possible mutation to number of layers
+        if rand_rand() < 0.05:
+            if new_layers > 1 and rand_rand() < 0.5:
                 new_layers -= 1
-            elif new_layers == self.max_layers or new_layers == other.max_layers:
-                pass
-            else:
+            elif new_layers < max(self.max_layers, other.max_layers):
                 new_layers += 1
-
-        # Generate new modifier layer(s) based on self and other
-        def get_possible_parameters(full_param_example, target_parameter):
-            pos_params = ['N', 'T']
-            pos_params.extend(sorted(key for key in full_param_example if key != target_parameter))
-            return pos_params
 
         def create_new_coefficients(new_modifiers: dict, modifier_list: list, layer_name: str) -> None:
             '''Modifies new_modifiers in place'''
@@ -320,7 +306,7 @@ class EvogressionCreature():
                 new_modifiers[layer_name][param] = Coefficients((c1[0]  + c2[0]) / 2, (c1[1] + c2[1]) / 2, (c1[2] + c2[2]) / 2, new_x if new_x >= 0 else 0)
 
 
-        possible_parameters = get_possible_parameters(self.full_parameter_example, self.target_parameter)
+        possible_parameters = ['N', 'T'] + [key for key in self.full_param_example if key != self.target_parameter]
         new_modifiers = {f'LAYER_{layer}': {'N': 0} for layer in range(1, new_layers + 1)}
 
         self_modifiers = self.modifiers  # local variable for speed
