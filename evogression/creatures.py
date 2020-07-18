@@ -6,6 +6,7 @@ import copy
 import os
 from ._version import __version__
 from pprint import pprint as pp
+from collections import namedtuple
 try:
     from .calc_target_cython import calc_target_cython
 except ImportError:
@@ -22,6 +23,9 @@ except ImportError:
 
 
 layer_probabilities = [1] * 5 + [2] * 3 + [3] * 2 + [4] * 1
+
+Coefficients = namedtuple('Coefficients', 'C B Z X')
+
 
 def fast_copy(d: dict):
     '''Used as a faster alternative to copy.deepcopy for copying to a new dict'''
@@ -95,14 +99,14 @@ class EvogressionCreature():
                 if rand_rand() < parameter_usage_num and param != targ_param:
                     C, B, Z, X = gen_param_coeffs()
                     if X != 0:  # 0 exponent makes term overly complex for value added; don't include
-                        layer_modifiers[param] = {'C': C, 'B': B, 'Z': Z, 'X': X}
+                        layer_modifiers[param] = Coefficients(C, B, Z, X)
                     else:
                         layer_modifiers['N'] += C
             if layer_name != 'LAYER_1':
                 C, B, Z, X = gen_param_coeffs()
                 if X == 0:  # want every layer > 1 to include a T term!!
                     X = 1
-                layer_modifiers['T'] = {'C': C, 'B': B, 'Z': Z, 'X': X}
+                layer_modifiers['T'] = Coefficients(C, B, Z, X)
 
             modifiers[layer_name] = layer_modifiers
 
@@ -160,7 +164,7 @@ class EvogressionCreature():
 
                 # if 'T' element is raised to 0 power... previous layer(s) are not used.
                 # Rebuild the layers without the unused ones before the current layer
-                if current_layer_num > 1 and param == 'T' and param_dict['X'] == 0:
+                if current_layer_num > 1 and param == 'T' and param_dict.X == 0:
                     new_base_layer = current_layer_num
 
             if current_layer_num > 1 and 'T' not in layer_dict:
@@ -218,10 +222,8 @@ class EvogressionCreature():
         def param_value_component(layer_modifiers: dict, param: str, value: float) -> float:
             try:
                 mods = layer_modifiers[param]
-                return mods['C'] * (mods['B'] * value + mods['Z']) ** mods['X']
+                return mods.C * (mods.B * value + mods.Z) ** mods.X
             except KeyError:  # if param is not in self.modifiers[layer_name]
-                return 0
-            except ZeroDivisionError:  # could occur if exponent is negative
                 return 0
             except OverflowError:
                 return 10 ** 150  # really big number should make this creature die if crazy bad calculations (overflow)
@@ -258,16 +260,17 @@ class EvogressionCreature():
                 new_modifiers[layer_name]['N'] += rand_gauss(0, modify_value)
             for param in new_modifiers[layer_name].keys():
                 if param != 'N':
-                    new_mods_layer_param = new_modifiers[layer_name][param]  # local var for speed
-                    for term in new_mods_layer_param:
-                        if rand_rand() < 0.5:
-                            if term != 'X':
-                                new_mods_layer_param[term] += rand_gauss(0, modify_value)
-                            else:
-                                if rand_rand() < 0.2:
-                                    new_mods_layer_param['X'] += 1
-                                elif rand_rand() < 0.2 and new_mods_layer_param['X'] > 1:
-                                    new_mods_layer_param['X'] -= 1
+                    old_coefs = new_modifiers[layer_name][param]
+                    new_x = old_coefs.X
+                    if rand_rand() < 0.2:
+                        new_x = old_coefs.X + 1
+                    elif rand_rand() < 0.2 and old_coefs.X > 1:
+                        new_x = old_coefs.X - 1
+                    new_coef = Coefficients(old_coefs[0] + rand_gauss(0, modify_value),
+                                                          old_coefs[1] + rand_gauss(0, modify_value),
+                                                          old_coefs[2] + rand_gauss(0, modify_value),
+                                                          new_x)
+                    new_modifiers[layer_name][param] = new_coef
 
         return EvogressionCreature(self.target_parameter, layers=self.layers, generation=self.generation + 1,
                                               full_parameter_example=self.full_parameter_example, modifiers=new_modifiers, max_layers=self.max_layers)
@@ -307,21 +310,14 @@ class EvogressionCreature():
 
         def create_new_coefficients(new_modifiers: dict, modifier_list: list, layer_name: str) -> None:
             '''Modifies new_modifiers in place'''
-            len_modifier_list = len(modifier_list)  # local variable for speed
-            new_modifiers[layer_name][param] = {}
-            new_mods_layername_param = new_modifiers[layer_name][param]  # local variable for speed
-            for coef in ['C', 'B', 'Z', 'X']:
-                if len_modifier_list == 2:
-                    new_coef = (modifier_list[0][layer_name][param][coef] + modifier_list[1][layer_name][param][coef]) / 2
-                else:  # just one set of modifiers
-                    new_coef = modifier_list[0][layer_name][param][coef]
-                if coef == 'X':
-                    new_coef = round(new_coef * rand_tri(0.7, 1.3, 1), 0)
-                    if new_coef < 0:
-                        new_coef = 0
-                else:
-                    new_coef *= rand_tri(0.7, 1.3, 1)
-                new_mods_layername_param[coef] = new_coef
+            if len(modifier_list) == 1:
+                c1 = modifier_list[0][layer_name][param]
+                new_x = round(c1[3] * rand_tri(0.7, 1.3, 1), 0)
+                new_modifiers[layer_name][param] = Coefficients(c1[0] * rand_tri(0.7, 1.3, 1), c1[1] * rand_tri(0.7, 1.3, 1), c1[2] * rand_tri(0.7, 1.3, 1), new_x if new_x >= 0 else 0)
+            else:  # two modifiers
+                c1, c2 = modifier_list[0][layer_name][param], modifier_list[1][layer_name][param]
+                new_x = round((c1[3] + c2[3]) / 2 * rand_tri(0.7, 1.3, 1), 0)
+                new_modifiers[layer_name][param] = Coefficients((c1[0]  + c2[0]) / 2, (c1[1] + c2[1]) / 2, (c1[2] + c2[2]) / 2, new_x if new_x >= 0 else 0)
 
 
         possible_parameters = get_possible_parameters(self.full_parameter_example, self.target_parameter)
@@ -400,8 +396,9 @@ class EvogressionCreature():
             if add_tup[1] == 'N':
                 new_modifiers[add_tup[0]]['N'] = 0 if rand_rand() < 0.2 else random.gauss(0, 1)
             else:
-                C, B, Z, X = self.generate_parameter_coefficients()
-                new_modifiers[add_tup[0]][add_tup[1]] = {'C': C, 'B': B, 'Z': Z, 'X': X}
+                # C, B, Z, X = self.generate_parameter_coefficients()
+                # new_modifiers[add_tup[0]][add_tup[1]] = {'C': C, 'B': B, 'Z': Z, 'X': X}
+                new_modifiers[add_tup[0]][add_tup[1]] = Coefficients(*self.generate_parameter_coefficients())
 
         try:
             new_max_layers = max((self.max_layers, other.max_layers))
@@ -425,7 +422,7 @@ class EvogressionCreature():
                 if param == 'N':
                     rounded_coeffs = round(coeffs, 6)
                 else:
-                    rounded_coeffs = {k: round(val, 6) for k, val in coeffs.items()}
+                    rounded_coeffs = {'C': round(coeffs.C, 6), 'B': round(coeffs.B, 6), 'Z': round(coeffs.Z, 6), 'X': round(coeffs.X, 6)}
                 printout += f'\n     {param}: {rounded_coeffs}'
         printout += '\n'
         return printout
@@ -487,9 +484,9 @@ class EvogressionCreature():
                 if param == 'N':
                     s += f"    T += {round(mods, 4)}\n"
                 elif param == 'T':
-                    s += f"    T += {round(mods['C'], 4)} * ({round(mods['B'], 4)} * previous_T + {round(mods['Z'], 4)}) ** {round(mods['X'], 2)}\n"
+                    s += f"    T += {round(mods.C, 4)} * ({round(mods.B, 4)} * previous_T + {round(mods.Z, 4)}) ** {round(mods.X, 2)}\n"
                 else:
-                    s += f"    T += {round(mods['C'], 4)} * ({round(mods['B'], 4)} * parameters['{param}'] + {round(mods['Z'], 4)}) ** {round(mods['X'], 2)}\n"
+                    s += f"    T += {round(mods.C, 4)} * ({round(mods.B, 4)} * parameters['{param}'] + {round(mods.Z, 4)}) ** {round(mods.X, 2)}\n"
             if layer < len(modifiers):
                 s += "    previous_T, T = T, 0\n"
             s += "\n"
