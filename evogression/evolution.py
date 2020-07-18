@@ -31,7 +31,7 @@ class BaseEvolution():
                  num_creatures: int=10000,
                  num_cycles: int=10,
                  force_num_layers: int=0,
-                 max_layers=None,
+                 max_layers: int=10,
                  standardize: bool=True,
                  use_multip: bool=True,
                  fill_none: bool=True,

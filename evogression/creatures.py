@@ -44,7 +44,7 @@ class EvogressionCreature():
                  offspring: int=0,  # indicates if creature is a result of adding previous creatures
                  full_parameter_example: dict={},
                  modifiers: dict={},
-                 max_layers=None) -> None:
+                 max_layers: int=10) -> None:
         '''
         Create creature representing a regression function with terms of form: C * (B * value + Z) ** X
         The regression function can also have multiple layers of these terms
@@ -58,10 +58,7 @@ class EvogressionCreature():
         self.full_parameter_example = full_parameter_example
 
         if self.layers == 0:
-            if max_layers and max_layers > 0:
-                self.layers = random.choice([x for x in layer_probabilities if x <= max_layers])
-            else:
-                self.layers = random.choice(layer_probabilities)
+            self.layers = random.choice([x for x in layer_probabilities if x <= max_layers])
         self.max_layers = max_layers
         self.layer_tup = tuple(range(1, self.layers + 1))
         self.layer_str_list = [f'LAYER_{layer}' for layer in self.layer_tup]
@@ -69,14 +66,14 @@ class EvogressionCreature():
         if modifiers == {}:
             if full_parameter_example == {}:
                 print('Warning!  No modifiers or parameters provided to create EvogressionCreature!')
-            self.modifiers = self.create_initial_modifiers()
+            self.modifiers = self.create_modifiers(layer_str_list=self.layer_str_list)
         else:
             self.modifiers = modifiers
 
         self.error_sum = 0
 
 
-    def create_initial_modifiers(self) -> dict:
+    def create_modifiers(self, layer_str_list=None) -> dict:
         '''
         Generate and return a set of modifiers.
         The EvogressionCreature.modifiers dictionary is the definition of the equation
@@ -91,7 +88,7 @@ class EvogressionCreature():
         full_param_example_keys = self.full_parameter_example.keys()
 
         modifiers: dict = {}
-        for layer_name in self.layer_str_list:
+        for layer_name in layer_str_list:
             layer_modifiers = {'N': 0} if rand_rand() < 0.2 else {'N': rand_gauss(0, 0.1)}
             for param in full_param_example_keys:
                 # resist using parameters if many of them
@@ -282,11 +279,16 @@ class EvogressionCreature():
         Offspring will have a combination of modifiers from both parents that
         also includes some mutation.
         '''
-        rand_rand = random.random  # local variable for speed
+        # local variables for speed
+        rand_rand = random.random
         rand_tri = random.triangular
+        self_modifiers = self.modifiers
+        other_modifiers = other.modifiers
+        new_coefficients_from_existing = _new_coefficients_from_existing
 
         # Generate new number of layers
         new_layers = int(round((self.layers + other.layers) / 2, 0))  # average (same if both are same number)
+
         # Possible mutation to number of layers
         if rand_rand() < 0.05:
             if new_layers > 1 and rand_rand() < 0.5:
@@ -294,104 +296,31 @@ class EvogressionCreature():
             elif new_layers < max(self.max_layers, other.max_layers):
                 new_layers += 1
 
-        def create_new_coefficients(new_modifiers: dict, modifier_list: list, layer_name: str) -> None:
-            '''Modifies new_modifiers in place'''
-            if len(modifier_list) == 1:
-                c1 = modifier_list[0][layer_name][param]
-                new_x = round(c1[3] * rand_tri(0.7, 1.3, 1), 0)
-                new_modifiers[layer_name][param] = Coefficients(c1[0] * rand_tri(0.7, 1.3, 1), c1[1] * rand_tri(0.7, 1.3, 1), c1[2] * rand_tri(0.7, 1.3, 1), new_x if new_x >= 0 else 0)
-            else:  # two modifiers
-                c1, c2 = modifier_list[0][layer_name][param], modifier_list[1][layer_name][param]
-                new_x = round((c1[3] + c2[3]) / 2 * rand_tri(0.7, 1.3, 1), 0)
-                new_modifiers[layer_name][param] = Coefficients((c1[0]  + c2[0]) / 2, (c1[1] + c2[1]) / 2, (c1[2] + c2[2]) / 2, new_x if new_x >= 0 else 0)
-
-
-        possible_parameters = ['N', 'T'] + [key for key in self.full_param_example if key != self.target_parameter]
+        possible_parameters = ['T'] + [key for key in self.full_parameter_example if key != self.target_parameter]
         new_modifiers = {f'LAYER_{layer}': {'N': 0} for layer in range(1, new_layers + 1)}
+        for layer_name in [f'LAYER_{layer}' for layer in range(1, new_layers + 1)]:
+            new_modifiers_layer_name = new_modifiers[layer_name]
 
-        self_modifiers = self.modifiers  # local variable for speed
-        other_modifiers = other.modifiers  # local variable for speed
-
-        for layer in range(1, new_layers + 1):
-            layer_name = f'LAYER_{layer}'
-            for param in possible_parameters:
-                if param == 'N':
-                    if layer_name in self_modifiers and layer_name in other_modifiers:
-                        if param in self_modifiers[layer_name] and param in other_modifiers[layer_name]:
-                            new_N = (self_modifiers[layer_name][param] + other_modifiers[layer_name][param]) / 2
-                            new_N *= rand_tri(0.7, 1.3, 1)
-                            new_modifiers[layer_name]['N'] = new_N
-                        elif param in self_modifiers[layer_name]:
-                            new_N = self_modifiers[layer_name][param] * rand_tri(0.7, 1.3, 1)
-                            new_modifiers[layer_name]['N'] = new_N
-                        elif param in other_modifiers[layer_name]:
-                            new_N = other_modifiers[layer_name][param] * rand_tri(0.7, 1.3, 1)
-                            new_modifiers[layer_name]['N'] = new_N
-                    elif layer_name in self_modifiers:
-                        new_N = self_modifiers[layer_name][param] * rand_tri(0.7, 1.3, 1)
-                        new_modifiers[layer_name]['N'] = new_N
-                    elif layer_name in other_modifiers:
-                        try:
-                            new_N = other_modifiers[layer_name][param]
-                        except KeyError:
-                            breakpoint()
-                        new_N *= rand_tri(0.7, 1.3, 1)
-                        new_modifiers[layer_name]['N'] = new_N
-
-                else:  # param is one of ['T', 'B', 'C', 'X', 'Z']
-                    force_keep_param = False if param != 'T' or layer == 1 else True
-                    if layer_name in self_modifiers and layer_name in other_modifiers:
-                        if param != 'T' or layer > 1:
-                            if param in self_modifiers[layer_name] and param in other_modifiers[layer_name]:
-                                create_new_coefficients(new_modifiers, [self_modifiers, other_modifiers], layer_name)
-
-                        elif param in self_modifiers[layer_name] and (rand_rand() < 0.5 or force_keep_param):
-                            create_new_coefficients(new_modifiers, [self_modifiers], layer_name)
-
-                        elif param in other_modifiers[layer_name] and (rand_rand() < 0.5 or force_keep_param):
-                            create_new_coefficients(new_modifiers, [other_modifiers], layer_name)
-
-                    elif layer_name in self_modifiers:
-                        if param in self_modifiers[layer_name] and (rand_rand() < 0.5 or force_keep_param):
-                            create_new_coefficients(new_modifiers, [self_modifiers], layer_name)
-
-                    elif layer_name in other_modifiers:
-                        if param in other_modifiers[layer_name] and (rand_rand() < 0.5 or force_keep_param):
-                            create_new_coefficients(new_modifiers, [other_modifiers], layer_name)
-
-        # Chance to add or remove parameter modifiers
-        remove_modifiers = []
-        add_modifiers = []
-        for layer in range(1, new_layers + 1):
-            layer_name = f'LAYER_{layer}'
-            for param, values in new_modifiers[layer_name].items():
-                if rand_rand() < 0.01 and param != 'T':
-                    remove_modifiers.append((layer_name, param))
-            for param in possible_parameters:
-                if param not in new_modifiers[layer_name]:
-                    if rand_rand() < 0.01 or (layer > 1 and param == 'T'):
-                        add_modifiers.append((layer_name, param))
-
-        for remove_tup in remove_modifiers:
-            if remove_tup[1] != 'N':
-                del new_modifiers[remove_tup[0]][remove_tup[1]]
+            reference_modifiers = [mod for mod in (self_modifiers, other_modifiers) if layer_name in mod]
+            if not reference_modifiers:  # create new modifier layer from scratch if doesn't exist in either self or other modifiers
+                new_modifiers_layer_name = self.create_modifiers(layer_str_list=[layer_name])[layer_name]
             else:
-                new_modifiers[remove_tup[0]][remove_tup[1]] = 0
+                # Calculate new 'N' value
+                new_modifiers_layer_name['N'] = sum(mod[layer_name]['N'] for mod in reference_modifiers) / len(reference_modifiers) * rand_tri(0.7, 1.3, 1)
+                # Calculate new Coefficients for each parameter (including 'T')
+                for param in possible_parameters:
+                    param_in_mods = True if (param in mods[layer_name] for mods in reference_modifiers) else False
+                    new_coef = None
+                    if param == 'T' and layer_name != 'LAYER_1':
+                        new_coef = new_coefficients_from_existing(reference_modifiers, layer_name, param)
+                    elif param != 'T' and param_in_mods and rand_rand() < 0.8:  # 20% chance to not include a param in child modifiers for this layer
+                        new_coef = new_coefficients_from_existing(reference_modifiers, layer_name, param)
+                    elif param != 'T' and not param_in_mods and rand_rand() < 0.1:  # chance to add new parameter to modifiers if not in parents
+                        new_coef = Coefficients(self.generate_parameter_coefficients())
+                    if new_coef:
+                        new_modifiers_layer_name[param] = new_coef
 
-        for add_tup in add_modifiers:
-            if add_tup[1] == 'N':
-                new_modifiers[add_tup[0]]['N'] = 0 if rand_rand() < 0.2 else random.gauss(0, 1)
-            else:
-                # C, B, Z, X = self.generate_parameter_coefficients()
-                # new_modifiers[add_tup[0]][add_tup[1]] = {'C': C, 'B': B, 'Z': Z, 'X': X}
-                new_modifiers[add_tup[0]][add_tup[1]] = Coefficients(*self.generate_parameter_coefficients())
-
-        try:
-            new_max_layers = max((self.max_layers, other.max_layers))
-        except TypeError:  # if one has None as max_layers
-            new_max_layers = None
-
-        return EvogressionCreature(self.target_parameter, layers=new_layers, max_layers=new_max_layers, generation=self.generation,
+        return EvogressionCreature(self.target_parameter, layers=new_layers, max_layers=max(self.max_layers, other.max_layers), generation=self.generation,
                                               full_parameter_example=self.full_parameter_example, modifiers=new_modifiers,
                                               offspring=max((self.offspring, other.offspring))+1)
 
@@ -483,3 +412,25 @@ class EvogressionCreature():
 
         s += "    return T\n"
         return s
+
+
+
+def _new_coefficients_from_existing(modifier_list: list, layer_name: str, param: str):
+    '''Returns new Coefficients value from the provided data'''
+    rand_tri = random.triangular  # local variables for speed
+
+    if len(modifier_list) == 1:
+        if param not in modifier_list[0][layer_name]:
+            return None
+        else:
+            c1 = modifier_list[0][layer_name][param]
+            new_x = round(c1[3] * rand_tri(0.7, 1.3, 1), 0)
+            return Coefficients(c1[0] * rand_tri(0.7, 1.3, 1), c1[1] * rand_tri(0.7, 1.3, 1), c1[2] * rand_tri(0.7, 1.3, 1), new_x if new_x >= 0 else 0)
+    else:  # two modifiers
+        try:
+            c1, c2 = modifier_list[0][layer_name][param], modifier_list[1][layer_name][param]
+            new_x = round((c1[3] + c2[3]) / 2 * rand_tri(0.7, 1.3, 1), 0)
+            return Coefficients((c1[0]  + c2[0]) / 2, (c1[1] + c2[1]) / 2, (c1[2] + c2[2]) / 2, new_x if new_x >= 0 else 0)
+        except KeyError:  # if param not in both sets of modifiers, recursively find coefficients of modifier set with param
+            coef_1, coef_2 = _new_coefficients_from_existing([modifier_list[0]], layer_name, param), _new_coefficients_from_existing([modifier_list[1]], layer_name, param)
+            return coef_1 if coef_1 else coef_2
