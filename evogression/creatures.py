@@ -200,7 +200,7 @@ class EvogressionCreature():
         Apply the creature's modifiers to the parameters to calculate an attempt at target
         '''
         try:
-            return calc_target_cython(parameters, self.modifiers, self.layer_str_list)
+            return calc_target_cython(parameters, self.modifiers)
         except:  # if cython extension not available
             T = None  # has to be None on first layer
             for layer in self.layer_tup:

@@ -3,11 +3,11 @@ Cython implementation of EvogressionCreature._calc_single_layer_target()
 '''
 
 
-cpdef double calc_target_cython(dict parameters, dict modifiers, list layer_str_list):
+cpdef double calc_target_cython(dict parameters, dict modifiers):
 
     cdef str layer_name
     cpdef double T = -99999  # bogus value for first layer
-    for layer_name in layer_str_list:
+    for layer_name in modifiers:
         T = calc_single_layer_target_cython(parameters, modifiers, layer_name, T)
     return T
 
