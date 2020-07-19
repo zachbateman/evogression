@@ -80,30 +80,23 @@ class EvogressionCreature():
         created by this creature.  The dictionary contains the coefficients/parameters
         assigned to each term as well as the terms and the layers of the equation.
         '''
-        parameter_usage_num = 2.5 / (len(self.full_parameter_example) + 1)  # local variables for speed
+        # local variables for speed
         rand_rand = random.random
         rand_gauss = random.gauss
-        targ_param = self.target_parameter
         gen_param_coeffs = self.generate_parameter_coefficients
-        full_param_example_keys = self.full_parameter_example.keys()
+        full_param_example_keys = [param for param in self.full_parameter_example if param != self.target_parameter]
+        parameter_usage_num = 2.5 / (len(full_param_example_keys) + 1)  # len(full_param_example) will always be >= 2
 
         modifiers: dict = {}
         for layer_name in layer_str_list:
             layer_modifiers = {'N': 0} if rand_rand() < 0.2 else {'N': rand_gauss(0, 0.1)}
-            for param in full_param_example_keys:
-                # resist using parameters if many of them
-                # len(full_param_example) will always be >= 2
-                if rand_rand() < parameter_usage_num and param != targ_param:
-                    C, B, Z, X = gen_param_coeffs()
-                    if X != 0:  # 0 exponent makes term overly complex for value added; don't include
-                        layer_modifiers[param] = Coefficients(C, B, Z, X)
-                    else:
-                        layer_modifiers['N'] += C
+
             if layer_name != 'LAYER_1':
-                C, B, Z, X = gen_param_coeffs()
-                if X == 0:  # want every layer > 1 to include a T term!!
-                    X = 1
-                layer_modifiers['T'] = Coefficients(C, B, Z, X)
+                layer_modifiers['T'] = Coefficients(*gen_param_coeffs())
+
+            for param in full_param_example_keys:
+                if rand_rand() < parameter_usage_num:  # resist using parameters if many of them
+                    layer_modifiers[param] = Coefficients(*gen_param_coeffs())
 
             modifiers[layer_name] = layer_modifiers
 
@@ -127,11 +120,20 @@ class EvogressionCreature():
         C = 1 if rand_rand() < 0.4 else rand_tri(0, 2, 1)
         B = 1 if rand_rand() < 0.3 else rand_tri(0, 2, 1)
         Z = 0 if rand_rand() < 0.4 else rand_tri(-2, 2, 0)
+
         if rand_rand() < 0.5:
             C = -C
+
         if rand_rand() < 0.5:
             B = -B
-        X = 1 if rand_rand() < 0.4 else random.choice([0, 2, 2, 2, 2, 2, 3, 3])
+
+        if rand_rand() < 0.4:
+            X = 1
+        elif rand_rand() < 0.75:
+            X = 2
+        else:
+            X = 3
+
         return C, B, Z, X
 
 
