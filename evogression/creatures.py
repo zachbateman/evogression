@@ -155,7 +155,7 @@ class EvogressionCreature():
         new_base_layer = 0  # will be converted to the new LAYER_1 if any layers are deleted
         for layer, layer_dict in old_modifiers.items():
             current_layer_num = int(layer[-1])
-            for param, param_dict in layer_dict.items():
+            for param, param_coef in layer_dict.items():
 
                 # don't want a 'T' parameter in first layer as no previous result to operate on
                 if layer == 'LAYER_1' and param == 'T':
@@ -163,7 +163,7 @@ class EvogressionCreature():
 
                 # if 'T' element is raised to 0 power... previous layer(s) are not used.
                 # Rebuild the layers without the unused ones before the current layer
-                if current_layer_num > 1 and param == 'T' and param_dict.X == 0:
+                if current_layer_num > 1 and param == 'T' and param_coef.X == 0:
                     new_base_layer = current_layer_num
 
             if current_layer_num > 1 and 'T' not in layer_dict:
@@ -298,6 +298,7 @@ class EvogressionCreature():
             elif new_layers < max(self.max_layers, other.max_layers):
                 new_layers += 1
 
+        # Generate new, mutated coefficients through the modifier layers
         possible_parameters = ['T'] + [key for key in self.full_parameter_example if key != self.target_parameter]
         new_modifiers = {f'LAYER_{layer}': {'N': 0} for layer in range(1, new_layers + 1)}
         for layer_name in [f'LAYER_{layer}' for layer in range(1, new_layers + 1)]:

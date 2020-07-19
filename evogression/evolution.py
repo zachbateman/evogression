@@ -258,7 +258,6 @@ class BaseEvolution():
 
 
     def print_cycle_stats(self, best_creature=None, error=None, median_error: float=0, best_creature_error: float=0) -> None:
-        print(f'Total number of creatures:  {len(self.creatures)}')
         print('Median error: ' + '{0:.2E}'.format(median_error))
         print('Best Creature:')
         print(f'  Generation: {best_creature.generation}    Error: ' + '{0:.2E}'.format(error))
