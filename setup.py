@@ -31,5 +31,5 @@ setup(name='evogression',
                     'Programming Language :: Python :: 3.7',
                     'Programming Language :: Python :: 3.8',
                     ],
-    ext_modules=cythonize(extensions)
+    ext_modules=cythonize(extensions, compiler_directives={'language_level': '3'})
 )
