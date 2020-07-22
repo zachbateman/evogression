@@ -97,3 +97,16 @@ def parameter_pruned_evolution_group(data: list, target_param: str='', max_param
     for param, count in group_parameter_usage(final_group).items():
         print(f'  {count}: {param}')
     return final_group
+
+
+def random_population(data: list, target_param: str='', num_creatures: int=10000, num_cycles: int=10, group_size: int=4, **kwargs) -> List[Evolution]:
+    '''
+    Generate a list of Evolution objects (same as evolution_group) but use randomly sampled data subsets for training.
+    The goal is to generate a "Random Population" in a similar manner as a Random Forest concept.
+    '''
+    data_subset_size = int(len(data) * 1.5 // group_size)
+    evolutions = []
+    for _ in range(group_size):
+        data_subset = random.choices(data, k=data_subset_size)
+        evolutions.append(Evolution(target_param, data_subset, num_creatures=num_creatures, num_cycles=num_cycles, clear_creatures=True, **kwargs))
+    return evolutions
