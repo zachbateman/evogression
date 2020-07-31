@@ -11,14 +11,16 @@ try:
     from .calc_target_cython import calc_target_cython
 except ImportError:
     print('\nUnable to import Cython calc_target_cython module!')
-    print('Calculations will run slower...')
+    print('If trying to install/run on a Windows computer, you may need to a C compiler.')
+    print('See: https://wiki.python.org/moin/WindowsCompilers')
     print('  -> (If running Windows 7, try using Python 3.7 instead of 3.8+)\n')
 
 try:
     from .generate_parameter_coefficients_calc import generate_parameter_coefficients_calc
 except ImportError:
     print('\nUnable to import Cython generate_parameter_coefficients_calc module!')
-    print('Calculations will run slower...')
+    print('If trying to install/run on a Windows computer, you may need to a C compiler.')
+    print('See: https://wiki.python.org/moin/WindowsCompilers')
     print('  -> (If running Windows 7, try using Python 3.7 instead of 3.8+)\n')
 
 
@@ -83,7 +85,7 @@ class EvogressionCreature():
         # local variables for speed
         rand_rand = random.random
         rand_gauss = random.gauss
-        gen_param_coeffs = self.generate_parameter_coefficients
+        gen_param_coeffs = generate_parameter_coefficients_calc
         full_param_example_keys = [param for param in self.full_parameter_example if param != self.target_parameter]
         parameter_usage_num = 2.5 / (len(full_param_example_keys) + 1)  # len(full_param_example) will always be >= 2
 
@@ -101,40 +103,6 @@ class EvogressionCreature():
             modifiers[layer_name] = layer_modifiers
 
         return modifiers
-
-
-    def generate_parameter_coefficients(self):
-        try:  # optimize for cython-available case
-            return generate_parameter_coefficients_calc()
-        except NameError:
-            return self._generate_parameter_coefficients()
-
-
-    def _generate_parameter_coefficients(self):
-        '''
-        Create randomized coefficients/parameters for that can
-        be assigned to a single term in the modifiers dict.
-        '''
-        rand_rand = random.random  # local for speed
-        rand_tri = random.triangular  # local for speed
-        C = 1 if rand_rand() < 0.4 else rand_tri(0, 2, 1)
-        B = 1 if rand_rand() < 0.3 else rand_tri(0, 2, 1)
-        Z = 0 if rand_rand() < 0.4 else rand_tri(-2, 2, 0)
-
-        if rand_rand() < 0.5:
-            C = -C
-
-        if rand_rand() < 0.5:
-            B = -B
-
-        if rand_rand() < 0.4:
-            X = 1
-        elif rand_rand() < 0.75:
-            X = 2
-        else:
-            X = 3
-
-        return C, B, Z, X
 
 
     def used_parameters(self) -> set:
@@ -199,45 +167,7 @@ class EvogressionCreature():
         '''
         Apply the creature's modifiers to the parameters to calculate an attempt at target
         '''
-        try:
-            return calc_target_cython(parameters, self.modifiers)
-        except:  # if cython extension not available
-            T = None  # has to be None on first layer
-            for layer in self.layer_tup:
-                T = self._calc_single_layer_target(parameters, layer, previous_T=T)
-            return T
-
-
-    def _calc_single_layer_target(self, parameters: dict, layer: int, previous_T=None) -> float:
-        '''
-        Apply creature's modifiers to parameters of ONE LAYER to calculate or help calculate target.
-        THIS IS THE MOST EXPENSIVE PART OF EVOGRESSION!!!
-
-        This is now only BACKUP to Cython implementation! (over twice as fast)
-        '''
-        T = 0
-        layer_modifiers = self.modifiers[f'LAYER_{layer}']
-
-        def param_value_component(layer_modifiers: dict, param: str, value: float) -> float:
-            try:
-                mods = layer_modifiers[param]
-                return mods.C * (mods.B * value + mods.Z) ** mods.X
-            except KeyError:  # if param is not in self.modifiers[layer_name]
-                return 0
-            except OverflowError:
-                return 10 ** 150  # really big number should make this creature die if crazy bad calculations (overflow)
-
-        for param, value in parameters.items():
-            T += param_value_component(layer_modifiers, param, value)
-        if previous_T:
-            T += param_value_component(layer_modifiers, 'T', previous_T)
-
-        try:
-            T += layer_modifiers['N']
-        except KeyError:
-            pass
-
-        return T
+        return calc_target_cython(parameters, self.modifiers)
 
 
     def mutate_to_new_creature(self, adjustments: str='fast'):
@@ -319,7 +249,7 @@ class EvogressionCreature():
                     elif param != 'T' and param_in_mods and rand_rand() < 0.8:  # 20% chance to not include a param in child modifiers for this layer
                         new_coef = new_coefficients_from_existing(reference_modifiers, layer_name, param)
                     elif param != 'T' and not param_in_mods and rand_rand() < 0.1:  # chance to add new parameter to modifiers if not in parents
-                        new_coef = Coefficients(self.generate_parameter_coefficients())
+                        new_coef = Coefficients(generate_parameter_coefficients_calc())
                     if new_coef:
                         new_modifiers_layer_name[param] = new_coef
 
