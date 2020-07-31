@@ -451,49 +451,39 @@ class Evolution(BaseEvolution):
 
 
 
-
-def calc_error_value(creature, target_parameter: str, data_point: dict, unstandardize_func=None) -> float:
-    '''
-    Calculate the error between a creature's predicted value and the actual value.
-    data_point must ALREADY be standardized if using unstandarize_func!!!
-    '''
-    target_calc = creature.calc_target(data_point)
-    data_point_calc = data_point[target_parameter]
-    if unstandardize_func:
-        target_calc = unstandardize_func(target_parameter, target_calc)
-        data_point_calc = unstandardize_func(target_parameter, data_point_calc)
-    try:
-        return (target_calc - data_point_calc) ** 2.0  # sometimes generates "RuntimeWarning: overflow encountered in double_scalars"
-    except OverflowError:  # if error is too big to store, give huge arbitrary error
-        return 10 ** 150
-
-
 def find_best_creature(creatures: list, target_parameter: str, data: list, standardizer=None, progressbar=True) -> tuple:
     '''
     Determines best EvogressionCreature and returns misc objects (more than otherwise needed)
     so that multiprocessing (easy_multip) can be used.
+
+    This function may be ~50% of the time spent running an Evolution.
+    Ugly code here but HEAVILY OPTIMIZED for speed!
     '''
-    best_error = -1  # to start loop
+    best_error = 10 ** 190  # outrageously high value to start loop
     errors: list = []
     append_to_errors = errors.append  # local variable for speed
     _sum = sum  # local for speed
     calculated_creatures: list = []
     append_to_calculated_creatures = calculated_creatures.append  # local variable for speed
-    _calc_error_value = calc_error_value  # local for speed
     data_length = len(data)
+
     best_creature = None
     iterable = tqdm.tqdm(creatures) if progressbar else creatures
-    unstandardize_func = standardizer.unstandardize_value if standardizer else None  # local for speed
+    actual_target_values = [data_point[target_parameter] for data_point in data]  # pull these values once instead of each time in loop comp below
     for creature in iterable:
         if not creature.error_sum:
-            creature.error_sum = _sum([_calc_error_value(creature, target_parameter, data_point, unstandardize_func) for data_point in data]) / data_length
+            try:  # now calculate the error between a creature's predicted value and the actual value.
+                calc_target = creature.calc_target  # local for speed
+                creature.error_sum = _sum([(calc_target(data_point) - actual_target) ** 2 for data_point, actual_target in zip(data, actual_target_values)]) / data_length
+            except OverflowError:  # sometimes generates "RuntimeWarning: overflow encountered in double_scalars"
+                creature.error_sum = 10 ** 150
         error = creature.error_sum
-
         append_to_calculated_creatures(creature)
-        if error < best_error or best_error < 0:
+        append_to_errors(error)
+        if error < best_error:
             best_error = error
             best_creature = creature
-        append_to_errors(error)
+
     median_error = sorted(errors)[len(errors) // 2]  # MEDIAN error
     return (best_creature, best_error, median_error, calculated_creatures)
 find_best_creature_multip = easy_multip.decorators.use_multip(find_best_creature)
