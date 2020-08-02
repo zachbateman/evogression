@@ -15,7 +15,7 @@ random.seed(10)  # for reproducing the same plot
 class Test3DSurfaceRegression(unittest.TestCase):
 
     def test_best_creature_3d(self):
-        evolutions = evogression.random_population(surface_3d_data, 'z', num_creatures=5000, num_cycles=5, group_size=15, optimize=5, use_multip=False)
+        evolutions = evogression.random_population('z', surface_3d_data, num_creatures=5000, num_cycles=5, group_size=15, optimize=5, use_multip=False)
         z_test = [sum(e.predict(d, 'pred')['pred'] for e in evolutions) / len(evolutions) for d in surface_3d_data]
 
         fig = plt.figure()
