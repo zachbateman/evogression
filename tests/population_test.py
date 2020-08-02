@@ -1,0 +1,42 @@
+import unittest
+import sys
+sys.path.insert(1, '..')
+import evogression
+from test_data import categorical_data
+from pprint import pprint as pp
+import matplotlib
+import matplotlib.pyplot as plt
+
+import random
+random.seed(10)  # for reproducing the same plot
+
+
+class TestPopulationCateogry(unittest.TestCase):
+
+    def test_population_category_2d(self):
+        population = evogression.Population('y', categorical_data, split_parameter='cat', optimize=3)
+        y_test = [population.predict(d) for d in categorical_data]
+
+        plt.scatter([pd['x'] for pd in categorical_data], [pd['y'] for pd in categorical_data], s=100)
+
+        x_test_A = [i / 10 for i in range(0, 55)]
+        y_test_A = [population.predict({'cat': 'A', 'x': x}) for x in x_test_A]
+
+        x_test_B = [i / 10 for i in range(87, 135)]
+        y_test_B = [population.predict({'cat': 'B', 'x': x}) for x in x_test_B]
+
+        plt.scatter(x_test_A, y_test_A, s=10)
+        plt.scatter(x_test_B, y_test_B, s=10)
+
+        plt.xlabel('x')
+        plt.ylabel('y')
+        plt.text(1, 17, 'Category A')
+        plt.text(10.5, 17, 'Category B')
+        plt.title('Category Regression - Population Test')
+
+        plt.show()
+
+
+
+if __name__ == '__main__':
+    unittest.main()

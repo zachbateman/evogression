@@ -1,15 +1,16 @@
 '''
 Module containing high-level evogression functionality to fit and summarize regressions.
 '''
-from typing import List, Dict
+from typing import List, Dict, Union
 import random
 from collections import defaultdict
 import easy_multip
+from pandas import DataFrame
 from .evolution import Evolution
 
 
 
-def evolution_group(data: list, target_param: str='', num_creatures: int=10000, num_cycles: int=10, group_size: int=4, **kwargs) -> List[Evolution]:
+def evolution_group(target_parameter: str, data: Union[List[Dict[str, float]], DataFrame], num_creatures: int=10000, num_cycles: int=10, group_size: int=4, **kwargs) -> List[Evolution]:
     '''
     Generate a list of fully initialized Evolution objects.
     Any Evolution kwargs may be provided.
@@ -50,7 +51,7 @@ def group_parameter_usage(group: list) -> Dict[str, int]:
     return combined_parameter_usefulness
 
 
-def parameter_pruned_evolution_group(data: list, target_param: str='', max_parameters: int=10, num_creatures: int=10000, num_cycles: int=10, group_size: int=4) -> List[Evolution]:
+def parameter_pruned_evolution_group(target_param: str, data: list, max_parameters: int=10, num_creatures: int=10000, num_cycles: int=10, group_size: int=4) -> List[Evolution]:
     '''
     Generate successive groups of Evolution objects and prune least-used
     parameters from the input data each round until only the most useful parameters remain.
@@ -99,7 +100,7 @@ def parameter_pruned_evolution_group(data: list, target_param: str='', max_param
     return final_group
 
 
-def random_population(data: list, target_param: str='', num_creatures: int=10000, num_cycles: int=10, group_size: int=4, **kwargs) -> List[Evolution]:
+def random_population(target_param: str, data: list, num_creatures: int=10000, num_cycles: int=10, group_size: int=4, **kwargs) -> List[Evolution]:
     '''
     Generate a list of Evolution objects (same as evolution_group) but use randomly sampled data subsets for training.
     The goal is to generate a "Random Population" in a similar manner as a Random Forest concept.
@@ -110,3 +111,25 @@ def random_population(data: list, target_param: str='', num_creatures: int=10000
         data_subset = random.choices(data, k=data_subset_size)
         evolutions.append(Evolution(target_param, data_subset, num_creatures=num_creatures, num_cycles=num_cycles, clear_creatures=True, **kwargs))
     return evolutions
+
+
+class Population():
+    def __init__(self, target_param: str, data: list, num_creatures=300, num_cycles: int=3, group_size: int=4, split_parameter=None, category_or_continuous='category', use_multip=False, **kwargs):
+        self.all_data = data
+        self.split_parameter = split_parameter
+        self.category_or_continuous = category_or_continuous
+        if split_parameter and category_or_continuous == 'category':
+            categories = set(d[split_parameter] for d in data)
+            data_sets = {cat: [{k: v for k, v in d.items() if k != split_parameter} for d in data if d[split_parameter] == cat] for cat in categories}
+            self.evo_sets = {}
+            for cat, data_subset in data_sets.items():
+                self.evo_sets[cat] = [Evolution(target_param, data_subset, num_creatures=num_creatures, num_cycles=num_cycles, clear_creatures=True, use_multip=use_multip, **kwargs) for _ in range(group_size)]
+
+        # elif split_parameter and category_or_continuous == 'continuous':
+            # ...
+
+
+    def predict(self, data_point: dict):
+        if self.category_or_continuous == 'category':
+            predictions = [evo.predict(data_point, 'pred')['pred'] for evo in self.evo_sets[data_point[self.split_parameter]]]
+            return sum(predictions) / len(predictions)
