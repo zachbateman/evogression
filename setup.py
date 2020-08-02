@@ -10,6 +10,7 @@ with open('README.md', 'r') as f:
 extensions = [
     Extension('evogression.calc_target_cython', ['evogression/calc_target_cython.pyx']),
     Extension('evogression.generate_parameter_coefficients_calc', ['evogression/generate_parameter_coefficients_calc.pyx']),
+    Extension('evogression.calc_error_sum', ['evogression/calc_error_sum.pyx']),
 ]
 
 

@@ -13,6 +13,13 @@ import easy_multip
 from pandas import DataFrame
 from .creatures import EvogressionCreature
 from .standardize import Standardizer
+try:
+    from .calc_error_sum import calc_error_sum
+except ImportError:
+    print('\nUnable to import Cython calc_error_sum module!')
+    print('If trying to install/run on a Windows computer, you may need to a C compiler.')
+    print('See: https://wiki.python.org/moin/WindowsCompilers')
+    print('  -> (If running Windows 7, try using Python 3.7 instead of 3.8+)\n')
 
 
 
@@ -462,7 +469,7 @@ def find_best_creature(creatures: list, target_parameter: str, data: list, stand
     best_error = 10 ** 190  # outrageously high value to start loop
     errors: list = []
     append_to_errors = errors.append  # local variable for speed
-    _sum = sum  # local for speed
+    _calc_error_sum = calc_error_sum  # local for speed
     calculated_creatures: list = []
     append_to_calculated_creatures = calculated_creatures.append  # local variable for speed
     data_length = len(data)
@@ -472,11 +479,7 @@ def find_best_creature(creatures: list, target_parameter: str, data: list, stand
     actual_target_values = [data_point[target_parameter] for data_point in data]  # pull these values once instead of each time in loop comp below
     for creature in iterable:
         if not creature.error_sum:
-            try:  # now calculate the error between a creature's predicted value and the actual value.
-                calc_target = creature.calc_target  # local for speed
-                creature.error_sum = _sum([(calc_target(data_point) - actual_target) ** 2 for data_point, actual_target in zip(data, actual_target_values)]) / data_length
-            except OverflowError:  # sometimes generates "RuntimeWarning: overflow encountered in double_scalars"
-                creature.error_sum = 10 ** 150
+            creature.error_sum = _calc_error_sum(creature.calc_target, data, actual_target_values, data_length)
         error = creature.error_sum
         append_to_calculated_creatures(creature)
         append_to_errors(error)
