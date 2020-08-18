@@ -88,7 +88,7 @@ class BaseEvolution():
             if param != self.target_parameter:
                 values = [d[param] for d in self.all_data if d[param] is not None and not is_nan(d[param])]
                 if len(values) < len(self.all_data):  # check length so don't have to do below if no replacements
-                    median = statistics.median(values)
+                    median = statistics.median(values) if values else 0.0  # if values is empy list, just set all to zero
                     for d in self.all_data:
                         if d[param] is None or is_nan(d[param]):
                             parameters_adjusted.append(param)
