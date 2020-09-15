@@ -49,6 +49,8 @@ class Standardizer():
                 new_param_dict[param] = value - self.data_modifiers[param]['mean']
             except KeyError:  # parameter not previously seen
                 new_param_dict[param] = value
+            except TypeError:  # if value is None, still want this method to return a best-possible standardized dict
+                new_param_dict[param] = value
         return new_param_dict
 
     def get_standardized_data(self):

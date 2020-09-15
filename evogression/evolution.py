@@ -82,6 +82,7 @@ class BaseEvolution():
         # Remove any data points that have None for the target/result parameter
         self.all_data = [d for d in self.all_data if d[self.target_parameter] is not None and not math.isnan(d[self.target_parameter])]
 
+        self.param_medians = {}  # used for default parameter values if None is provided in .predict
         is_nan = math.isnan  # local for speed
         parameters_adjusted = []
         for param in self.all_data[0].keys():
@@ -89,6 +90,7 @@ class BaseEvolution():
                 values = [d[param] for d in self.all_data if d[param] is not None and not is_nan(d[param])]
                 if len(values) < len(self.all_data):  # check length so don't have to do below if no replacements
                     median = statistics.median(values) if values else 0.0  # if values is empy list, just set all to zero
+                    self.param_medians[param] = median
                     for d in self.all_data:
                         if d[param] is None or is_nan(d[param]):
                             parameters_adjusted.append(param)
@@ -371,6 +373,11 @@ class BaseEvolution():
             return unstandardized_data
 
         elif type(data) == dict:
+            # make any None values the previously calculated median from the training data
+            for param, val in data.items():
+                if not val:
+                    data[param] = self.param_medians.get(param, 0.0)
+
             if not standardized_data and self.standardize:
                 data = self.standardizer.convert_parameter_dict_to_standardized(data)
             data[prediction_key] = self.best_creature.calc_target(data)
