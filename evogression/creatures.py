@@ -232,12 +232,12 @@ class EvogressionCreature():
         possible_parameters = ['T'] + [key for key in self.full_parameter_example if key != self.target_parameter]
         new_modifiers = {f'LAYER_{layer}': {'N': 0} for layer in range(1, new_layers + 1)}
         for layer_name in [f'LAYER_{layer}' for layer in range(1, new_layers + 1)]:
-            new_modifiers_layer_name = new_modifiers[layer_name]
-
             reference_modifiers = [mod for mod in (self_modifiers, other_modifiers) if layer_name in mod]
             if not reference_modifiers:  # create new modifier layer from scratch if doesn't exist in either self or other modifiers
-                new_modifiers_layer_name = self.create_modifiers(layer_str_list=[layer_name])[layer_name]
+                # HAVE TO USE DICT LOOKUP BELOW INSTEAD OF new_modifiers_layer_name AS IT GETS ASSIGNED NEW VALUE AND LOSES REFERENCE!
+                new_modifiers[layer_name] = self.create_modifiers(layer_str_list=[layer_name])[layer_name]
             else:
+                new_modifiers_layer_name = new_modifiers[layer_name]
                 # Calculate new 'N' value
                 new_modifiers_layer_name['N'] = sum(mod[layer_name]['N'] for mod in reference_modifiers) / len(reference_modifiers) * rand_tri(0.7, 1.3, 1)
                 # Calculate new Coefficients for each parameter (including 'T')
