@@ -353,7 +353,13 @@ class BaseEvolution():
         if is_dataframe:
             data = data.to_dict('records')  # will get processed as list
 
-        if type(data) == list:  # DataFrames also get processed here
+        if isinstance(data, list):  # DataFrames also get processed here (previously converted to a list)
+            # make any None values the previously calculated median from the training data
+            for d in data:
+                for param, val in d.items():
+                    if not val:
+                        d[param] = self.param_medians.get(param, 0.0)
+
             if not standardized_data and self.standardize:
                 data = [self.standardizer.convert_parameter_dict_to_standardized(d) for d in data]
             for d in data:
@@ -372,7 +378,7 @@ class BaseEvolution():
                 unstandardized_data = DataFrame(unstandardized_data)
             return unstandardized_data
 
-        elif type(data) == dict:
+        elif isinstance(data, dict):
             # make any None values the previously calculated median from the training data
             for param, val in data.items():
                 if not val:
