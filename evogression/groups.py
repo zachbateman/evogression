@@ -80,7 +80,7 @@ def parameter_pruned_evolution_group(target_param: str, data: list, max_paramete
 
     num_parameters = len(data[0].keys()) - 1
     while num_parameters > max_parameters:
-        group = evolution_group(data, target_param, num_creatures // 1.6, num_cycles // 1.6, group_size, optimize=False)
+        group = evolution_group(target_param, data, num_creatures // 1.6, num_cycles // 1.6, group_size, optimize=False)
 
         parameter_usage = [(param, count) for param, count in group_parameter_usage(group).items()]
         random.shuffle(parameter_usage)  # so below filter ignores previous order for equally-ranked parameters
@@ -93,7 +93,7 @@ def parameter_pruned_evolution_group(target_param: str, data: list, max_paramete
                 del data_point[param]
         num_parameters = len(data[0].keys()) - 1
 
-    final_group = evolution_group(data, target_param, num_creatures, num_cycles, group_size)
+    final_group = evolution_group(target_param, data, num_creatures, num_cycles, group_size)
     print('parameter_pruned_evolution_group complete.  Final Parameter usage counts below:')
     for param, count in group_parameter_usage(final_group).items():
         print(f'  {count}: {param}')
@@ -168,6 +168,5 @@ class Population():
                 predictions = sorted(evo.predict(data_point, 'pred')['pred'] for evo in self.evo_sets[bin])
                 bin_pred = sum(predictions[1:-1]) / (len(predictions) - 2)  # kick out max/min (outlyer) predictions
                 total_prediction += bin_pred * (dist / total_dists)
-                # breakpoint()
 
             return total_prediction
