@@ -42,10 +42,12 @@ class BaseEvolution():
                  standardize: bool=True,
                  use_multip: bool=True,
                  fill_none: bool=True,
+                 verbose: bool=True,
                  **kwargs) -> None:
 
         self.target_parameter = target_parameter
         self.standardize = standardize
+        self.verbose = verbose
 
         if type(all_data) == DataFrame:
             self.all_data = all_data.to_dict('records')
@@ -147,9 +149,10 @@ class BaseEvolution():
 
             best_creature, error, median_error = self.calculate_all_and_find_best_creature(progressbar=progressbar)
             self.current_median_error = median_error
-            self.print_cycle_stats(best_creature=best_creature, error=error, median_error=median_error, best_creature_error=error)
+            if self.verbose:
+                self.print_cycle_stats(best_creature=best_creature, error=error, median_error=median_error, best_creature_error=error)
 
-            if self.record_best_creature(best_creature, error):
+            if self.record_best_creature(best_creature, error) and self.verbose:
                 print(f'\n\n\nNEW BEST CREATURE AFTER {counter} ITERATION{"S" if counter > 1 else ""}...')
                 print(best_creature)
                 print('Total Error: ' + '{0:.2E}'.format(error))

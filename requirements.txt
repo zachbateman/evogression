@@ -1,3 +1,4 @@
-tqdm==4.43.0
-easy-multip==0.2.3
+cython>=0.29.21
+tqdm>=4.50.0
+easy_multip>=0.3.1
 pandas>=0.25.0

@@ -28,7 +28,7 @@ def calculate_single_evolution(arg_group: tuple) -> Evolution:
     Module-level function for arg to easy_multip.
     '''
     target_param, data, num_cr, num_cy, kwargs = arg_group
-    return Evolution(target_param, data, num_creatures=num_cr, num_cycles=num_cy, use_multip=False, clear_creatures=True, **kwargs)
+    return Evolution(target_param, data, num_creatures=num_cr, num_cycles=num_cy, use_multip=False, clear_creatures=True, verbose=False, **kwargs)
 
 
 def output_group_regression_funcs(group: list):
