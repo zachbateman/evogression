@@ -145,7 +145,8 @@ class BaseEvolution():
         counter = 0
         while counter < self.num_cycles:
             counter += 1
-            print('----------------------------------------' + f'\nCycle - {counter} -')
+            if self.verbose:
+                print('----------------------------------------' + f'\nCycle - {counter} -')
 
             best_creature, error, median_error = self.calculate_all_and_find_best_creature(progressbar=progressbar)
             self.current_median_error = median_error
@@ -298,9 +299,10 @@ class BaseEvolution():
         Use the creature.mutate_to_new_creature method to
         transform the best_creature into an even better fit.
         '''
-        print('\n\n\nOptimizing best creature...')
         best_creature = self.best_creature
-        print(best_creature)
+        if self.verbose:
+            print('\n\n\nOptimizing best creature...')
+            print(best_creature)
         errors = []
         adjustments = 'fast'  # start out with larger, faster mutations
         for i in tqdm.tqdm(range(iterations)):
@@ -315,7 +317,8 @@ class BaseEvolution():
             else:
                 best_creature, error, median_error, calculated_creatures = find_best_creature(mutated_clones, self.target_parameter, self.standardized_all_data, progressbar=False)
 
-            print('Best error: ' + '{0:.6E}'.format(error))
+            if self.verbose:
+                print('Best error: ' + '{0:.6E}'.format(error))
             errors.append(error)
             if error == 0:
                 break  # break out of loop if no error/perfect regression
