@@ -7,7 +7,6 @@ from pprint import pprint as pp
 import matplotlib
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import axes3d
-
 import random
 random.seed(10)  # for reproducing the same plot
 
@@ -39,15 +38,16 @@ class TestPopulationCateogry(unittest.TestCase):
 
 
     def test_population_continuous_3d(self):
-        population = evogression.Population('z', surface_3d_data, num_creatures=1500, num_cycles=7, group_size=5, optimize=5, split_parameter='y', category_or_continuous='continuous')
-        z_test = [population.predict(d) for d in surface_3d_data]
+        population = evogression.Population('z', surface_3d_data, num_creatures=5000, num_cycles=10, group_size=5, optimize=5, split_parameter='y', category_or_continuous='continuous')
+        data = population.predict(surface_3d_data, 'z_predicted')
 
         fig = plt.figure()
         ax = fig.add_subplot(111, projection='3d')
 
-        x = [point_dict['x'] for point_dict in surface_3d_data]
-        y = [point_dict['y'] for point_dict in surface_3d_data]
-        z = [point_dict['z'] for point_dict in surface_3d_data]
+        x = [point_dict['x'] for point_dict in data]
+        y = [point_dict['y'] for point_dict in data]
+        z = [point_dict['z'] for point_dict in data]
+        z_test = [point_dict['z_predicted'] for point_dict in data]
 
         ax.scatter3D(x, y, z)
         ax.scatter3D(x, y, z_test)
@@ -58,6 +58,7 @@ class TestPopulationCateogry(unittest.TestCase):
         plt.title('Surface Regression - Continuous Population Test')
 
         plt.show()
+
 
 
 if __name__ == '__main__':

@@ -115,7 +115,11 @@ def random_population(target_param: str, data: list, num_creatures: int=10000, n
 
 class Population():
     def __init__(self, target_param: str, data: list, num_creatures=300, num_cycles: int=3, group_size: int=4, split_parameter=None, category_or_continuous='category', bin_size=None, use_multip=False, **kwargs):
-        self.all_data = data
+        self.target_parameter = target_param
+
+        if type(data) == DataFrame:
+            data = data.to_dict('records')
+
         self.split_parameter = split_parameter
         self.category_or_continuous = category_or_continuous
         if split_parameter and category_or_continuous == 'category':
@@ -149,24 +153,58 @@ class Population():
             self.bins = bins
 
 
-    def predict(self, data_point: dict):
+    def predict(self, data: Union[Dict[str, float], List[Dict[str, float]], DataFrame], prediction_key: str=''):
+        '''
+        Generate predictions with same interface as BaseEvolution.predict.
+        '''
+        if prediction_key == '':
+            prediction_key = f'{self.target_parameter}_PREDICTED'
+
+        is_dataframe = True if type(data) == DataFrame else False
+        if is_dataframe:
+            data = data.to_dict('records')  # will get processed as a list
+
         if self.category_or_continuous == 'category':
-            predictions = [evo.predict(data_point, 'pred')['pred'] for evo in self.evo_sets[data_point[self.split_parameter]]]
-            return sum(predictions) / len(predictions)
+            if isinstance(data, list):  # dataframes also get processed here
+                for d in data:
+                    predictions = [evo.predict(d, 'pred')['pred'] for evo in self.evo_sets[d[self.split_parameter]]]
+                    d[prediction_key] = sum(predictions) / len(predictions)
+                return DataFrame(data) if is_dataframe else data
+            elif isinstance(data, dict):
+                predictions = [evo.predict(data, 'pred')['pred'] for evo in self.evo_sets[data[self.split_parameter]]]
+                data[prediction_key] = sum(predictions) / len(predictions)
+            else:
+                print('Error!  "data" arg provided to .predict() must be a dict or list of dicts or DataFrame.')
+
 
         elif self.category_or_continuous == 'continuous':
+            if isinstance(data, list):  # dataframes also get processed here
+                data_points = data
+                is_dict = False
+            elif isinstance(data, dict):
+                data_points = [data]
+                is_dict = True
+
             bin_dist = lambda val, bin: abs(val - (bin[1]+bin[0]) / 2)
-            bin_distances = sorted([(bin, bin_dist(data_point[self.split_parameter], bin)) for bin in self.bins], key=lambda tup: tup[1])
-            min_dist = bin_distances[0][1] if bin_distances[0][1] > 0 else bin_distances[1][1]
-            bin_distances = [(t[0], t[1] + min_dist / 3) for t in bin_distances]  # decrease distance sensitivity a hair (still include other weight is closest is almost exactly the value)
-            bin_distances = bin_distances[:-2 * int(len(bin_distances) / 3)]  # remove furthest 2/3 of bins from consideration
-            total_dists = sum(t[1] for t in bin_distances)
+            for data_point in data_points:
+                bin_distances = sorted([(bin, bin_dist(data_point[self.split_parameter], bin)) for bin in self.bins], key=lambda tup: tup[1])
+                min_dist = bin_distances[0][1] if bin_distances[0][1] > 0 else bin_distances[1][1]
+                bin_distances = [(t[0], t[1] + min_dist) for t in bin_distances]  # decrease distance sensitivity a hair (still include other weight is closest is almost exactly the value)
+                bin_distances = bin_distances[:-2 * int(len(bin_distances) / 3)]  # remove furthest 2/3 of bins from consideration
+                total_dists = sum(t[1] for t in bin_distances)
 
-            # Now generate weighted-average prediction by giving more weight to closer bins and less to further ones
-            total_prediction = 0.0
-            for bin, dist in bin_distances:
-                predictions = sorted(evo.predict(data_point, 'pred')['pred'] for evo in self.evo_sets[bin])
-                bin_pred = sum(predictions[1:-1]) / (len(predictions) - 2)  # kick out max/min (outlyer) predictions
-                total_prediction += bin_pred * (dist / total_dists)
+                # Now generate weighted-average prediction by giving more weight to closer bins and less to further ones
+                total_prediction = 0.0
+                for bin, dist in bin_distances:
+                    predictions = sorted(evo.predict(data_point, 'pred')['pred'] for evo in self.evo_sets[bin])
+                    bin_pred = sum(predictions[1:-1]) / (len(predictions) - 2)  # kick out max/min (outlyer) predictions
+                    total_prediction += bin_pred * (dist / total_dists)
 
-            return total_prediction
+                data_point[prediction_key] = total_prediction
+
+            if is_dict:
+                return data_points[0]
+            elif is_dataframe:
+                return DataFrame(data_points)
+            else:
+                return data_points
