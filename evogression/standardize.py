@@ -10,7 +10,7 @@ class Standardizer():
 
     def __init__(self, all_data: typing.List[typing.Dict[str, float]]) -> None:
         self.all_data = all_data
-        self.parameters = all_data[0].keys()
+        self.parameters = list(all_data[0].keys())  # dict_keys obj not pickleable; hence list
         # initially create self.standarized_data as copy of all_data
         self.standardized_data: typing.List[typing.Dict[str, float]] = copy.deepcopy(all_data)
 

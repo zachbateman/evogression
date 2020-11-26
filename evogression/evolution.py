@@ -10,6 +10,7 @@ import tqdm
 import warnings
 from collections import defaultdict
 import easy_multip
+import pickle
 from pandas import DataFrame
 from .creatures import EvogressionCreature
 from .standardize import Standardizer
@@ -344,6 +345,36 @@ class BaseEvolution():
             self.best_creature.output_python_regression_module(output_filename=output_filename, standardizer=self.standardizer, directory='regression_modules', name_ext=name_ext)
         else:
             self.best_creature.output_python_regression_module(output_filename=output_filename, directory='regression_modules', name_ext=name_ext)
+
+
+    def save(self, filename='evolution_model') -> None:
+        '''
+        Save this Evolution Python object/model in a pickle file.
+        Also removes non-essential data to reduce file size.
+        '''
+        # Clearing or shrinking these attributes provides a smaller file size.
+        self.best_creatures[-10:]
+        self.creatures = [self.best_creature]
+        self.all_data = None
+        self.standardized_all_data = None
+        self.standardizer.all_data = None
+        self.standardizer.standardized_data = None
+
+        with open(filename if '.' in filename else filename + '.pkl', 'wb') as f:
+            pickle.dump(self, f)
+
+
+    @classmethod
+    def load(cls, filename):
+        '''
+        Load an Evolution object from a saved, pickle file.
+        '''
+        try:
+            with open(filename, 'rb') as f:
+                return pickle.load(f)
+        except:
+            with open(filename + '.pkl', 'rb') as f:
+                return pickle.load(f)
 
 
     def predict(self, data: Union[Dict[str, float], List[Dict[str, float]], DataFrame], prediction_key: str='', standardized_data: bool=False):
