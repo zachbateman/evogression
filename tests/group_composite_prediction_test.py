@@ -27,6 +27,7 @@ class TestGroupComposite(unittest.TestCase):
         plt.title('Linear Regression - Group Composite Prediction Test')
         plt.show()
 
+        evogression.output_usage(group)
 
 
 

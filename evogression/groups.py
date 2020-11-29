@@ -5,6 +5,7 @@ from typing import List, Dict, Union
 import random
 from collections import defaultdict
 import easy_multip
+import pandas
 from pandas import DataFrame
 from .evolution import Evolution
 
@@ -40,7 +41,7 @@ def output_group_regression_funcs(group: list):
         cr_ev.output_best_regression()
 
 
-def group_parameter_usage(group: list) -> Dict[str, int]:
+def parameter_usage(group: list) -> Dict[str, int]:
     '''
     Combine each Evolution's .parameter_usefulness_count dicts to see which attributes are important.
     '''
@@ -49,6 +50,15 @@ def group_parameter_usage(group: list) -> Dict[str, int]:
         for param, count in cr_ev.parameter_usefulness_count.items():
             combined_parameter_usefulness[param] += count
     return combined_parameter_usefulness
+
+
+def output_usage(group: list, filename: str='ParameterUsage.xlsx'):
+    usage = parameter_usage(group)
+    usage = pandas.DataFrame.from_dict(usage, orient='index')
+    usage.reset_index(inplace=True)
+    usage.columns = ['PARAMETER', 'USAGE']
+    usage.sort_values('USAGE', ascending=False, inplace=True)
+    usage.to_excel(filename if '.' not in filename else filename + '.xlsx', index=False)
 
 
 def parameter_pruned_evolution_group(target_param: str, data: list, max_parameters: int=10, num_creatures: int=10000, num_cycles: int=10, group_size: int=4) -> List[Evolution]:
@@ -80,9 +90,9 @@ def parameter_pruned_evolution_group(target_param: str, data: list, max_paramete
 
     num_parameters = len(data[0].keys()) - 1
     while num_parameters > max_parameters:
-        group = evolution_group(target_param, data, num_creatures // 1.6, num_cycles // 1.6, group_size, optimize=False)
+        group = evolution_group(target_param, data, int(num_creatures // 1.6), int(num_cycles // 1.6), group_size, optimize=False)
 
-        parameter_usage = [(param, count) for param, count in group_parameter_usage(group).items()]
+        parameter_usage = [(param, count) for param, count in parameter_usage(group).items()]
         random.shuffle(parameter_usage)  # so below filter ignores previous order for equally-ranked parameters
         ranked_parameters = sorted(parameter_usage, key=lambda tup: tup[1])
         print(ranked_parameters)
@@ -95,7 +105,7 @@ def parameter_pruned_evolution_group(target_param: str, data: list, max_paramete
 
     final_group = evolution_group(target_param, data, num_creatures, num_cycles, group_size)
     print('parameter_pruned_evolution_group complete.  Final Parameter usage counts below:')
-    for param, count in group_parameter_usage(final_group).items():
+    for param, count in parameter_usage(final_group).items():
         print(f'  {count}: {param}')
     return final_group
 
