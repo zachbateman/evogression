@@ -12,7 +12,6 @@ cpdef double calc_target_cython(dict parameters, dict modifiers):
     return T
 
 
-
 cdef double calc_single_layer_target_cython(dict parameters, dict modifiers, str layer_name, double previous_T):
 
     cdef double T = 0
@@ -21,7 +20,8 @@ cdef double calc_single_layer_target_cython(dict parameters, dict modifiers, str
     cdef dict layer_modifiers = modifiers[layer_name]
     cdef (double, double, double, int) coef
 
-    cdef double C, B, Z, X
+    cdef double C, B, Z
+    cdef int X
 
     for param in parameters:
         try:
@@ -44,6 +44,4 @@ cdef double calc_single_layer_target_cython(dict parameters, dict modifiers, str
         except OverflowError:
             T += 10 ** 150  # really big number should make this creature die if crazy bad calculations (overflow)
 
-    T += layer_modifiers['N']
-
-    return T
+    return T + layer_modifiers['N']
