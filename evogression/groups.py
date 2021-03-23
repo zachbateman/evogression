@@ -58,7 +58,7 @@ def output_usage(group: list, filename: str='ParameterUsage.xlsx'):
     usage.reset_index(inplace=True)
     usage.columns = ['PARAMETER', 'USAGE']
     usage.sort_values('USAGE', ascending=False, inplace=True)
-    usage.to_excel(filename if '.' not in filename else filename + '.xlsx', index=False)
+    usage.to_excel(filename if '.' in filename else filename + '.xlsx', index=False)
 
 
 def parameter_pruned_evolution_group(target_param: str, data: list, max_parameters: int=10, num_creatures: int=10000, num_cycles: int=10, group_size: int=4) -> List[Evolution]:
@@ -183,6 +183,7 @@ class Population():
             elif isinstance(data, dict):
                 predictions = [evo.predict(data, 'pred')['pred'] for evo in self.evo_sets[data[self.split_parameter]]]
                 data[prediction_key] = sum(predictions) / len(predictions)
+                return data
             else:
                 print('Error!  "data" arg provided to .predict() must be a dict or list of dicts or DataFrame.')
 
