@@ -8,6 +8,11 @@ from ._version import __version__
 from pprint import pprint as pp
 from collections import namedtuple
 try:
+    from .calc_target_c import calc_target_c
+except ImportError:
+    print('calc_target_c not imported.')
+
+try:
     from .calc_target_cython import calc_target_cython
 except ImportError:
     print('\nUnable to import Cython calc_target_cython module!')
@@ -168,6 +173,7 @@ class EvogressionCreature():
         Apply the creature's modifiers to the parameters to calculate an attempt at target
         '''
         return calc_target_cython(parameters, self.modifiers)
+        # return calc_target_c(parameters, self.modifiers)
 
 
     def mutate_to_new_creature(self, adjustments: str='fast'):
@@ -229,9 +235,10 @@ class EvogressionCreature():
                 new_layers += 1
 
         # Generate new, mutated coefficients through the modifier layers
+        layer_names = [f'LAYER_{layer}' for layer in range(1, new_layers + 1)]
         possible_parameters = ['T'] + [key for key in self.full_parameter_example if key != self.target_parameter]
-        new_modifiers = {f'LAYER_{layer}': {'N': 0} for layer in range(1, new_layers + 1)}
-        for layer_name in [f'LAYER_{layer}' for layer in range(1, new_layers + 1)]:
+        new_modifiers = {layer_name: {'N': 0} for layer_name in layer_names}
+        for layer_name in layer_names:
             reference_modifiers = [mod for mod in (self_modifiers, other_modifiers) if layer_name in mod]
             if not reference_modifiers:  # create new modifier layer from scratch if doesn't exist in either self or other modifiers
                 # HAVE TO USE DICT LOOKUP BELOW INSTEAD OF new_modifiers_layer_name AS IT GETS ASSIGNED NEW VALUE AND LOSES REFERENCE!
