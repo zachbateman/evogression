@@ -306,31 +306,35 @@ class BaseEvolution():
             print(best_creature)
         errors = []
         adjustments = 'fast'  # start out with larger, faster mutations
-        for i in tqdm.tqdm(range(iterations)):
-            if i > iterations / 3:  # quickly mutate creature for first 1/3rd of iterations and then make small, fine mutations
-                adjustments = 'fine'
-
-            mutated_clones = [best_creature] + [best_creature.mutate_to_new_creature(adjustments=adjustments) for _ in range(500)]
-
-            if self.use_multip:
-                result_data = find_best_creature_multip(mutated_clones, self.target_parameter, self.standardized_all_data, progressbar=False)
-                best_creature, error, median_error, calculated_creatures = self.stats_from_find_best_creature_multip_result(result_data)
-            else:
-                best_creature, error, median_error, calculated_creatures = find_best_creature(mutated_clones, self.target_parameter, self.standardized_all_data, progressbar=False)
-
-            if self.verbose:
-                print('Best error: ' + '{0:.6E}'.format(error))
-            errors.append(error)
-            if error == 0:
-                break  # break out of loop if no error/perfect regression
-            if i > 5 and error / errors[-3] > 0.9999:
-                if adjustments == 'fast':
+        with tqdm.tqdm(total=iterations, position=1, bar_format='{desc}', desc='...') as desc:
+            for i in tqdm.tqdm(range(iterations), desc='Optimizing', position=0, leave=True):
+                if i > iterations / 3:  # quickly mutate creature for first 1/3rd of iterations and then make small, fine mutations
                     adjustments = 'fine'
+
+                mutated_clones = [best_creature] + [best_creature.mutate_to_new_creature(adjustments=adjustments) for _ in range(500)]
+
+                if self.use_multip:
+                    result_data = find_best_creature_multip(mutated_clones, self.target_parameter, self.standardized_all_data, progressbar=False)
+                    best_creature, error, median_error, calculated_creatures = self.stats_from_find_best_creature_multip_result(result_data)
                 else:
-                    break  # break out of the loop if it's no longer improving accuracy
+                    best_creature, error, median_error, calculated_creatures = find_best_creature(mutated_clones, self.target_parameter, self.standardized_all_data, progressbar=False)
+
+                errors.append(error)
+                if self.verbose:
+                    # print('\nBest error: ' + '{0:.6E}'.format(error))
+                    desc.set_description(f'Start: {errors[0]:.5E}     Best: {error:.5E}')
+
+                if error == 0:
+                    break  # break out of loop if no error/perfect regression
+                if i > 5 and error / errors[-3] > 0.9999:
+                    if adjustments == 'fast':
+                        adjustments = 'fine'
+                    else:
+                        break  # break out of the loop if it's no longer improving accuracy
         self.record_best_creature(best_creature, error)
+        print('\nBest creature optimized!')
         print(self.best_creature)
-        print('Best creature optimized!\n')
+
 
 
     def output_best_regression(self, output_filename='regression_function', add_error_value=False) -> None:
