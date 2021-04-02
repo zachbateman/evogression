@@ -5,13 +5,10 @@
 // See: https://www.tutorialspoint.com/python/python_further_extensions.htm
 
 
-// static PyObject* calc_target_c(PyObject* self, PyObject *args) {
-// static PyObject *calc_target_c(PyObject *self, PyObject *args) {
 static PyObject* calc_target_c(PyObject *self, PyObject *args) {
     // arg is form (dict parameters, dict modifiers)
-    double T = -99999;  // bogus value for first layer
+    double T = 0;  // bogus value for first layer
     double inner_T = 0;
-
 
     PyObject *parameters, *modifiers;
 
@@ -19,106 +16,86 @@ static PyObject* calc_target_c(PyObject *self, PyObject *args) {
         return NULL;
     }
 
-
-    // PyObject* repr;
-
-    // repr = PyObject_Repr(parameters);
-    // printf("Value of parameters: %s\n", PyUnicode_AsUTF8(repr));
-
-    // repr = PyObject_Repr(modifiers);
-    // printf("Value of modifiers: %s\n", PyUnicode_AsUTF8(repr));
-
-    // printf("Value of parameters: %s\n", PyUnicode_AsUTF8(parameters));
-    // printf("Value of modifiers: %s\n", PyUnicode_AsUTF8(modifiers));
-
     PyObject *layer_name, *layer_modifiers;
     Py_ssize_t pos = 0;
 
     double C, B, Z;
-    // int X;
     double X;
-    // double N;
-    PyObject *N;
-    double N_double;
+    PyObject *coeffs;
 
     PyObject *param;
-    // double param_value;
     PyObject *param_value;
-    double param_value_double;
     Py_ssize_t pos2;
 
     PyObject *T_str = Py_BuildValue("s", "T");
     PyObject *N_str = Py_BuildValue("s", "N");
-
-    // PyObject *namedtuple;
-
-    double big_num = pow(10, 150);
+    const double big_num = pow(10, 150);
 
     // DEPENDING ON ORDERED DICTIONARY HERE!!!
     while (PyDict_Next(modifiers, &pos, &layer_name, &layer_modifiers)) {
-        // printf("Value of layer_name: %s\n", PyUnicode_AsUTF8(layer_name));
-        // printf("Value of modifiers: %s\n", PyUnicode_AsUTF8(modifiers));
-        // repr = PyObject_Repr(layer_modifiers);
-        // printf("Value of layer_modifiers: %s\n", PyUnicode_AsUTF8(repr));
-        // printf("Value of layer_modifiers: %s\n", PyUnicode_AsUTF8(layer_modifiers));
-        // repr = PyObject_Repr(PyDict_Keys(layer_modifiers));
-        // printf("layer_modifers keys: %s\n", PyUnicode_AsUTF8(repr));
-
         inner_T = 0;
         pos2 = 0;
-        while (PyDict_Next(parameters, &pos2, &param, &param_value)) {
-            // printf("Value of param: %s\n", PyUnicode_AsUTF8(param));
-            if (PyDict_Contains(layer_modifiers, param)) {
-                // printf("In While Loop If");
-                // printf("Value of layer_modifiers[param]: %s\n", PyUnicode_AsUTF8(PyDict_GetItem(layer_modifiers, param)));
-                // printf("\n\nValue of layer_modifiers: %s\n", PyUnicode_AsUTF8(layer_modifiers));
-                // printf("\n\nValue of layer_modifiers: %s\n", PyUnicode_AsUTF8(PyObject_Repr(layer_modifiers)));
-                // printf("Value of layer_name: %s\n", PyUnicode_AsUTF8(PyObject_Repr(layer_name)));
-                // printf("Value of param: %s\n", PyUnicode_AsUTF8(param));
+        // while (PyDict_Next(parameters, &pos2, &param, &param_value)) {
+            // if (PyDict_Contains(layer_modifiers, param)) {
+                // PyArg_ParseTuple(PyDict_GetItem(layer_modifiers, param), "dddd", &C, &B, &Z, &X);
+                // switch ((int) X) {  // switching for faster evaluation where possible
+                    // case 0:
+                        // inner_T += 1;
+                    // case 1:
+                        // inner_T += C * (B * PyFloat_AsDouble(param_value) + Z);
+                    // default:
+                        // inner_T += pow(C * (B * PyFloat_AsDouble(param_value) + Z), X);
+                // }
+            // }
+        // }
 
-                // namedtuple = PyDict_GetItem(layer_modifiers, param);
-                // repr = PyObject_Repr(namedtuple);
+        // if (T != 0) {  // assuming T will ONLY be zero on first run through loop... checking against zero should be faster?
+            // PyArg_ParseTuple(PyDict_GetItem(layer_modifiers, T_str), "dddd", &C, &B, &Z, &X);
+            // switch ((int) X) {  // switching for faster evaluation where possible
+                // case 0:
+                    // inner_T += 1;
+                // case 1:
+                    // inner_T += C * (B * T + Z);
+                // default:
+                    // inner_T += pow(C * (B * T + Z), X);
+            // }
+        // }
 
-                // printf("Value of layer_modifiers[param]: %s\n", PyUnicode_AsUTF8(PyObject_Repr(PyDict_GetItem(layer_modifiers, param))));
-                // printf("Value of layer_modifiers[param]: %s\n", PyUnicode_AsUTF8(repr));
-                // PyArg_ParseTuple(PyDict_GetItem(layer_modifiers, param), "ffff", &C, &B, &Z, &X);  // turn namedtuple into components
-                // if (!PyArg_ParseTuple(namedtuple, "ffff", &C, &B, &Z, &X)) {
-                // if (!PyArg_ParseTuple(namedtuple, "dddi", &C, &B, &Z, &X)) {
-                // PyArg_ParseTuple(namedtuple, "dddi", &C, &B, &Z, &X);
-                // PyArg_ParseTuple(PyDict_GetItem(layer_modifiers, param), "dddi", &C, &B, &Z, &X);
-                PyArg_ParseTuple(PyDict_GetItem(layer_modifiers, param), "dddd", &C, &B, &Z, &X);
-                    // printf("Error parsing namedtuple!!!");
-                // };  // turn namedtuple into components
+        // T = inner_T + PyFloat_AsDouble(PyDict_GetItem(layer_modifiers, N_str));
 
-                param_value_double = PyFloat_AsDouble(param_value);
-                // printf("Value of inner_T: %f\n", inner_T);
-                inner_T += pow(C * (B * param_value_double + Z), X);
-                // printf("Value of C: %f\n", C);
-                // printf("Value of B: %f\n", B);
-                // printf("Value of param_value_double: %f\n", param_value_double);
-                // printf("Value of Z: %f\n", Z);
-                // printf("Value of X: %d\n", X);
-                // printf("Value of inner_T: %f\n", inner_T);
-                // exit(0);
+        while (PyDict_Next(layer_modifiers, &pos2, &param, &coeffs)) {
+            if (param == N_str) {
+                inner_T += PyFloat_AsDouble(coeffs);
+            } else if (param == T_str) {
+                PyArg_ParseTuple(coeffs, "dddd", &C, &B, &Z, &X);
+                switch ((int) X) {  // switching for faster evaluation where possible
+                    case 0:
+                        inner_T += 1;
+                    case 1:
+                        inner_T += C * (B * T + Z);
+                    default:
+                        inner_T += pow(C * (B * T + Z), X);
+                }
+            } else {
+                PyArg_ParseTuple(coeffs, "dddd", &C, &B, &Z, &X);
+                switch ((int) X) {  // switching for faster evaluation where possible
+                    case 0:
+                        inner_T += 1;
+                    case 1:
+                        inner_T += C * (B * PyFloat_AsDouble(PyDict_GetItem(parameters, param)) + Z);
+                    default:
+                        inner_T += pow(C * (B * PyFloat_AsDouble(PyDict_GetItem(parameters, param)) + Z), X);
+                }
             }
         }
+        T = inner_T;
+    }
 
-        if (T != -99999) {
-            // PyArg_ParseTuple(PyDict_GetItem(layer_modifiers, T_str), "dddi", &C, &B, &Z, &X);
-            PyArg_ParseTuple(PyDict_GetItem(layer_modifiers, T_str), "dddd", &C, &B, &Z, &X);
-            inner_T += pow(C * (B * T + Z), X);
-            // printf("Value of inner_T: %f\n",inner_T);
-        }
-
-        N = PyDict_GetItem(layer_modifiers, N_str);
-        N_double = PyFloat_AsDouble(N);
-        T = inner_T + N_double;
-
-        // printf("FINAL Value of T: %f\n",T);
-        if (T > big_num) {
-            PyErr_SetString(PyExc_OverflowError, "Overflow... T got too big! (?)");  // really big number should make this creature die if crazy bad calculations (overflow)
-            return NULL;
-        }
+    if (T > big_num) {
+        printf("Value of T: %f\n", T);
+        printf("Value of inner_T: %f\n", inner_T);
+        PyErr_SetString(PyExc_OverflowError, "Overflow... T got too big! (?)");  // really big number should make this creature die if crazy bad calculations (overflow)
+        return NULL;
     }
 
     return Py_BuildValue("d", T);  // "d" instructs to build a Python double/float
@@ -130,13 +107,13 @@ static PyMethodDef methods[] = {
     {NULL, NULL, 0, NULL}
 };
 
+
 // See: http://python3porting.com/cextensions.html
 static struct PyModuleDef moduledef = {
     PyModuleDef_HEAD_INIT,
     "calc_target_c",  /* m_name  */
      "C version of calc_target",  /* m_doc */
     -1,                  /* m_size */
-    // calc_target_c,    /* m_methods */
     methods,    /* m_methods */
     NULL,                /* m_reload */
     NULL,                /* m_traverse */
