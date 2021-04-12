@@ -49,7 +49,7 @@ class TestParabolaRegression(unittest.TestCase):
 
 
     def test_best_creature_parabola_regression_evolution(self):
-        evolution = evogression.Evolution('y', parabola_data, num_creatures=50000, num_cycles=7, force_num_layers=0, standardize=True, use_multip=False)
+        evolution = evogression.Evolution('y', parabola_data, num_creatures=5000, num_cycles=7, force_num_layers=0, standardize=True)
 
         best_creature = evolution.best_creature
         try:

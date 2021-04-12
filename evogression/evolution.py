@@ -22,6 +22,9 @@ except ImportError:
     print('See: https://wiki.python.org/moin/WindowsCompilers')
     print('  -> (If running Windows 7, try using Python 3.7 instead of 3.8+)\n')
 
+# function must be module-level so that it is pickleable for multiprocessing
+# making it a global variable that is a function set in evolution __init__ to be module-level but still customizable
+find_best_creature_multip = None
 
 
 class BaseEvolution():
@@ -41,10 +44,16 @@ class BaseEvolution():
                  force_num_layers: int=0,
                  max_layers: int=10,
                  standardize: bool=True,
-                 use_multip: bool=True,
+                 num_cpu: int=1,
                  fill_none: bool=True,
                  verbose: bool=True,
                  **kwargs) -> None:
+
+        if 'use_multip' in kwargs:
+            print('\nDeprecationWarning!  Instead of "use_multip", use "num_cpu" to specify how many processes.')
+            if kwargs['use_multip'] == True:
+                print('Using 2 processes for now.')
+                num_cpu = 2
 
         self.target_parameter = target_parameter
         self.standardize = standardize
@@ -61,7 +70,9 @@ class BaseEvolution():
         self.num_cycles = int(num_cycles)
         self.force_num_layers = int(force_num_layers)
         self.max_layers = max_layers
-        self.use_multip = use_multip
+        self.num_cpu = num_cpu if num_cpu >= 1 else 1
+        global find_best_creature_multip
+        find_best_creature_multip = easy_multip.decorators.use_multip(find_best_creature, num_cpu=self.num_cpu)
 
         self.best_creatures: list = []
         self.parameter_usefulness_count: dict=defaultdict(int)
@@ -155,7 +166,7 @@ class BaseEvolution():
                 self.print_cycle_stats(best_creature=best_creature, error=error, median_error=median_error, best_creature_error=error)
 
             if self.record_best_creature(best_creature, error) and self.verbose:
-                print(f'\n\n\nNEW BEST CREATURE AFTER {counter} ITERATION{"S" if counter > 1 else ""}...')
+                print(f'\n\nNEW BEST CREATURE AFTER {counter} ITERATION{"S" if counter > 1 else ""}...')
                 print(best_creature)
                 print('Total Error: ' + '{0:.2E}'.format(error))
 
@@ -256,7 +267,7 @@ class BaseEvolution():
         Find the best creature in all current creatures by calculating each one's
         total error compared to all the training data.
         '''
-        if self.use_multip:
+        if self.num_cpu > 1:
             if self.standardize:
                 result_data = find_best_creature_multip(self.creatures, self.target_parameter,
                                                                              self.standardized_all_data, standardizer=self.standardizer,
@@ -272,7 +283,7 @@ class BaseEvolution():
 
 
     def print_cycle_stats(self, best_creature=None, error=None, median_error: float=0, best_creature_error: float=0) -> None:
-        print('Median error: ' + '{0:.2E}'.format(median_error))
+        print('\rMedian error: ' + '{0:.2E}'.format(median_error))
         print('Best Creature:')
         print(f'  Generation: {best_creature.generation}    Error: ' + '{0:.2E}'.format(error))
 
@@ -313,7 +324,7 @@ class BaseEvolution():
 
                 mutated_clones = [best_creature] + [best_creature.mutate_to_new_creature(adjustments=adjustments) for _ in range(500)]
 
-                if self.use_multip:
+                if self.num_cpu > 1:
                     result_data = find_best_creature_multip(mutated_clones, self.target_parameter, self.standardized_all_data, progressbar=False)
                     best_creature, error, median_error, calculated_creatures = self.stats_from_find_best_creature_multip_result(result_data)
                 else:
@@ -512,7 +523,7 @@ class Evolution(BaseEvolution):
 
 
 
-def find_best_creature(creatures: list, target_parameter: str, data: list, standardizer=None, progressbar=True) -> tuple:
+def find_best_creature(creatures: list, target_parameter: str, data: list, standardizer=None, progressbar=True, cpu_index=0) -> tuple:
     '''
     Determines best EvogressionCreature and returns misc objects (more than otherwise needed)
     so that multiprocessing (easy_multip) can be used.
@@ -529,7 +540,7 @@ def find_best_creature(creatures: list, target_parameter: str, data: list, stand
     data_length = len(data)
 
     best_creature = None
-    iterable = tqdm.tqdm(creatures) if progressbar else creatures
+    iterable = tqdm.tqdm(creatures, position=cpu_index, desc=f'Process {cpu_index+1}', dynamic_ncols=True, leave=False) if progressbar else creatures
     actual_target_values = [data_point[target_parameter] for data_point in data]  # pull these values once instead of each time in loop comp below
     for creature in iterable:
         if not creature.error_sum:
@@ -543,7 +554,6 @@ def find_best_creature(creatures: list, target_parameter: str, data: list, stand
 
     median_error = sorted(errors)[len(errors) // 2]  # MEDIAN error
     return (best_creature, best_error, median_error, calculated_creatures)
-find_best_creature_multip = easy_multip.decorators.use_multip(find_best_creature)
 
 
 
