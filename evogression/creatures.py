@@ -7,10 +7,6 @@ import os
 from ._version import __version__
 from pprint import pprint as pp
 from collections import namedtuple
-try:
-    from .calc_target_c import calc_target_c
-except ImportError:
-    print('calc_target_c not imported.')
 
 try:
     from .calc_target_cython import calc_target_cython
@@ -173,7 +169,6 @@ class EvogressionCreature():
         Apply the creature's modifiers to the parameters to calculate an attempt at target
         '''
         return calc_target_cython(parameters, self.modifiers)
-        # return calc_target_c(parameters, self.modifiers)
 
 
     def mutate_to_new_creature(self, adjustments: str='fast'):

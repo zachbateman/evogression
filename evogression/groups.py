@@ -11,7 +11,7 @@ from .evolution import Evolution
 
 
 
-def evolution_group(target_param: str, data: Union[List[Dict[str, float]], DataFrame], num_creatures: int=10000, num_cycles: int=10, group_size: int=4, **kwargs) -> List[Evolution]:
+def evolution_group(target_param: str, data: Union[List[Dict[str, float]], DataFrame], num_creatures: int=10000, num_cycles: int=10, group_size: int=4, num_cpu: int=0, **kwargs) -> List[Evolution]:
     '''
     Generate a list of fully initialized Evolution objects.
     Any Evolution kwargs may be provided.
@@ -20,7 +20,7 @@ def evolution_group(target_param: str, data: Union[List[Dict[str, float]], DataF
         del kwargs['use_multip']
         print('Disabling use_multip for Evolution generation in evolution_group.  Using multip for separate Evolution initializations.')
     arg_groups = [(target_param, data, num_creatures, num_cycles, kwargs) for _ in range(group_size)]
-    return easy_multip.map(calculate_single_evolution, arg_groups)
+    return easy_multip.map(calculate_single_evolution, arg_groups, num_cpu=num_cpu)
 
 
 def calculate_single_evolution(arg_group: tuple) -> Evolution:
@@ -29,7 +29,7 @@ def calculate_single_evolution(arg_group: tuple) -> Evolution:
     Module-level function for arg to easy_multip.
     '''
     target_param, data, num_cr, num_cy, kwargs = arg_group
-    return Evolution(target_param, data, num_creatures=num_cr, num_cycles=num_cy, use_multip=False, clear_creatures=True, verbose=False, **kwargs)
+    return Evolution(target_param, data, num_creatures=num_cr, num_cycles=num_cy, clear_creatures=True, verbose=False, **kwargs)
 
 
 def output_group_regression_funcs(group: list):
@@ -124,7 +124,7 @@ def random_population(target_param: str, data: list, num_creatures: int=10000, n
 
 
 class Population():
-    def __init__(self, target_param: str, data: list, num_creatures=300, num_cycles: int=3, group_size: int=4, split_parameter=None, category_or_continuous='category', bin_size=None, use_multip=False, **kwargs):
+    def __init__(self, target_param: str, data: list, num_creatures=300, num_cycles: int=3, group_size: int=4, split_parameter=None, category_or_continuous='category', bin_size=None, num_cpu=1, **kwargs):
         self.target_parameter = target_param
 
         if type(data) == DataFrame:
@@ -137,7 +137,7 @@ class Population():
             data_sets = {cat: [{k: v for k, v in d.items() if k != split_parameter} for d in data if d[split_parameter] == cat] for cat in categories}
             self.evo_sets = {}
             for cat, data_subset in data_sets.items():
-                self.evo_sets[cat] = [Evolution(target_param, data_subset, num_creatures=num_creatures, num_cycles=num_cycles, clear_creatures=True, use_multip=use_multip, **kwargs) for _ in range(group_size)]
+                self.evo_sets[cat] = [Evolution(target_param, data_subset, num_creatures=num_creatures, num_cycles=num_cycles, clear_creatures=True, num_cpu=num_cpu, **kwargs) for _ in range(group_size)]
 
         elif split_parameter and category_or_continuous == 'continuous':
             # Use bin_size arg (or generate if not provided) to determine how to split out data into different bins of the split_parameter.

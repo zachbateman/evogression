@@ -15,15 +15,15 @@ class TestPopulationCateogry(unittest.TestCase):
 
     def test_population_category_2d(self):
         population = evogression.Population('y', categorical_data, split_parameter='cat', optimize=3)
-        y_test = [population.predict(d) for d in categorical_data]
+        y_test = [population.predict(d, 'pred')['pred'] for d in categorical_data]
 
         plt.scatter([pd['x'] for pd in categorical_data], [pd['y'] for pd in categorical_data], s=100)
 
         x_test_A = [i / 10 for i in range(0, 55)]
-        y_test_A = [population.predict({'cat': 'A', 'x': x}) for x in x_test_A]
+        y_test_A = [population.predict({'cat': 'A', 'x': x}, 'pred')['pred'] for x in x_test_A]
 
         x_test_B = [i / 10 for i in range(87, 135)]
-        y_test_B = [population.predict({'cat': 'B', 'x': x}) for x in x_test_B]
+        y_test_B = [population.predict({'cat': 'B', 'x': x}, 'pred')['pred'] for x in x_test_B]
 
         plt.scatter(x_test_A, y_test_A, s=10)
         plt.scatter(x_test_B, y_test_B, s=10)

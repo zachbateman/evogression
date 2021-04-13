@@ -414,8 +414,11 @@ class BaseEvolution():
 
             if not standardized_data and self.standardize:
                 data = [self.standardizer.convert_parameter_dict_to_standardized(d) for d in data]
+            parameter_example = self.best_creature.full_parameter_example
             for d in data:
-                d[prediction_key] = self.best_creature.calc_target(d)
+                # errors result if leave in key:values not used in training (string split categories for example), so next line ensures minimum data is fed to .calc_target
+                clean_d = {key: value for key, value in d.items() if key in parameter_example}
+                d[prediction_key] = self.best_creature.calc_target(clean_d)
 
             if self.standardize:
                 unstandardized_data = []
@@ -438,7 +441,9 @@ class BaseEvolution():
 
             if not standardized_data and self.standardize:
                 data = self.standardizer.convert_parameter_dict_to_standardized(data)
-            data[prediction_key] = self.best_creature.calc_target(data)
+            # errors result if leave in key:values not used in training (string split categories for example), so next line ensures minimum data is fed to .calc_target
+            clean_data = {key: value for key, value in data.items() if key in self.best_creature.full_parameter_example}
+            data[prediction_key] = self.best_creature.calc_target(clean_data)
 
             if self.standardize:
                 unstandardized_data = {}
