@@ -92,9 +92,9 @@ def parameter_pruned_evolution_group(target_param: str, data: list, max_paramete
     while num_parameters > max_parameters:
         group = evolution_group(target_param, data, int(num_creatures // 1.6), int(num_cycles // 1.6), group_size, optimize=False)
 
-        parameter_usage = [(param, count) for param, count in parameter_usage(group).items()]
-        random.shuffle(parameter_usage)  # so below filter ignores previous order for equally-ranked parameters
-        ranked_parameters = sorted(parameter_usage, key=lambda tup: tup[1])
+        current_parameter_usage = [(param, count) for param, count in parameter_usage(group).items()]
+        random.shuffle(current_parameter_usage)  # so below filter ignores previous order for equally-ranked parameters
+        ranked_parameters = sorted(current_parameter_usage, key=lambda tup: tup[1])
         print(ranked_parameters)
 
         dead_params = [t[0] for t in ranked_parameters[:num_param_to_eliminate(num_parameters - max_parameters)]]
