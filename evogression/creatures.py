@@ -25,7 +25,7 @@ except ImportError:
     print('  -> (If running Windows 7, try using Python 3.7 instead of 3.8+)\n')
 
 
-layer_probabilities = [1] * 5 + [2] * 3 + [3] * 2 + [4] * 1
+layer_probabilities = [1] * 3 + [2] * 2 + [3] * 1
 
 Coefficients = namedtuple('Coefficients', 'C B Z X')
 
