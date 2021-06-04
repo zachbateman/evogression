@@ -218,6 +218,7 @@ class EvogressionCreature():
         self_modifiers = self.modifiers
         other_modifiers = other.modifiers
         new_coefficients_from_existing = _new_coefficients_from_existing
+        gen_param_coeffs = generate_parameter_coefficients_calc
 
         # Generate new number of layers
         new_layers = int(round((self.layers + other.layers) / 2, 0))  # average (same if both are same number)
@@ -235,6 +236,7 @@ class EvogressionCreature():
         new_modifiers = {layer_name: {'N': 0} for layer_name in layer_names}
         for layer_name in layer_names:
             reference_modifiers = [mod for mod in (self_modifiers, other_modifiers) if layer_name in mod]
+            ref_mods_layer_params = set(param for mods in reference_modifiers for param in mods[layer_name])
             if not reference_modifiers:  # create new modifier layer from scratch if doesn't exist in either self or other modifiers
                 # HAVE TO USE DICT LOOKUP BELOW INSTEAD OF new_modifiers_layer_name AS IT GETS ASSIGNED NEW VALUE AND LOSES REFERENCE!
                 new_modifiers[layer_name] = self.create_modifiers(layer_str_list=[layer_name])[layer_name]
@@ -244,16 +246,20 @@ class EvogressionCreature():
                 new_modifiers_layer_name['N'] = sum(mod[layer_name]['N'] for mod in reference_modifiers) / len(reference_modifiers) * rand_tri(0.7, 1.3, 1)
                 # Calculate new Coefficients for each parameter (including 'T')
                 for param in possible_parameters:
-                    param_in_mods = True if (param in mods[layer_name] for mods in reference_modifiers) else False
                     new_coef = None
-                    if param == 'T' and layer_name != 'LAYER_1':
-                        new_coef = new_coefficients_from_existing(reference_modifiers, layer_name, param)
-                    elif param != 'T' and param_in_mods and rand_rand() < 0.8:  # 20% chance to not include a param in child modifiers for this layer
-                        new_coef = new_coefficients_from_existing(reference_modifiers, layer_name, param)
-                    elif param != 'T' and not param_in_mods and rand_rand() < 0.1:  # chance to add new parameter to modifiers if not in parents
-                        new_coef = Coefficients(generate_parameter_coefficients_calc())
-                    if new_coef:
-                        new_modifiers_layer_name[param] = new_coef
+                    if param == 'T':
+                        if layer_name != 'LAYER_1':
+                            new_coef = new_coefficients_from_existing(reference_modifiers, layer_name, 'T')
+                            if new_coef:
+                                new_modifiers_layer_name['T'] = new_coef
+                    else:  # param != 'T'
+                        param_in_mods = True if param in ref_mods_layer_params else False
+                        if param_in_mods and rand_rand() < 0.8:  # 20% chance to not include a param in child modifiers for this layer
+                            new_coef = new_coefficients_from_existing(reference_modifiers, layer_name, param)
+                        elif not param_in_mods and rand_rand() < 0.1:  # chance to add new parameter to modifiers if not in parents
+                            new_coef = Coefficients(*gen_param_coeffs())
+                        if new_coef:
+                            new_modifiers_layer_name[param] = new_coef
 
         return EvogressionCreature(self.target_parameter, layers=new_layers, max_layers=max(self.max_layers, other.max_layers), generation=self.generation,
                                               full_parameter_example=self.full_parameter_example, modifiers=new_modifiers,
