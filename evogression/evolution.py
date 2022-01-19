@@ -347,6 +347,16 @@ class BaseEvolution():
         print(self.best_creature)
 
 
+    def clear_data(self):
+        '''
+        Clear out references to data to shrink full object and
+        limit memory growth when generating many Evolutions.
+        '''
+        self.all_data = None
+        self.creatures = None
+        self.standardizer.all_data = None
+        self.standardizer.standardized_data = None
+
 
     def output_best_regression(self, output_filename='regression_function', add_error_value=False) -> None:
         '''
