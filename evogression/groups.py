@@ -3,6 +3,7 @@ Module containing high-level evogression functionality to fit and summarize regr
 '''
 from typing import List, Dict, Union
 import random
+from math import log
 from collections import defaultdict
 import easy_multip
 import pandas
@@ -59,6 +60,32 @@ def output_usage(group: list, filename: str='ParameterUsage.xlsx'):
     usage.columns = ['PARAMETER', 'USAGE']
     usage.sort_values('USAGE', ascending=False, inplace=True)
     usage.to_excel(filename if '.' in filename else filename + '.xlsx', index=False)
+
+
+def generate_parameter_usage_file(data, column: str, num_models: int=100, num_creatures: int=5000, num_cycles: int=3, num_cpu: int=1, filename: str='ParameterUsage.xlsx'):
+    '''
+    Generate many models using subsets of possible input data columns so as to
+    not overweight usage of the few best columns.
+    Output the parameter usage/predictability of the data columns to Excel.
+
+    CURRENTLY only accepts a DataFrame for data arg.
+    '''
+    columns = list(data.columns)
+    if len(columns) <= 4:
+        num_col_per_sample = len(columns)
+    else:
+        num_col_per_sample = int(7 * log(len(columns)) - 8) + 1
+
+    models = []
+    for _ in range(num_models):
+        col_subset = random.sample(columns, num_col_per_sample)
+        if column not in col_subset:  # need prediction column in the data
+            col_subset.append(column)
+        data_subset = data[col_subset]
+        model = Evolution(column, data_subset, num_creatures=num_creatures, num_cycles=num_cycles, num_cpu=num_cpu, optimize=False)
+        model.clear_data()  # clear out references to data to shrink model object and limit memory growth
+        models.append(model)
+    output_usage(models, filename)
 
 
 def parameter_pruned_evolution_group(target_param: str, data: list, max_parameters: int=10, num_creatures: int=10000, num_cycles: int=10, group_size: int=4) -> List[Evolution]:
