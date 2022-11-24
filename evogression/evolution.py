@@ -27,11 +27,12 @@ except ImportError:
 find_best_creature_multip = None
 
 
-class BaseEvolution():
+class Evolution():
     '''
-    Creates a framework for evolving groups of creatures.
-    This class is designed to be subclassed into more
-    specific evolution algorithms.
+    EVOLUTION ALOGORITHM
+
+    Evolves creatures by killing off the worst performers in
+    each cycle and then randomly generating many new creatures.
 
     Input data must have all numeric values (or None) and
     CANNOT have a column named "N" or "T".
@@ -75,7 +76,7 @@ class BaseEvolution():
         find_best_creature_multip = easy_multip.decorators.use_multip(find_best_creature, num_cpu=self.num_cpu)
 
         self.best_creatures: list = []
-        self.parameter_usefulness_count: dict=defaultdict(int)
+        self.parameter_usefulness_count: dict = defaultdict(int)
 
         if self.standardize:
             self.standardizer = Standardizer(self.all_data)
@@ -86,6 +87,24 @@ class BaseEvolution():
         self.data_checks()
         self.creatures = [EvogressionCreature(target_parameter, full_parameter_example=self.all_data[0], layers=force_num_layers, max_layers=max_layers)
                                     for _ in tqdm.tqdm(range(self.num_creatures))]
+
+
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            self.evolve_creatures(self.evolution_cycle, progressbar=kwargs.get('progressbar', True))
+            optimize = kwargs.get('optimize', True)
+            if optimize == 'max':
+                self.optimize_best_creature(iterations=100)
+            elif type(optimize) == int:
+                if optimize > 0:
+                    self.optimize_best_creature(iterations=optimize)
+                else:
+                    print('Warning!  Optimization cycles must be an int > 0!')
+            elif optimize:
+                self.optimize_best_creature()
+
+            if kwargs.get('clear_creatures', False):  # save tons of memory when returning object (helps with multiprocessing)
+                self.creatures = [self.best_creature]
 
 
     def fill_none_with_median(self):
@@ -116,7 +135,7 @@ class BaseEvolution():
                 print(f'  {param}')
 
 
-    def data_checks(self):
+    def data_checks(self) -> None:
         '''
         Check cleaned input data for potential issues.
         At the point when this is called, there should be no issues with
@@ -146,7 +165,7 @@ class BaseEvolution():
             raise InputDataFormatError('ERROR!  Parameter "T" detected in data.  Cannot use "N" or "T" as parameters.')
 
 
-    def evolve_creatures(self, evolution_cycle_func=None, progressbar=True):
+    def evolve_creatures(self, evolution_cycle_func=None, progressbar=True) -> None:
         '''
         Main evolution loop that handles results of each loop and
         keeps track of best creatures/regression equations.
@@ -173,7 +192,7 @@ class BaseEvolution():
             evolution_cycle_func()
 
 
-    def evolution_cycle(self):
+    def evolution_cycle(self) -> None:
         '''
         DEFAULT EVOLUTION CYCLE (meant to be replaced in subclasses)
         Run one cycle of evolution that introduces new random creatures,
@@ -220,6 +239,7 @@ class BaseEvolution():
                 best_creature = creature_list[0]
         return best_creature
 
+
     @property
     def best_error(self) -> float:
         '''
@@ -233,7 +253,7 @@ class BaseEvolution():
         return best_error
 
 
-    def kill_weak_creatures(self):
+    def kill_weak_creatures(self) -> None:
         '''Remove half of the creatures randomly (self.creatures was previously shuffled)'''
         self.creatures = self.creatures[:len(self.num_creatures)//2]
 
@@ -288,7 +308,7 @@ class BaseEvolution():
         print(f'  Generation: {best_creature.generation}    Error: ' + '{0:.2E}'.format(error))
 
 
-    def mate_creatures(self):
+    def mate_creatures(self) -> None:
         '''Mate creatures to generate new creatures'''
         rand_rand = random.random
         new_creatures = []
@@ -347,7 +367,7 @@ class BaseEvolution():
         print(self.best_creature)
 
 
-    def clear_data(self):
+    def clear_data(self) -> None:
         '''
         Clear out references to data to shrink full object and
         limit memory growth when generating many Evolutions.
@@ -465,36 +485,6 @@ class BaseEvolution():
 
         else:
             print('Error!  "data" arg provided to .predict() must be a dict or list of dicts or DataFrame.')
-
-
-
-
-class Evolution(BaseEvolution):
-    '''
-    MAIN/REFERENCE EVOLUTION ALOGORITHM
-
-    Evolves creatures by killing off the worst performers in
-    each cycle and then randomly generating many new creatures.
-    '''
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-
-        with warnings.catch_warnings():
-            warnings.simplefilter('ignore')
-            self.evolve_creatures(self.evolution_cycle, progressbar=kwargs.get('progressbar', True))
-            optimize = kwargs.get('optimize', True)
-            if optimize == 'max':
-                self.optimize_best_creature(iterations=100)
-            elif type(optimize) == int:
-                if optimize > 0:
-                    self.optimize_best_creature(iterations=optimize)
-                else:
-                    print('Warning!  Optimization cycles must be an int > 0!')
-            elif optimize:
-                self.optimize_best_creature()
-
-            if kwargs.get('clear_creatures', False):  # save tons of memory when returning object (helps with multiprocessing)
-                self.creatures = [self.best_creature]
 
 
     def evolution_cycle(self) -> None:

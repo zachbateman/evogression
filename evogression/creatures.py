@@ -30,7 +30,7 @@ layer_probabilities = [1] * 3 + [2] * 2 + [3] * 1
 Coefficients = namedtuple('Coefficients', 'C B Z X')
 
 
-def fast_copy(d: dict):
+def fast_copy(d: dict) -> dict:
     '''Used as a faster alternative to copy.deepcopy for copying to a new dict'''
     output = d.copy()
     for key, value in output.items():
@@ -284,11 +284,11 @@ class EvogressionCreature():
         return printout
 
 
-    def get_regression_func(self):
+    def get_regression_func(self) -> dict:
         return self.simplify_modifiers(self.modifiers)
 
 
-    def output_python_regression_module(self, output_filename: str='regression_function', standardizer=None, directory: str='.', name_ext: str=''):
+    def output_python_regression_module(self, output_filename: str='regression_function', standardizer=None, directory: str='.', name_ext: str='') -> None:
         '''Create a Python module/file with a regression function represented by this EvogressionCreature'''
         if directory != '.' and not os.path.exists(directory):
             os.mkdir(directory)
