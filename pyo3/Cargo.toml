@@ -1,0 +1,20 @@
+[package]
+name = "pyo3"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+name = "rust_evogression"
+crate-type = ["cdylib"]
+
+[dependencies]
+rayon = "1.6.0"
+rand = "0.8.5"
+rand_distr = "0.4.3"
+
+
+[dependencies.pyo3]
+version = "0.17.3"
+features = ["extension-module"]

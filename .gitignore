@@ -19,3 +19,4 @@ MANIFEST
 pyo3/src/
 pyo3/target/
 .vs/
+*.lock
