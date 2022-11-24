@@ -4,21 +4,27 @@ Module containing data standardization tools.
 import typing
 import statistics
 import copy
+try:
+    from . import rust_evogression
+except ImportError:
+    pass
 
 
 class Standardizer():
 
     def __init__(self, all_data: typing.List[typing.Dict[str, float]]) -> None:
-        self.all_data = all_data
+        self.all_data = copy.deepcopy(all_data)
         self.parameters = list(all_data[0].keys())  # dict_keys obj not pickleable; hence list
         # initially create self.standarized_data as copy of all_data
-        self.standardized_data: typing.List[typing.Dict[str, float]] = copy.deepcopy(all_data)
+        # self.standardized_data: typing.List[typing.Dict[str, float]] = copy.deepcopy(all_data)
 
         self.data_modifiers: typing.Dict[str, typing.Dict[str, float]] = {}
         self.data_modifiers = {p: {'mean': 0, 'stdev': 0} for p in self.parameters}
 
         for param in self.parameters:
             self.fully_standardize_parameter(param)
+
+        self.standardized_data = rust_evogression.standardize_data(all_data)
 
 
     def fully_standardize_parameter(self, param):
@@ -32,9 +38,9 @@ class Standardizer():
         self.data_modifiers[param]['mean'] = mean
         self.data_modifiers[param]['stdev'] = stdev
 
-        new_values = [(v - mean) / stdev if stdev > 0 else v - mean for v in values]
-        for i in range(len(self.standardized_data)):
-            self.standardized_data[i][param] = new_values[i]
+        # new_values = [(v - mean) / stdev if stdev > 0 else v - mean for v in values]
+        # for i in range(len(self.standardized_data)):
+            # self.standardized_data[i][param] = new_values[i]
 
     def convert_parameter_dict_to_standardized(self, param_dict: dict) -> dict:
         '''
