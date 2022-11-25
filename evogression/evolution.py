@@ -14,6 +14,7 @@ import pickle
 from pandas import DataFrame
 from .creatures import EvogressionCreature
 from .standardize import Standardizer
+from . import data
 try:
     from .calc_error_sum import calc_error_sum
 except ImportError:
@@ -44,33 +45,28 @@ class Evolution():
                  num_cycles: int=10,
                  force_num_layers: int=0,
                  max_layers: int=10,
-                 standardize: bool=True,
                  num_cpu: int=1,
-                 fill_none: bool=True,
                  verbose: bool=True,
+                 optimize = True,
                  **kwargs) -> None:
 
-        if 'use_multip' in kwargs:
-            print('\nDeprecationWarning!  Instead of "use_multip", use "num_cpu" to specify how many processes.')
-            if kwargs['use_multip'] == True:
-                print('Using 2 processes for now.')
-                num_cpu = 2
-
         self.target_parameter = target_parameter
-        self.standardize = standardize
         self.verbose = verbose
 
         if type(all_data) == DataFrame:
-            self.all_data = all_data.to_dict('records')
+            all_data = all_data.to_dict('records')
         else:
-            self.all_data = all_data
-        if fill_none:
-            self.fill_none_with_median()
+            all_data = all_data
+
+        data.data_checks(all_data)
+
+        self.param_medians = data.calc_param_medians(all_data, target_parameter)
+        self.all_data = data.fill_none_with_median(all_data, target_parameter, self.param_medians)
 
         self.num_creatures = int(num_creatures)
         self.num_cycles = int(num_cycles)
         self.force_num_layers = int(force_num_layers)
-        self.max_layers = max_layers
+        self.max_layers = int(max_layers)
         self.num_cpu = num_cpu if num_cpu >= 1 else 1
         global find_best_creature_multip
         find_best_creature_multip = easy_multip.decorators.use_multip(find_best_creature, num_cpu=self.num_cpu)
@@ -78,24 +74,21 @@ class Evolution():
         self.best_creatures: list = []
         self.parameter_usefulness_count: dict = defaultdict(int)
 
-        if self.standardize:
-            self.standardizer = Standardizer(self.all_data)
-            self.standardized_all_data = self.standardizer.get_standardized_data()
-        else:
-            self.standardizer = None
+        self.standardizer = Standardizer(self.all_data)
+        self.standardized_all_data = self.standardizer.get_standardized_data()
 
-        self.data_checks()
         self.creatures = [EvogressionCreature(target_parameter, full_parameter_example=self.all_data[0], layers=force_num_layers, max_layers=max_layers)
                                     for _ in tqdm.tqdm(range(self.num_creatures))]
 
 
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
-            self.evolve_creatures(self.evolution_cycle, progressbar=kwargs.get('progressbar', True))
-            optimize = kwargs.get('optimize', True)
+
+            self.evolve_creatures(progressbar=kwargs.get('progressbar', True))
+
             if optimize == 'max':
                 self.optimize_best_creature(iterations=100)
-            elif type(optimize) == int:
+            elif isinstance(optimize, int):
                 if optimize > 0:
                     self.optimize_best_creature(iterations=optimize)
                 else:
@@ -103,76 +96,15 @@ class Evolution():
             elif optimize:
                 self.optimize_best_creature()
 
-            if kwargs.get('clear_creatures', False):  # save tons of memory when returning object (helps with multiprocessing)
-                self.creatures = [self.best_creature]
+            # save tons of memory when returning object (helps with multiprocessing)
+            self.creatures = [self.best_creature]    
 
 
-    def fill_none_with_median(self):
-        '''
-        Find median value of each input parameter and
-        then replace any None values with this median.
-        '''
-        # Remove any data points that have None for the target/result parameter
-        self.all_data = [d for d in self.all_data if d[self.target_parameter] is not None and not math.isnan(d[self.target_parameter])]
-
-        self.param_medians = {}  # used for default parameter values if None is provided in .predict
-        is_nan = math.isnan  # local for speed
-        parameters_adjusted = []
-        for param in self.all_data[0].keys():
-            if param != self.target_parameter:
-                values = [d[param] for d in self.all_data if d[param] is not None and not is_nan(d[param])]
-                if len(values) < len(self.all_data):  # check length so don't have to do below if no replacements
-                    median = statistics.median(values) if values else 0.0  # if values is empy list, just set all to zero
-                    self.param_medians[param] = median
-                    for d in self.all_data:
-                        if d[param] is None or is_nan(d[param]):
-                            parameters_adjusted.append(param)
-                            d[param] = median
-
-        if len(parameters_adjusted) >= 1:
-            print('Data None values filled with median for the following parameters:')
-            for param in sorted(set(parameters_adjusted)):
-                print(f'  {param}')
-
-
-    def data_checks(self) -> None:
-        '''
-        Check cleaned input data for potential issues.
-        At the point when this is called, there should be no issues with
-        the data to be used; data-cleaning methods are called earlier.
-
-        If this method prints errors, we need to write more data-cleaning capabilities to handle those cases!
-        '''
-        acceptable_types = {'float', 'int', 'float64', 'int64'}
-        issues = []
-        def check_data(data, data_name):
-            for i, d in enumerate(data):
-                for key, val in d.items():
-                    # val > & < checks are way of checking for nan without needing to require numpy import
-                    if type(val).__name__ not in acceptable_types or not (val >= 0 or val <= 0):
-                        issues.append((data_name, i, key, val))
-
-        check_data(self.all_data, 'all_data')
-        check_data(self.standardized_all_data, 'standardized_all_data')
-        for issue in issues:
-            data_name, i, key, val = issue
-            print(f'\nERROR!  NAN values detected in {data_name}!')
-            print(f'Index: {i}  key: {key}  value: {val}  type: {type(val).__name__}')
-
-        if 'N' in self.all_data[0]:
-            raise InputDataFormatError('ERROR!  Parameter "N" detected in data.  Cannot use "N" or "T" as parameters.')
-        if 'T' in self.all_data[0]:
-            raise InputDataFormatError('ERROR!  Parameter "T" detected in data.  Cannot use "N" or "T" as parameters.')
-
-
-    def evolve_creatures(self, evolution_cycle_func=None, progressbar=True) -> None:
+    def evolve_creatures(self, progressbar=True) -> None:
         '''
         Main evolution loop that handles results of each loop and
         keeps track of best creatures/regression equations.
         '''
-        if evolution_cycle_func is None:
-            evolution_cycle_func = self.evolution_cycle
-
         counter = 0
         while counter < self.num_cycles:
             counter += 1
@@ -189,20 +121,26 @@ class Evolution():
                 print(best_creature)
                 print('Total Error: ' + '{0:.2E}'.format(error))
 
-            evolution_cycle_func()
+            self.evolution_cycle()
 
 
     def evolution_cycle(self) -> None:
         '''
-        DEFAULT EVOLUTION CYCLE (meant to be replaced in subclasses)
         Run one cycle of evolution that introduces new random creatures,
         kills weak creatures, and mates the remaining ones.
         '''
-        # Add random new creatures each cycle (2.0% of num_creatures each time)
-        self.creatures.extend([EvogressionCreature(self.target_parameter, full_parameter_example=self.all_data[0], layers=self.force_num_layers, max_layers=self.max_layers) for _ in range(int(round(0.02 * self.num_creatures, 0)))])
-        random.shuffle(self.creatures)  # used to mix up new creatures in among multip and randomize feeding groups
         self.kill_weak_creatures()
+        self.mutate_top_creatures()
         self.mate_creatures()
+
+        # Add random new creatures each cycle to get back to target num creatures
+        # Or... cut out extra creatures if have too many (small chance of happening)
+        if len(self.creatures) < self.num_creatures:
+            self.creatures.extend([EvogressionCreature(self.target_parameter, full_parameter_example=self.all_data[0], layers=self.force_num_layers, max_layers=self.max_layers)
+                                           for _ in range(int(round(self.num_creatures - len(self.creatures), 0)))])
+        elif len(self.creatures) > self.num_creatures:
+            self.creatures = self.creatures[:self.num_creatures]
+        random.shuffle(self.creatures)  # used to mix up new creatures in among multip
 
 
     def record_best_creature(self, best_creature, error) -> bool:
@@ -487,22 +425,6 @@ class Evolution():
             print('Error!  "data" arg provided to .predict() must be a dict or list of dicts or DataFrame.')
 
 
-    def evolution_cycle(self) -> None:
-        '''Run one cycle of evolution'''
-        self.kill_weak_creatures()
-        self.mutate_top_creatures()
-        self.mate_creatures()
-
-        # Add random new creatures each cycle to get back to target num creatures
-        # Or... cut out extra creatures if have too many (small chance of happening)
-        if len(self.creatures) < self.num_creatures:
-            self.creatures.extend([EvogressionCreature(self.target_parameter, full_parameter_example=self.all_data[0], layers=self.force_num_layers, max_layers=self.max_layers)
-                                           for _ in range(int(round(self.num_creatures - len(self.creatures), 0)))])
-        elif len(self.creatures) > self.num_creatures:
-            self.creatures = self.creatures[:self.num_creatures]
-        random.shuffle(self.creatures)  # used to mix up new creatures in among multip
-
-
     def kill_weak_creatures(self) -> None:
         '''Overwrite CreatureEvolution's kill_weak_creatures method'''
         median_error = self.current_median_error  # local for speed
@@ -559,12 +481,3 @@ def find_best_creature(creatures: list, target_parameter: str, data: list, stand
 
     median_error = sorted(errors)[len(errors) // 2]  # MEDIAN error
     return (best_creature, best_error, median_error, calculated_creatures)
-
-
-
-class InputDataFormatError(Exception):
-    def __init__(self, *args):
-        self.message = args[0] if args else None
-
-    def __str__(self):
-        return '\n' + str(self.message) if self.message else '\n'
