@@ -23,6 +23,9 @@ except ImportError:
     print('See: https://wiki.python.org/moin/WindowsCompilers')
     print('  -> (If running Windows 7, try using Python 3.7 instead of 3.8+)\n')
 
+from . import rust_evogression
+
+
 # function must be module-level so that it is pickleable for multiprocessing
 # making it a global variable that is a function set in evolution __init__ to be module-level but still customizable
 find_best_creature_multip = None
@@ -71,9 +74,21 @@ class Evolution():
         global find_best_creature_multip
         find_best_creature_multip = easy_multip.decorators.use_multip(find_best_creature, num_cpu=self.num_cpu)
 
+        import time
+        t1_a = time.time()
+        evo_data = rust_evogression.run_evolution(target_parameter, self.all_data, num_creatures, num_cycles, max_layers)
+        # standerdizer_dicts, best_creatures, best_creature = evo_data
+
+        from pprint import pprint as pp
+        pp(evo_data)
+        std, best_cr = evo_data
+        t1_b = time.time()
+
+        
         self.best_creatures: list = []
         self.parameter_usefulness_count: dict = defaultdict(int)
-
+        
+        t2_a = time.time()
         self.standardizer = Standardizer(self.all_data)
         self.standardized_all_data = self.standardizer.get_standardized_data()
 
@@ -97,7 +112,11 @@ class Evolution():
                 self.optimize_best_creature()
 
             # save tons of memory when returning object (helps with multiprocessing)
-            self.creatures = [self.best_creature]    
+            self.creatures = [self.best_creature]  
+        t2_b = time.time()
+
+        print(f'Time for Rust version: {t1_b - t1_a:,.3f} seconds')
+        print(f'Time for Python version: {t2_b - t2_a:,.3f} seconds')
 
 
     def evolve_creatures(self, progressbar=True) -> None:
