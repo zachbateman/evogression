@@ -47,9 +47,8 @@ class TestParabolaRegression(unittest.TestCase):
         plt.show()
 
 
-
     def test_best_creature_parabola_regression_evolution(self):
-        evolution = evogression.Evolution('y', parabola_data, num_creatures=5000, num_cycles=7, force_num_layers=0, standardize=True)
+        evolution = evogression.Evolution('y', parabola_data, num_creatures=10000, num_cycles=10, force_num_layers=0, standardize=True)
 
         best_creature = evolution.best_creature
         try:
@@ -60,13 +59,7 @@ class TestParabolaRegression(unittest.TestCase):
         calculation_x_values = [i for i in range(-20, 21)]
         calculated_y_values = []
         for x in calculation_x_values:
-            try:
-                standardized_dict = standardizer.convert_parameter_dict_to_standardized({'x': x})
-                standardized_value = best_creature.calc_target(standardized_dict)
-                calculated_y_values.append(standardizer.unstandardize_value('y', standardized_value))
-            except:
-                value = best_creature.calc_target({'x'})
-                calculated_y_values.append(value)
+            calculated_y_values.append(evolution.predict({'x': x})['y_PREDICTED'])
 
         plt.scatter([d['x'] for d in parabola_data], [d['y'] for d in parabola_data])
         plt.plot(calculation_x_values, calculated_y_values, 'g--')

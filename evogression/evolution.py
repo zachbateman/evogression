@@ -76,22 +76,23 @@ class Evolution():
 
         import time
         t1_a = time.time()
-        evo_data = rust_evogression.run_evolution(target_parameter, self.all_data, num_creatures, num_cycles, max_layers)
-        # standerdizer_dicts, best_creatures, best_creature = evo_data
-
+        model = rust_evogression.run_evolution(target_parameter, self.all_data, num_creatures, num_cycles, max_layers)
+        self.model = model
+        
         from pprint import pprint as pp
-        pp(evo_data)
-        std, best_cr = evo_data
         t1_b = time.time()
 
+        pp(model)
+        # breakpoint()
         
         self.best_creatures: list = []
         self.parameter_usefulness_count: dict = defaultdict(int)
         
         t2_a = time.time()
-        self.standardizer = Standardizer(self.all_data)
-        self.standardized_all_data = self.standardizer.get_standardized_data()
+        # self.standardizer = Standardizer(self.all_data)
+        # self.standardized_all_data = self.standardizer.get_standardized_data()
 
+        '''
         self.creatures = [EvogressionCreature(target_parameter, full_parameter_example=self.all_data[0], layers=force_num_layers, max_layers=max_layers)
                                     for _ in tqdm.tqdm(range(self.num_creatures))]
 
@@ -112,9 +113,9 @@ class Evolution():
                 self.optimize_best_creature()
 
             # save tons of memory when returning object (helps with multiprocessing)
-            self.creatures = [self.best_creature]  
+            self.creatures = [self.best_creature]
+        ''' 
         t2_b = time.time()
-
         print(f'Time for Rust version: {t1_b - t1_a:,.3f} seconds')
         print(f'Time for Python version: {t2_b - t2_a:,.3f} seconds')
 
@@ -405,7 +406,8 @@ class Evolution():
             for d in data:
                 # errors result if leave in key:values not used in training (string split categories for example), so next line ensures minimum data is fed to .calc_target
                 clean_d = {key: value for key, value in d.items() if key in parameter_example}
-                d[prediction_key] = self.best_creature.calc_target(clean_d)
+                # d[prediction_key] = self.best_creature.calc_target(clean_d)
+                d[prediction_key] = self.model.predict_point(clean_d)
 
             if self.standardize:
                 unstandardized_data = []
@@ -426,20 +428,21 @@ class Evolution():
                 if not val:
                     data[param] = self.param_medians.get(param, 0.0)
 
-            if not standardized_data and self.standardize:
-                data = self.standardizer.convert_parameter_dict_to_standardized(data)
+            # if not standardized_data and self.standardize:
+            #     data = self.standardizer.convert_parameter_dict_to_standardized(data)
             # errors result if leave in key:values not used in training (string split categories for example), so next line ensures minimum data is fed to .calc_target
-            clean_data = {key: value for key, value in data.items() if key in self.best_creature.full_parameter_example}
-            data[prediction_key] = self.best_creature.calc_target(clean_data)
+            # clean_data = {key: value for key, value in data.items() if key in self.best_creature.full_parameter_example}
+            # data[prediction_key] = self.best_creature.calc_target(clean_data)
+            data[prediction_key] = self.model.predict(data)
 
-            if self.standardize:
-                unstandardized_data = {}
-                for param, value in data.items():
-                    unstandardized_data[param] = self.standardizer.unstandardize_value(target_param if param == prediction_key else param, value)
-            else:
-                unstandardized_data = data
-            return unstandardized_data
-
+            # if self.standardize:
+            #     unstandardized_data = {}
+            #     for param, value in data.items():
+            #         unstandardized_data[param] = self.standardizer.unstandardize_value(target_param if param == prediction_key else param, value)
+            # else:
+            #     unstandardized_data = data
+            # return unstandardized_data
+            return data
         else:
             print('Error!  "data" arg provided to .predict() must be a dict or list of dicts or DataFrame.')
 
