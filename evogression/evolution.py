@@ -83,41 +83,11 @@ class Evolution():
         t1_b = time.time()
 
         pp(model)
-        # breakpoint()
         
         self.best_creatures: list = []
         self.parameter_usefulness_count: dict = defaultdict(int)
         
-        t2_a = time.time()
-        # self.standardizer = Standardizer(self.all_data)
-        # self.standardized_all_data = self.standardizer.get_standardized_data()
-
-        '''
-        self.creatures = [EvogressionCreature(target_parameter, full_parameter_example=self.all_data[0], layers=force_num_layers, max_layers=max_layers)
-                                    for _ in tqdm.tqdm(range(self.num_creatures))]
-
-
-        with warnings.catch_warnings():
-            warnings.simplefilter('ignore')
-
-            self.evolve_creatures(progressbar=kwargs.get('progressbar', True))
-
-            if optimize == 'max':
-                self.optimize_best_creature(iterations=100)
-            elif isinstance(optimize, int):
-                if optimize > 0:
-                    self.optimize_best_creature(iterations=optimize)
-                else:
-                    print('Warning!  Optimization cycles must be an int > 0!')
-            elif optimize:
-                self.optimize_best_creature()
-
-            # save tons of memory when returning object (helps with multiprocessing)
-            self.creatures = [self.best_creature]
-        ''' 
-        t2_b = time.time()
         print(f'Time for Rust version: {t1_b - t1_a:,.3f} seconds')
-        print(f'Time for Python version: {t2_b - t2_a:,.3f} seconds')
 
 
     def evolve_creatures(self, progressbar=True) -> None:
@@ -433,7 +403,7 @@ class Evolution():
             # errors result if leave in key:values not used in training (string split categories for example), so next line ensures minimum data is fed to .calc_target
             # clean_data = {key: value for key, value in data.items() if key in self.best_creature.full_parameter_example}
             # data[prediction_key] = self.best_creature.calc_target(clean_data)
-            data[prediction_key] = self.model.predict(data)
+            data[prediction_key] = self.model.predict_point(data)
 
             # if self.standardize:
             #     unstandardized_data = {}
