@@ -16,7 +16,6 @@ MANIFEST
 *regression_function*
 
 
-pyo3/src/
 pyo3/target/
 .vs/
 *.lock

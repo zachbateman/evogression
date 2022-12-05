@@ -8,21 +8,21 @@ from ._version import __version__
 from pprint import pprint as pp
 from collections import namedtuple
 
-try:
-    from .calc_target_cython import calc_target_cython
-except ImportError:
-    print('\nUnable to import Cython calc_target_cython module!')
-    print('If trying to install/run on a Windows computer, you may need to a C compiler.')
-    print('See: https://wiki.python.org/moin/WindowsCompilers')
-    print('  -> (If running Windows 7, try using Python 3.7 instead of 3.8+)\n')
+# try:
+    # from .calc_target_cython import calc_target_cython
+# except ImportError:
+    # print('\nUnable to import Cython calc_target_cython module!')
+    # print('If trying to install/run on a Windows computer, you may need to a C compiler.')
+    # print('See: https://wiki.python.org/moin/WindowsCompilers')
+    # print('  -> (If running Windows 7, try using Python 3.7 instead of 3.8+)\n')
 
-try:
-    from .generate_parameter_coefficients_calc import generate_parameter_coefficients_calc
-except ImportError:
-    print('\nUnable to import Cython generate_parameter_coefficients_calc module!')
-    print('If trying to install/run on a Windows computer, you may need to a C compiler.')
-    print('See: https://wiki.python.org/moin/WindowsCompilers')
-    print('  -> (If running Windows 7, try using Python 3.7 instead of 3.8+)\n')
+# try:
+    # from .generate_parameter_coefficients_calc import generate_parameter_coefficients_calc
+# except ImportError:
+    # print('\nUnable to import Cython generate_parameter_coefficients_calc module!')
+    # print('If trying to install/run on a Windows computer, you may need to a C compiler.')
+    # print('See: https://wiki.python.org/moin/WindowsCompilers')
+    # print('  -> (If running Windows 7, try using Python 3.7 instead of 3.8+)\n')
 
 
 layer_probabilities = [1] * 3 + [2] * 2 + [3] * 1
