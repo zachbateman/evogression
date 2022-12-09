@@ -1,3 +1,4 @@
+use rand::prelude::*;
 use std::collections::HashMap;
 use crate::standardize::Standardizer;
 use crate::creature::{Creature, MutateSpeed};
@@ -40,9 +41,11 @@ impl Evolution {
         num_cycles: u16,
         max_layers: u8,
     ) -> Evolution {
+        assert!(num_creatures > 0);
+        assert!(num_cycles > 0);
+        assert!(max_layers > 0);
 
         let standardizer = Standardizer::new(&data[..]);
-        standardizer.print_standardization();
         let standardized_data = standardizer.standardized_values(data);
 
         let param_options = data[0].keys()
@@ -72,6 +75,11 @@ impl Evolution {
 
             creatures = kill_weak_creatures(creatures, &median_error);
             creatures.append(&mut mutated_top_creatures(&creatures, &min_error, &median_error));
+
+            // Shuffle creatures before mating
+            creatures.shuffle(&mut thread_rng());
+            creatures.append(&mut mate_creatures(&creatures, num_creatures - (creatures.len() as u32)));
+
 
             // Now ensure creatures is correct length by cutting off extras
             // or adding newly generated Creatures to fill to num_creatures length.
@@ -157,7 +165,7 @@ fn optimize_creature(creature: &Creature,
 fn print_optimize_data(start_error: f32, end_error: f32, best_creature: &Creature) -> () {
     println!("\n\n--- FINAL OPTIMIZATION COMPLETE ---");
     println!("Start: {}    Best: {}", start_error, end_error);
-    println!("  Generation: {}   Error: {}", best_creature.generation, best_creature.cached_error_sum.unwrap());
+    println!("  Generation: {}  Offspring: {}  Error: {}", best_creature.generation, best_creature.offspring, best_creature.cached_error_sum.unwrap());
     println!("{}", best_creature);
 }
 
@@ -166,7 +174,7 @@ fn print_cycle_data(cycle: u16, median_error: f32, best_creature: &Creature) -> 
     println!("Cycle - {} -", cycle);
     println!("Median error: {}", median_error);
     println!("Best Creature:");
-    println!("  Generation: {}   Error: {}", best_creature.generation, best_creature.cached_error_sum.unwrap());
+    println!("  Generation: {}  Offspring: {}  Error: {}", best_creature.generation, best_creature.offspring, best_creature.cached_error_sum.unwrap());
     println!("{}", best_creature);
 }
 
@@ -202,6 +210,32 @@ fn mutated_top_creatures(creatures: &Vec<Creature>, min_error: &f32, median_erro
              .filter(|cr| cr.cached_error_sum.unwrap() < error_cutoff)
              .map(|cr| cr.mutate(MutateSpeed::Fast))
              .collect()
+}
+
+fn mate_creatures(creatures: &Vec<Creature>, max_new_creatures: u32) -> Vec<Creature> {
+    let chunk_size = 1000;
+    let max_new_per_chunk = max_new_creatures / (creatures.len() as u32 / chunk_size);
+    creatures.chunks(1000)
+        .collect::<Vec<&[Creature]>>()  // have to turn into a type Rayon can use
+        .into_par_iter()
+        .map(|cr_vec| {
+                // Pre-allocate vector of expected length
+                let mut chunk_offspring = Vec::with_capacity((chunk_size / 2) as usize);
+                for chunk in cr_vec.chunks(2) {
+                    match chunk {
+                        [cr1, cr2] => {
+                            chunk_offspring.push(cr1 + cr2);
+                            },
+                        _ => (),
+                    }
+                    if chunk_offspring.len() as u32 >= max_new_per_chunk {
+                        break;
+                    }
+                }
+                chunk_offspring
+            })
+        .flatten()
+        .collect()
 }
 
 fn calc_error_sum(creature: &Creature,

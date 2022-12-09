@@ -4,6 +4,8 @@ use rand::seq::SliceRandom;
 use rand_distr::{Normal, Triangular};
 use std::collections::{HashMap, HashSet};
 use std::fmt;
+use std::ops;
+use std::cmp;
 use rayon::prelude::*;
 use pyo3::prelude::*;
 
@@ -24,6 +26,8 @@ pub struct Creature {
     pub cached_error_sum: Option<f32>,
     #[pyo3(get)]
     pub generation: u8,
+    #[pyo3(get)]
+    pub offspring: u8,
 }
 
 #[derive(Clone)]
@@ -47,7 +51,7 @@ impl Creature {
                 &parameter_options,
             ));
         }
-        Creature { equation, cached_error_sum: None, generation: 1 }
+        Creature { equation, cached_error_sum: None, generation: 1, offspring: 0 }
     }
 
     /// Calculate the resulting output value for this creature given an input of Key: Value data.
@@ -141,9 +145,140 @@ impl Creature {
 
             new_equation.push(new_layer_mods);
         }
-        Creature { equation: new_equation, cached_error_sum: None , generation: &self.generation + 1 }
+        Creature { equation: new_equation, cached_error_sum: None, generation: &self.generation + 1, offspring: self.offspring }
     }
 }
+
+impl ops::Add for &Creature {
+    type Output = Creature;
+
+    fn add(self, other: Self) -> Creature {
+
+        let mut rng = thread_rng();
+        let tri = Triangular::new(0.7, 1.3, 1.0).unwrap();
+        let norm = Normal::new(0.0, 0.1).unwrap();
+
+        // Generate new number of layers
+        let mut new_layers = ((self.num_layers() as f32 + other.num_layers() as f32) / 2.0).round() as usize;
+
+        // Possible mutation to number of layers
+        // Only add a layer if one of the input Creatures also has that number of layers
+        // (So don't add an extra layer beyond either of the parents)
+        // This avoids needing to have a refernce to potential parameters to create a new layer from scratch.
+        if rng.gen::<f64>() < 0.05 {
+            if new_layers > 1 && rng.gen::<f64>() < 0.5 {
+                new_layers -= 1;
+            } else if new_layers < cmp::max(self.num_layers(), other.num_layers()) {
+                new_layers += 1;
+            }
+        }
+
+        let mut new_equation = Vec::new();
+
+        // Generate new, mutated coefficients
+        //for (layer_mods_1, layer_mods_2) in zip(&self.equation, &other.equation) {
+        //println!("New Number of Layers: {}", new_layers);
+        for index in 0..new_layers {
+            let layer_mods_1 = self.equation.get(index);
+            let layer_mods_2 = other.equation.get(index);
+
+            // layer bias
+            let new_bias = match (layer_mods_1, layer_mods_2) {
+                (Some(mods1), Some(mods2)) => (mods1.layer_bias + mods2.layer_bias) / 2.0 * rng.sample(tri),
+                (Some(mods1), None) => mods1.layer_bias * rng.sample(tri),
+                (None, Some(mods2)) => mods2.layer_bias * rng.sample(tri),
+                (None, None) => {
+                    match rng.gen::<f64>() {
+                        x if x >= 0.0 && x <= 0.2 => 0.0,
+                        _ => rng.sample(norm),
+                    }
+                },
+            };
+
+            // previous layer coefficients
+            let prev_layer_coeff: Option<Coefficients> = match (layer_mods_1, layer_mods_2) {
+                (Some(mods1), Some(mods2)) => match (&mods1.previous_layer_coefficients, &mods2.previous_layer_coefficients) {
+                        (Some(prev1), Some(prev2)) => Some(prev1 + prev2),
+                        (Some(prev1), None) => Some(prev1.mutate(&mut rng, &tri)),
+                        (None, Some(prev2)) => Some(prev2.mutate(&mut rng, &tri)),
+                        _ => None,
+                    },
+                (Some(mods1), None) => match &mods1.previous_layer_coefficients {
+                        Some(prev1) => Some(prev1.mutate(&mut rng, &tri)),
+                        None => None,
+                    },
+                (None, Some(mods2)) => match &mods2.previous_layer_coefficients {
+                        Some(prev2) => Some(prev2.mutate(&mut rng, &tri)),
+                        None => None,
+                    },
+                (None, None) => None,
+            };
+
+
+            // specific parameter coefficients
+            let param_options: HashSet<String> = match (layer_mods_1, layer_mods_2) {
+                (Some(mods1), Some(mods2)) => {
+                    let mut params: HashSet<String> = mods1.modifiers.keys().cloned().collect();
+                    // let params_2: HashSet<String> = mods2.modifiers.keys().cloned().collect();
+                    params.extend(mods2.modifiers.keys().cloned().collect::<HashSet<String>>());
+                    params
+                    // params_1.extend(params_2)
+                },
+                (Some(mods1), None) => mods1.modifiers.keys().cloned().collect(),
+                (None, Some(mods2)) => mods2.modifiers.keys().cloned().collect(),
+                (None, None) => HashSet::new(),  // should never be triggered, but need to provide default empty value...
+            };
+
+            let mut new_modifiers = HashMap::new();
+            // println!("{:?}", param_options);
+            for param in param_options {
+                let coeffs_1 = match layer_mods_1 {
+                    Some(mods1) => mods1.modifiers.get(&param),
+                    None => None,
+                };
+                let coeffs_2 = match layer_mods_2 {
+                    Some(mods2) => mods2.modifiers.get(&param),
+                    None => None,
+                };
+
+                if rng.gen::<f64>() < 0.8 {  // 20% chance of not including current param for this layer
+                    match (coeffs_1, coeffs_2) {
+                        (Some(coeff), None) => new_modifiers.insert(param.to_string(), coeff.mutate(&mut rng, &tri)),
+                        (None, Some(coeff)) => new_modifiers.insert(param.to_string(), coeff.mutate(&mut rng, &tri)),
+                        (Some(coeff_1), Some(coeff_2)) => {
+                            let new_1 = coeff_1.mutate(&mut rng, &tri);
+                            let new_2 = coeff_2.mutate(&mut rng, &tri);
+                            new_modifiers.insert(param.to_string(), new_1 + new_2)
+                        },
+                        (None, None) => {
+                            if rng.gen::<f64>() < 0.1 {
+                                new_modifiers.insert(param.to_string(), Coefficients::new());
+                            }
+                            None
+                        },
+                    };
+                }
+            }
+
+
+            let new_layer = LayerModifiers {
+                modifiers: new_modifiers,
+                previous_layer_coefficients: prev_layer_coeff,
+                layer_bias: new_bias,
+            };
+
+            new_equation.push(new_layer);
+        }
+
+        Creature {
+            equation: new_equation,
+            cached_error_sum: None,
+            generation: cmp::max(self.generation, other.generation),
+            offspring: cmp::max(self.offspring, other.offspring) + 1,
+        }
+    }
+}
+
 
 #[pymethods]
 impl Creature {
@@ -160,11 +295,11 @@ impl Creature {
                 params.insert(param.clone());
             }
         }
-        params        
+        params
     }
 
     pub fn __repr__(&self) -> String {
-         format!("Rust Creature: {} Layers - {} Generation", self.num_layers(), self.generation)
+         format!("Rust Creature: {} Layers - {} Generation - {} Offspring", self.num_layers(), self.generation, self.offspring)
     }
 
     /// Calculate the resulting output value for this creature given an input of Key: Value data.
@@ -195,7 +330,7 @@ impl Creature {
             total = inner_total + layer_modifiers.layer_bias;
         }
         total
-    }   
+    }
 }
 
 impl fmt::Display for Creature {
@@ -271,6 +406,7 @@ impl Coefficients {
     fn calculate(&self, &param_value: &f32) -> f32 {
         &self.c * (&self.b * &param_value + &self.z).powi(self.x as i32)
     }
+
     fn new() -> Coefficients {
         let mut rng = thread_rng();
         let tri_a = Triangular::new(0.0, 2.0, 1.0).unwrap();
@@ -285,13 +421,48 @@ impl Coefficients {
         if rng.gen::<f64>() < 0.5 { b = -b; }
 
         let x = match rng.gen::<f64>() {
-            x if x >= 0.0 && x <= 0.4 => 1,
+            x if x <= 0.4 => 1,
             x if x >= 0.4 && x <= 0.75 => 2,
             _ => 3,
         };
         Coefficients { c, b, z, x }
     }
+
+    fn mutate(&self, rng: &mut ThreadRng, distr: &Triangular<f32>) -> Coefficients {
+        Coefficients {
+            c: self.c * rng.sample(distr),
+            b: self.b * rng.sample(distr),
+            z: self.z * rng.sample(distr),
+            x: (self.x as f32 * rng.sample(distr)).round() as u8,
+        }
+    }
 }
+
+impl ops::Add for Coefficients {
+    /// Add just averages two Coefficients together
+    type Output = Coefficients;
+    fn add(self, other: Self) -> Coefficients {
+        Coefficients {
+            c: (self.c + other.c) / 2.0,
+            b: (self.b + other.b) / 2.0,
+            z: (self.z + other.z) / 2.0,
+            x: ((self.x + other.x) as f32 / 2.0).round() as u8,
+        }
+    }
+}
+impl ops::Add for &Coefficients {
+    /// Add just averages two Coefficients together
+    type Output = Coefficients;
+    fn add(self, other: Self) -> Coefficients {
+        Coefficients {
+            c: (self.c + other.c) / 2.0,
+            b: (self.b + other.b) / 2.0,
+            z: (self.z + other.z) / 2.0,
+            x: ((self.x + other.x) as f32 / 2.0).round() as u8,
+        }
+    }
+}
+
 impl fmt::Display for Coefficients {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{:.4} * ({:.4} * param + {:.4}) ^ {}", self.c, self.b, self.z, self.x)
