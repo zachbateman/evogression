@@ -36,7 +36,7 @@ impl Evolution {
 impl Evolution {
     pub fn new(
         target: String,
-        data: &Vec<HashMap<String, f32>>,
+        data: &[HashMap<String, f32>],
         num_creatures: u32,
         num_cycles: u16,
         max_layers: u8,
@@ -45,7 +45,7 @@ impl Evolution {
         assert!(num_cycles > 0);
         assert!(max_layers > 0);
 
-        let standardizer = Standardizer::new(&data[..]);
+        let standardizer = Standardizer::new(data);
         let standardized_data = standardizer.standardized_values(data);
 
         let param_options = data[0].keys()
@@ -58,8 +58,8 @@ impl Evolution {
 
         for cycle in 1..=num_cycles {
             creatures.par_iter_mut().for_each(|creature| {
-                if creature.cached_error_sum == None {
-                    let err = calc_error_sum(&creature, &standardized_data, &target);
+                if creature.cached_error_sum.is_none() {
+                    let err = calc_error_sum(creature, &standardized_data, &target);
                     creature.cached_error_sum = Some(err);
                 }
             });
@@ -93,13 +93,10 @@ impl Evolution {
 
         let mut min_error = 100_000_000_000.0;  // arbitrarily large starting number
         for creature in &best_creatures {
-            match creature.cached_error_sum {
-                Some(error) => {
-                    if error < min_error {
-                        min_error = error;
-                    }
-                },
-                _ => (),
+            if let Some(error) = creature.cached_error_sum {
+                if error < min_error {
+                    min_error = error;
+                }
             }
         }
 
@@ -107,18 +104,18 @@ impl Evolution {
             .iter()
             .find(|creature| creature.cached_error_sum == Some(min_error))
             .expect("Error matching min_error to a creature!");
-        let optimized_creature = optimize_creature(&best_creature, &standardized_data, &target, 30);
+        let optimized_creature = optimize_creature(best_creature, &standardized_data, &target, 30);
 
         print_optimize_data(best_creature.cached_error_sum.unwrap(),
                             optimized_creature.cached_error_sum.unwrap(),
                             &optimized_creature);
 
         Evolution {
-            target: target,
-            num_creatures: num_creatures,
-            num_cycles: num_cycles,
-            standardizer: standardizer,
-            best_creatures: best_creatures,
+            target,
+            num_creatures,
+            num_cycles,
+            standardizer,
+            best_creatures,
             best_creature: optimized_creature,
         }
     }
@@ -138,8 +135,8 @@ fn optimize_creature(creature: &Creature,
         creatures.extend((0..500).map(|_| best_creature.mutate(speed.clone())).collect::<Vec<Creature>>());
 
         creatures.par_iter_mut().for_each(|creature| {
-            if creature.cached_error_sum == None {
-                let err = calc_error_sum(&creature, &data_points, &target);
+            if creature.cached_error_sum.is_none() {
+                let err = calc_error_sum(creature, data_points, target);
                 creature.cached_error_sum = Some(err);
             }
         });
@@ -162,14 +159,14 @@ fn optimize_creature(creature: &Creature,
     best_creature
 }
 
-fn print_optimize_data(start_error: f32, end_error: f32, best_creature: &Creature) -> () {
+fn print_optimize_data(start_error: f32, end_error: f32, best_creature: &Creature) {
     println!("\n\n--- FINAL OPTIMIZATION COMPLETE ---");
     println!("Start: {}    Best: {}", start_error, end_error);
     println!("  Generation: {}  Offspring: {}  Error: {}", best_creature.generation, best_creature.offspring, best_creature.cached_error_sum.unwrap());
     println!("{}", best_creature);
 }
 
-fn print_cycle_data(cycle: u16, median_error: f32, best_creature: &Creature) -> () {
+fn print_cycle_data(cycle: u16, median_error: f32, best_creature: &Creature) {
     println!("---------------------------------------");
     println!("Cycle - {} -", cycle);
     println!("Median error: {}", median_error);
@@ -178,7 +175,7 @@ fn print_cycle_data(cycle: u16, median_error: f32, best_creature: &Creature) -> 
     println!("{}", best_creature);
 }
 
-fn error_results_with_median(creatures: &Vec<Creature>) -> (f32, f32) {
+fn error_results_with_median(creatures: &[Creature]) -> (f32, f32) {
     let mut errors = Vec::new();
     for creature in creatures.iter() {
         errors.push(creature.cached_error_sum.unwrap());
@@ -189,7 +186,7 @@ fn error_results_with_median(creatures: &Vec<Creature>) -> (f32, f32) {
     (min_error, median_error)
 }
 
-fn error_results(creatures: &Vec<Creature>) -> f32 {
+fn error_results(creatures: &[Creature]) -> f32 {
     let mut errors = Vec::new();
     for creature in creatures.iter() {
         errors.push(creature.cached_error_sum.unwrap());
@@ -213,20 +210,17 @@ fn mutated_top_creatures(creatures: &Vec<Creature>, min_error: &f32, median_erro
 }
 
 fn mate_creatures(creatures: &Vec<Creature>, max_new_creatures: u32) -> Vec<Creature> {
-    let chunk_size = 1000;
-    let max_new_per_chunk = max_new_creatures / (creatures.len() as u32 / chunk_size);
-    creatures.chunks(1000)
+    let chunk_size: usize = 1000;
+    let max_new_per_chunk = max_new_creatures / (creatures.len() as u32 / chunk_size as u32);
+    creatures.chunks(chunk_size)
         .collect::<Vec<&[Creature]>>()  // have to turn into a type Rayon can use
         .into_par_iter()
         .map(|cr_vec| {
                 // Pre-allocate vector of expected length
-                let mut chunk_offspring = Vec::with_capacity((chunk_size / 2) as usize);
+                let mut chunk_offspring = Vec::with_capacity(chunk_size / 2);
                 for chunk in cr_vec.chunks(2) {
-                    match chunk {
-                        [cr1, cr2] => {
-                            chunk_offspring.push(cr1 + cr2);
-                            },
-                        _ => (),
+                    if let [cr1, cr2] = chunk {
+                        chunk_offspring.push(cr1 + cr2);
                     }
                     if chunk_offspring.len() as u32 >= max_new_per_chunk {
                         break;
@@ -243,7 +237,7 @@ fn calc_error_sum(creature: &Creature,
                   target_param: &str) -> f32 {
     let mut total: f32 = 0.0;
     for point in data_points {
-        let calc = creature.rust_calculate(&point);
+        let calc = creature.rust_calculate(point);
         let diff = calc - point.get(target_param)
                                .expect("Data point missing target_param");
         total += diff.powi(2);

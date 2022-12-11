@@ -47,8 +47,8 @@ impl Creature {
 
         for layer in 0..layer_limit {
             equation.push(LayerModifiers::new(
-                if layer == 0 { true } else {false},
-                &parameter_options,
+                layer == 0,
+                parameter_options,
             ));
         }
         Creature { equation, cached_error_sum: None, generation: 1, offspring: 0 }
@@ -64,7 +64,7 @@ impl Creature {
             // for each parameter that is used in the curret layer's modifiers.
             for (param, param_value) in parameters {
                 match layer_modifiers.modifiers.get(param) {
-                    Some(coefficients) => { inner_total += coefficients.calculate(&param_value); },
+                    Some(coefficients) => { inner_total += coefficients.calculate(param_value); },
                     None => (),
                 }
             }
@@ -85,7 +85,7 @@ impl Creature {
 
     pub fn create_many(num_creatures: u32, parameter_options: &Vec<&str>, max_layers: u8) -> Vec<Creature> {
         let creatures: Vec<Creature> = (0..num_creatures)
-            .map(|_| Creature::new(&parameter_options, max_layers))
+            .map(|_| Creature::new(parameter_options, max_layers))
             .collect();
         creatures
     }
@@ -93,7 +93,7 @@ impl Creature {
     pub fn create_many_parallel(num_creatures: u32, parameter_options: &Vec<&str>, max_layers: u8) -> Vec<Creature> {
         let creatures: Vec<Creature> = (0..num_creatures)
             .into_par_iter()
-            .map(|_| Creature::new(&parameter_options, max_layers))
+            .map(|_| Creature::new(parameter_options, max_layers))
             .collect();
         creatures
     }
@@ -111,24 +111,24 @@ impl Creature {
         for layer_mods in &self.equation {
             let layer_bias = match rng.gen::<f64>() {
                 x if x < 0.5 => layer_mods.layer_bias + rng.sample(norm),
-                _ => layer_mods.layer_bias.clone(),
+                _ => layer_mods.layer_bias,
             };
 
             let mut modified_coefficients = |coeff: &Coefficients| {
                 Coefficients {
-                    c: &coeff.c + rng.sample(norm),
-                    b: &coeff.b + rng.sample(norm),
-                    z: &coeff.z + rng.sample(norm),
+                    c: coeff.c + rng.sample(norm),
+                    b: coeff.b + rng.sample(norm),
+                    z: coeff.z + rng.sample(norm),
                     x: match rng.gen::<f64>() {
-                        num if num < 0.2 => &coeff.x + 1,
-                        num if num < 0.4 && &coeff.x > &1 => &coeff.x - 1,
+                        num if num < 0.2 => coeff.x + 1,
+                        num if num < 0.4 && coeff.x > 1 => coeff.x - 1,
                         _ => coeff.x,
                     }
                 }
             };
 
             let previous_layer_coefficients = match &layer_mods.previous_layer_coefficients {
-                Some(coeff) => Some(modified_coefficients(&coeff)),
+                Some(coeff) => Some(modified_coefficients(coeff)),
                 None => None,
             };
 
@@ -138,9 +138,9 @@ impl Creature {
             }
 
             let new_layer_mods = LayerModifiers {
-                modifiers: modifiers,
-                previous_layer_coefficients: previous_layer_coefficients,
-                layer_bias: layer_bias,
+                modifiers,
+                previous_layer_coefficients,
+                layer_bias,
             };
 
             new_equation.push(new_layer_mods);
@@ -189,7 +189,7 @@ impl ops::Add for &Creature {
                 (None, Some(mods2)) => mods2.layer_bias * rng.sample(tri),
                 (None, None) => {
                     match rng.gen::<f64>() {
-                        x if x >= 0.0 && x <= 0.2 => 0.0,
+                        x if (0.0..=0.2).contains(&x) => 0.0,
                         _ => rng.sample(norm),
                     }
                 },
@@ -313,7 +313,7 @@ impl Creature {
             // for each parameter that is used in the curret layer's modifiers.
             for (param, param_value) in &parameters {
                 match layer_modifiers.modifiers.get(param) {
-                    Some(coefficients) => { inner_total += coefficients.calculate(&param_value); },
+                    Some(coefficients) => { inner_total += coefficients.calculate(param_value); },
                     None => (),
                 }
             }
@@ -335,8 +335,7 @@ impl Creature {
 
 impl fmt::Display for Creature {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, " {}\n", "Creature")?;
-        //write!(f, "Creature:\n({}, {})", self.num_layers(), self.equation)
+        writeln!(f, " Creature")?;
         for (i, layer_mod) in self.equation.iter().enumerate() {
             write!(f, "  Layer {}\n{}", i+1, layer_mod)?;
         }
@@ -375,7 +374,7 @@ impl LayerModifiers {
 
         let norm = Normal::new(0.0, 0.1).unwrap();
         let layer_bias = match rng.gen::<f64>() {
-            x if x >= 0.0 && x <= 0.2 => 0.0,
+            x if (0.0..=0.2).contains(&x) => 0.0,
             _ => rng.sample(norm),
         };
         LayerModifiers { modifiers, previous_layer_coefficients, layer_bias }
@@ -383,13 +382,13 @@ impl LayerModifiers {
 }
 impl fmt::Display for LayerModifiers {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "    Bias:  {:.4}\n", self.layer_bias)?;
+        writeln!(f, "    Bias:  {:.4}", self.layer_bias)?;
         match &self.previous_layer_coefficients {
-            Some(coeff) => write!(f, "    Previous Layer:   ->  {}\n", coeff)?,
+            Some(coeff) => writeln!(f, "    Previous Layer:   ->  {}", coeff)?,
             _ => (),
         }
         for (key, coeff) in &self.modifiers {
-            write!(f, "    Param \"{}\"   ->   {}\n", key, coeff)?;
+            writeln!(f, "    Param \"{}\"   ->   {}", key, coeff)?;
         }
         Ok(())
     }
@@ -404,7 +403,7 @@ struct Coefficients { c: f32, b: f32, z: f32, x: u8 }
 
 impl Coefficients {
     fn calculate(&self, &param_value: &f32) -> f32 {
-        &self.c * (&self.b * &param_value + &self.z).powi(self.x as i32)
+        self.c * (self.b * param_value + self.z).powi(self.x as i32)
     }
 
     fn new() -> Coefficients {
@@ -422,7 +421,7 @@ impl Coefficients {
 
         let x = match rng.gen::<f64>() {
             x if x <= 0.4 => 1,
-            x if x >= 0.4 && x <= 0.75 => 2,
+            x if (0.4..=0.75).contains(&x) => 2,
             _ => 3,
         };
         Coefficients { c, b, z, x }

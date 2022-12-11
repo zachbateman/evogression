@@ -34,7 +34,7 @@ impl Standardizer {
         for (key, value) in data {
             standardized.insert(key.to_string(), self.standardizers.get(key)
                     .expect("Did not have a ParamStandardizer for a given key?")
-                    .standardize(&value));
+                    .standardize(value));
         }
         standardized
     }
@@ -46,7 +46,7 @@ impl Standardizer {
             for (key, value) in row {
                 new_row.insert(key.to_string(), self.standardizers.get(key)
                         .expect("Did not have a ParamStandardizer for a given key?")
-                        .standardize(&value));
+                        .standardize(value));
             }
             compiled.push(new_row);
         }
@@ -72,10 +72,10 @@ pub struct ParamStandardizer {
 }
 
 impl ParamStandardizer {
-    fn new(values: &Vec<&f32>) -> ParamStandardizer {
+    fn new(values: &[&f32]) -> ParamStandardizer {
         ParamStandardizer {
             mean: mean(values).expect("Cannot calculate mean for empty data"),
-            stdev: std_deviation(&values[..]).expect("Cannot calculate std_deviation for empty data"),
+            stdev: std_deviation(values).expect("Cannot calculate std_deviation for empty data"),
         }
     }
     fn standardize(&self, value: &f32) -> f32 {
