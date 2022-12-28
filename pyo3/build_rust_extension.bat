@@ -1,5 +1,5 @@
 
-set PYO3_PYTHON=C:\Users\Zach\AppData\Local\Programs\Python\Python310\python.exe
+set PYO3_PYTHON=C:\Users\Zach\AppData\Local\Programs\Python\Python311\python.exe
 
 cargo build --release
 

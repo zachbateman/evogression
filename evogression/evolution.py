@@ -2,33 +2,12 @@
 Module containing evolution algorithms for regression.
 '''
 from typing import List, Dict, Union
-import statistics
-import copy
-import random
-import math
-import tqdm
-import warnings
 from collections import defaultdict
-import easy_multip
+import os
 import pickle
 from pandas import DataFrame
-# from .creatures import EvogressionCreature
-from .standardize import Standardizer
 from . import data
-# try:
-#     from .calc_error_sum import calc_error_sum
-# except ImportError:
-#     print('\nUnable to import Cython calc_error_sum module!')
-#     print('If trying to install/run on a Windows computer, you may need to a C compiler.')
-#     print('See: https://wiki.python.org/moin/WindowsCompilers')
-#     print('  -> (If running Windows 7, try using Python 3.7 instead of 3.8+)\n')
-
 from . import rust_evogression
-
-
-# function must be module-level so that it is pickleable for multiprocessing
-# making it a global variable that is a function set in evolution __init__ to be module-level but still customizable
-find_best_creature_multip = None
 
 
 class Evolution():
@@ -47,7 +26,7 @@ class Evolution():
                  num_cycles: int=10,
                  force_num_layers: int=0,
                  max_layers: int=10,
-                 num_cpu: int=1,
+                 max_cpu: int=max(os.cpu_count()-1, 1),  # by default use all but one core
                  verbose: bool=True,
                  optimize = True,
                  **kwargs) -> None:
@@ -65,104 +44,15 @@ class Evolution():
 
         self.num_creatures = int(num_creatures)
         self.num_cycles = int(num_cycles)
-        # self.force_num_layers = int(force_num_layers)
         self.max_layers = int(max_layers)
-        # self.num_cpu = num_cpu if num_cpu >= 1 else 1
-        # global find_best_creature_multip
-        # find_best_creature_multip = easy_multip.decorators.use_multip(find_best_creature, num_cpu=self.num_cpu)
 
-        model = rust_evogression.run_evolution(target_parameter, self.all_data, num_creatures, num_cycles, max_layers)
-        self.model = model
-        
+        os.environ['RAYON_NUM_THREADS'] = str(max_cpu)
+        self.model = rust_evogression.run_evolution(target_parameter, self.all_data, num_creatures, num_cycles, max_layers)
+
         self.parameter_usefulness_count: dict = defaultdict(int)
-        for creature in model.best_creatures:
+        for creature in self.model.best_creatures:
             for param in creature.used_parameters():
                 self.parameter_usefulness_count[param] += 1
-
-
-    # def evolution_cycle(self) -> None:
-    #     '''
-    #     Run one cycle of evolution that introduces new random creatures,
-    #     kills weak creatures, and mates the remaining ones.
-    #     '''
-    #     self.kill_weak_creatures()
-    #     self.mutate_top_creatures()
-    #     self.mate_creatures()
-
-    #     # Add random new creatures each cycle to get back to target num creatures
-    #     # Or... cut out extra creatures if have too many (small chance of happening)
-    #     if len(self.creatures) < self.num_creatures:
-    #         self.creatures.extend([EvogressionCreature(self.target_parameter, full_parameter_example=self.all_data[0], layers=self.force_num_layers, max_layers=self.max_layers)
-    #                                        for _ in range(int(round(self.num_creatures - len(self.creatures), 0)))])
-    #     elif len(self.creatures) > self.num_creatures:
-    #         self.creatures = self.creatures[:self.num_creatures]
-    #     random.shuffle(self.creatures)  # used to mix up new creatures in among multip
-
-
-    # def record_best_creature(self, best_creature, error) -> bool:
-    #     '''
-    #     Saves a copy of the provided best creature (and its error)
-    #     into self.best_creatures list.
-
-    #     Returns True/False depending on if the recorded creature is a new
-    #     BEST creature (compared to previously recorded best creatures).
-
-    #     Also record parameters used in regression equation (modifiers dict)
-    #     to parameter_usefulness_count if a new best error/creatures.
-    #     '''
-    #     new_best_creature = False
-    #     if error < self.best_error:
-    #         new_best_creature = True
-    #         # now count parameter usage if better than previous best creatures
-    #         for param in best_creature.used_parameters():
-    #             self.parameter_usefulness_count[param] += 1
-
-    #     self.best_creatures.append([copy.deepcopy(best_creature), error])
-    #     return new_best_creature
-
-
-    # @property
-    # def best_creature(self) -> EvogressionCreature:
-    #     '''
-    #     Return the best creature available in the self.best_creatures list.
-    #     '''
-    #     best_creature, best_error = None, 10 ** 150
-    #     for creature_list in self.best_creatures:
-    #         if creature_list[1] < best_error:
-    #             best_error = creature_list[1]
-    #             best_creature = creature_list[0]
-    #     return best_creature
-
-
-    # @property
-    # def best_error(self) -> float:
-    #     '''
-    #     Return error associated with best creature available in self.best_creatures list.
-    #     If no existing best_creatures, return default huge error.
-    #     '''
-    #     best_error = 10 ** 150
-    #     for creature_list in self.best_creatures:
-    #         if creature_list[1] < best_error:
-    #             best_error = creature_list[1]
-    #     return best_error
-
-
-    # def mate_creatures(self) -> None:
-    #     '''Mate creatures to generate new creatures'''
-    #     rand_rand = random.random
-    #     new_creatures = []
-    #     append = new_creatures.append  # local for speed
-    #     self_creatures = self.creatures  # local for speed
-    #     for i in range(0, len(self.creatures), 2):
-    #         if rand_rand() < 0.5:  # only a 50% chance of mating (cuts down on calcs and issues of too many creatures each cycle)
-    #             creature_group = self_creatures[i: i + 2]
-    #             try:
-    #                 new_creature = creature_group[0] + creature_group[1]
-    #                 if new_creature:
-    #                     append(new_creature)
-    #             except IndexError:  # occurs when at the end of self.creatures
-    #                 pass
-    #     self.creatures.extend(new_creatures)
 
 
     def output_best_regression(self, output_filename='regression_function', add_error_value=False) -> None:
