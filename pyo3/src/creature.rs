@@ -9,6 +9,8 @@ use std::cmp;
 use rayon::prelude::*;
 use pyo3::prelude::*;
 
+use crate::standardize::Standardizer;
+
 
 fn num_layers() -> u8 {
     // Generate a random number of Creature modifier layers
@@ -16,9 +18,11 @@ fn num_layers() -> u8 {
 }
 
 
-/// A "Creature" is essentially a randomly generated function.
-/// The equation of a creature can be one or more Coefficients in one or more
-/// LayerModifiers which function as one or more layers for a simple neural network.
+/**
+A "Creature" is essentially a randomly generated function.
+The equation of a creature can be one or more Coefficients in one or more
+LayerModifiers which function as one or more layers for a simple neural network.
+*/
 #[pyclass]
 #[derive(Clone)]
 pub struct Creature {
@@ -63,18 +67,16 @@ impl Creature {
             // Run through each input parameter and record impact
             // for each parameter that is used in the curret layer's modifiers.
             for (param, param_value) in parameters {
-                match layer_modifiers.modifiers.get(param) {
-                    Some(coefficients) => { inner_total += coefficients.calculate(param_value); },
-                    None => (),
+                if let Some(coefficients) = layer_modifiers.modifiers.get(param) {
+                    inner_total += coefficients.calculate(param_value);
                 }
             }
 
             // Check if current layer applies coefficients to the total after previous layer
             // Since "total" is updated at the end of each full layer, that same "total"
             // is the resulf of the prevous layer used as an input parameter.
-            match &layer_modifiers.previous_layer_coefficients {
-                Some(t_coefficients) => { inner_total += t_coefficients.calculate(&total); },
-                _ => (),
+            if let Some(t_coefficients) = &layer_modifiers.previous_layer_coefficients {
+                inner_total += t_coefficients.calculate(&total);
             }
 
             // Add in the bias "layer_bias" to the current layer's calculation.
@@ -219,10 +221,8 @@ impl ops::Add for &Creature {
             let param_options: HashSet<String> = match (layer_mods_1, layer_mods_2) {
                 (Some(mods1), Some(mods2)) => {
                     let mut params: HashSet<String> = mods1.modifiers.keys().cloned().collect();
-                    // let params_2: HashSet<String> = mods2.modifiers.keys().cloned().collect();
                     params.extend(mods2.modifiers.keys().cloned().collect::<HashSet<String>>());
                     params
-                    // params_1.extend(params_2)
                 },
                 (Some(mods1), None) => mods1.modifiers.keys().cloned().collect(),
                 (None, Some(mods2)) => mods2.modifiers.keys().cloned().collect(),
@@ -230,7 +230,6 @@ impl ops::Add for &Creature {
             };
 
             let mut new_modifiers = HashMap::new();
-            // println!("{:?}", param_options);
             for param in param_options {
                 let coeffs_1 = match layer_mods_1 {
                     Some(mods1) => mods1.modifiers.get(&param),
@@ -240,7 +239,6 @@ impl ops::Add for &Creature {
                     Some(mods2) => mods2.modifiers.get(&param),
                     None => None,
                 };
-
                 if rng.gen::<f64>() < 0.8 {  // 20% chance of not including current param for this layer
                     match (coeffs_1, coeffs_2) {
                         (Some(coeff), None) => new_modifiers.insert(param.to_string(), coeff.mutate(&mut rng, &tri)),
@@ -288,7 +286,6 @@ impl Creature {
     }
 
     pub fn used_parameters(&self) -> HashSet<String> {
-        // let mut params = Vec::new();
         let mut params = HashSet::new();
         for layer_modifiers in &self.equation {
             for param in layer_modifiers.modifiers.keys() {
@@ -312,24 +309,93 @@ impl Creature {
             // Run through each input parameter and record impact
             // for each parameter that is used in the curret layer's modifiers.
             for (param, param_value) in &parameters {
-                match layer_modifiers.modifiers.get(param) {
-                    Some(coefficients) => { inner_total += coefficients.calculate(param_value); },
-                    None => (),
+                if let Some(coefficients) = layer_modifiers.modifiers.get(param) {
+                    inner_total += coefficients.calculate(param_value);
                 }
             }
 
             // Check if current layer applies coefficients to the total after previous layer
             // Since "total" is updated at the end of each full layer, that same "total"
             // is the resulf of the prevous layer used as an input parameter.
-            match &layer_modifiers.previous_layer_coefficients {
-                Some(t_coefficients) => { inner_total += t_coefficients.calculate(&total); },
-                _ => (),
+            if let Some(t_coefficients) = &layer_modifiers.previous_layer_coefficients {
+                inner_total += t_coefficients.calculate(&total);
             }
 
             // Add in the bias "layer_bias" to the current layer's calculation.
             total = inner_total + layer_modifiers.layer_bias;
         }
         total
+    }
+}
+
+impl Creature {
+    // Create a string which creates a Python module with callable regression function
+    pub fn python_regression_module_string(&self, standardizer: &Standardizer, target: &String) -> String {
+        let mut s = "'''\nPython regression function module generated by Evogression\n'''\n\n".to_string();
+        s += "def regression(parameters: dict) -> float:\n";
+        s += format!("    '''\n    Function for predicting '{}'\n    Generated from an Evogression Creature\n    '''\n\n", target).as_str();
+
+        let used_parameters = self.used_parameters();
+        if !used_parameters.is_empty() {
+            s += "    # Standardize input data\n";
+            s += "    data = {}\n";
+            s += "    for param, value in parameters.items():\n";
+            for (param, param_stand) in &standardizer.standardizers {
+                if used_parameters.contains(param) {
+                    s += format!("        if param == '{}':\n", param).as_str();
+                    match param_stand.stdev {
+                        x if x == 0.0 => s += format!("            data['{}'] = value - {:.5}\n", param, param_stand.mean).as_str(),
+                        _ => s += format!("            data['{}'] = (value - {:.5}) / {:.5}\n", param, param_stand.mean, param_stand.stdev).as_str(),
+                    }
+                }
+            }
+        }
+
+        s += "\n    T = 0\n\n";
+
+        fn coeff_equation_string(coeff: &Coefficients, value: &str) -> String {
+            match coeff.x {
+                0 => format!("    T += {:.4}\n", coeff.c),  // zero exponent makes second chunk equal 1
+                1 => format!("    T += {:.4} * {} + {:.4}\n", coeff.c * coeff.b, value, coeff.c * coeff.z),
+                2 => {
+                    // c * (b * param + z) ^ 2
+                    // c * [b^2 * param^2 + 2*z*b*param + z^2]
+                    // c * b^2 * param^2 + 2*c*z*b*param + c * z^2
+                    let c1 = coeff.c * coeff.b.powf(2.0);
+                    let c2 = 2.0 * coeff.c * coeff.z * coeff.b;
+                    let c3 = coeff.c * coeff.z.powf(2.0);
+                    format!("    T += {:.4} * {} ** 2 + {:.4} * {} + {:.4}\n", c1, value, c2, value, c3)
+                },
+                // default calculation that the above matches simplify/expand
+                _ => format!("    T += {:.4} * ({:.4} * {} + {:.4}) ** {:.2}\n", coeff.c, coeff.b, value, coeff.z, coeff.x),
+            }
+        }
+
+        for (i, layer_mods) in self.equation.iter().enumerate() {
+            s += format!("    # LAYER_{}\n", i+1).as_str();
+            s += format!("    T += {:.4}\n", layer_mods.layer_bias).as_str();
+            if let Some(coeff) = &layer_mods.previous_layer_coefficients {
+                s += coeff_equation_string(coeff, "previous_T").as_str();
+            }
+            for (param, coeff) in &layer_mods.modifiers {
+                let val = format!("data['{}']", param);
+                s += coeff_equation_string(coeff, val.as_str()).as_str();
+            }
+            if i < self.equation.len() - 1 {
+                s += "    previous_T, T = T, 0\n";
+            }
+            s += "\n";
+        }
+
+        // if let to take care of Option, but this should ALWAYS trigger
+        if let Some(target_std) = standardizer.standardizers.get(target) {
+            s += "    # Unstandardize result\n";
+            s += format!("    T = T * {:.5} + {:.5}\n\n", target_std.stdev, target_std.mean).as_str();
+        }
+
+        s += "    return T\n";
+
+        s.to_string()
     }
 }
 
@@ -383,9 +449,8 @@ impl LayerModifiers {
 impl fmt::Display for LayerModifiers {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         writeln!(f, "    Bias:  {:.4}", self.layer_bias)?;
-        match &self.previous_layer_coefficients {
-            Some(coeff) => writeln!(f, "    Previous Layer:   ->  {}", coeff)?,
-            _ => (),
+        if let Some(coeff) = &self.previous_layer_coefficients {
+            writeln!(f, "    Previous Layer:   ->  {}", coeff)?
         }
         for (key, coeff) in &self.modifiers {
             writeln!(f, "    Param \"{}\"   ->   {}", key, coeff)?;
@@ -481,13 +546,13 @@ mod tests {
         let creature = Creature::new(&param_options, 3);
         println!("\n\n{}\n", creature);
 
-        assert_eq!(creature.num_layers() >= 1 && creature.num_layers() <= 3, true);
+        assert!(creature.num_layers() >= 1 && creature.num_layers() <= 3);
 
         let test_coeff = creature.equation[0].modifiers.values().next()
             .expect("\n--> OKAY if this fails occasionally as it is possible to \
                      \ngenerate a creature with no modifiers for the first layer.");
         println!("{}", test_coeff);
-        assert_eq!((test_coeff.c.abs() + test_coeff.b.abs()) > 0.0, true);
+        assert!((test_coeff.c.abs() + test_coeff.b.abs()) > 0.0);
 
         let input_data = HashMap::from([("width".to_string(), 2.1245), ("height".to_string(), 0.52412)]);
 
@@ -506,13 +571,12 @@ mod tests {
             println!("{}", result);
             total += result;
         }
-        assert_eq!(total != 0.0, true);
+        assert!(total != 0.0);
     }
 
     #[test]
     fn generate_many_creatures() {
         let param_options = vec!["width", "height", "weight"];
-        //let mut creatures = Vec::new();
 
         let t0 = Instant::now();
         Creature::create_many(100000, &param_options, 3);
@@ -535,7 +599,7 @@ mod tests {
         let mutant1 = creature.mutate(MutateSpeed::Fast);
         let mutant2 = creature.mutate(MutateSpeed::Fine);
         let mut_bias = mutant1.equation[0].layer_bias + mutant2.equation[0].layer_bias;
-        assert_eq!(mut_bias != (creature.equation[0].layer_bias * 2.0), true);
+        assert!(mut_bias != (creature.equation[0].layer_bias * 2.0));
     }
 
     #[test]

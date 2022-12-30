@@ -14,6 +14,7 @@ class TestParabolaRegression(unittest.TestCase):
 
     def test_best_creature_parabola_regression_evolution(self):
         model = evogression.Evolution('y', parabola_data, num_creatures=10000, num_cycles=10, force_num_layers=0, standardize=True)
+        model.output_best_regression(directory='regression_modules', add_error_value=True)
 
         x_values = list(range(-20, 21))
         y_values = [model.predict({'x': x})['y_PREDICTED'] for x in x_values]

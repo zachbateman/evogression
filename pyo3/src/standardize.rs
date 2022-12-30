@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 
 pub struct Standardizer {
-    standardizers: HashMap<String, ParamStandardizer>,
+    pub standardizers: HashMap<String, ParamStandardizer>,
 }
 
 impl Standardizer {
@@ -67,8 +67,8 @@ impl Standardizer {
 
 #[derive(Debug)]
 pub struct ParamStandardizer {
-    mean: f32,
-    stdev: f32,
+    pub mean: f32,
+    pub stdev: f32,
 }
 
 impl ParamStandardizer {
@@ -118,11 +118,11 @@ mod tests {
     #[test]
     fn mean_calcs() {
         let v1: Vec<&f32> = vec![&3.0, &5.8, &1.5, &-3.7];
-        assert_eq!((mean(&v1[..]).unwrap() - 1.65).abs() < 0.00001, true);
+        assert!((mean(&v1[..]).unwrap() - 1.65).abs() < 0.00001);
         let v2: Vec<&f32> = vec![&-87.3];
-        assert_eq!((mean(&v2[..]).unwrap() - (-87.3)).abs() < 0.00001, true);
+        assert!((mean(&v2[..]).unwrap() - (-87.3)).abs() < 0.00001);
         let v3 = vec![];
-        assert_eq!(mean(&v3[..]) == None, true);
+        assert!(mean(&v3[..]).is_none());
     }
 
     #[test]
@@ -132,6 +132,6 @@ mod tests {
         println!("Std: {}", result);
         // checking against "sample" standard deviation method where divide by n-1
         // dividing by n for "population" would instead calculate 2.646
-        assert_eq!((result - 2.89856).abs() < 0.0001, true);
+        assert!((result - 2.89856).abs() < 0.0001);
     }
 }

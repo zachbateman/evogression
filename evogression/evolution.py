@@ -24,15 +24,11 @@ class Evolution():
                  all_data: Union[List[Dict[str, float]], DataFrame],
                  num_creatures: int=10000,
                  num_cycles: int=10,
-                 force_num_layers: int=0,
                  max_layers: int=10,
                  max_cpu: int=max(os.cpu_count()-1, 1),  # by default use all but one core
-                 verbose: bool=True,
-                 optimize = True,
                  **kwargs) -> None:
 
         self.target_parameter = target_parameter
-        # self.verbose = verbose
 
         if isinstance(all_data, DataFrame):
             all_data = all_data.to_dict('records')
@@ -55,18 +51,27 @@ class Evolution():
                 self.parameter_usefulness_count[param] += 1
 
 
-    def output_best_regression(self, output_filename='regression_function', add_error_value=False) -> None:
+    def output_best_regression(self, output_filename='regression_function', directory: str='.', add_error_value=False) -> None:
         '''
         Save this the regression equation/function this evolution has found
         to be the best into a new Python module so that the function itself
         can be imported and used in other code.
         '''
-        name_ext = f'___{round(self.best_error, 4)}' if add_error_value else ''
+        name_ext = f'___{round(self.model.best_error(), 4)}' if add_error_value else ''
 
-        if self.standardize:
-            self.best_creature.output_python_regression_module(output_filename=output_filename, standardizer=self.standardizer, directory='regression_modules', name_ext=name_ext)
-        else:
-            self.best_creature.output_python_regression_module(output_filename=output_filename, directory='regression_modules', name_ext=name_ext)
+        if directory != '.' and not os.path.exists(directory):
+            os.mkdir(directory)
+
+        if output_filename[-3:] == '.py':  # adding .py later; removing to easily check for periods
+            output_filename = output_filename[:-3]
+
+        output_filename = output_filename.replace('.', '_') # period in filename not valid
+        output_filename = os.path.join(directory, output_filename + name_ext.replace('.', '_') + '.py')
+
+        output_str = self.model.python_regression_module_string()
+        with open(output_filename, 'w') as f:
+            f.write(output_str)
+        print('Evogression model saved as a Python module.')
 
 
     def save(self, filename='evolution_model') -> None:

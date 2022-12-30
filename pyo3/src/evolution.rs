@@ -31,6 +31,21 @@ impl Evolution {
     fn __repr__(&self) -> String {
         format!("Rust Evolution: {} Creatures - {} Cycles", self.num_creatures, self.num_cycles)
     }
+
+    fn best_error(&self) -> f32 {
+        self.best_creature.cached_error_sum.unwrap_or(999.9)
+    }
+
+    fn python_regression_module_string(&self) -> String {
+        self.generate_python_regression_module_string()
+    }
+}
+impl Evolution {
+    // Have this non-pymethods function as passing in &self.standardizer
+    // was causing issues in the pymethods impl block
+    fn generate_python_regression_module_string(&self) -> String {
+        self.best_creature.python_regression_module_string(&self.standardizer, &self.target)
+    }
 }
 
 impl Evolution {
@@ -264,7 +279,7 @@ mod tests {
         ];
 
         let evo = Evolution::new(target.into(), &data, 10000, 10, 3);
-        assert_eq!(evo.num_creatures == 10000, true);
+        assert!(evo.num_creatures == 10000);
     }
 
     #[test]
