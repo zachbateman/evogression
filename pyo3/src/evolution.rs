@@ -226,7 +226,12 @@ fn mutated_top_creatures(creatures: &Vec<Creature>, min_error: &f32, median_erro
 
 fn mate_creatures(creatures: &Vec<Creature>, max_new_creatures: u32) -> Vec<Creature> {
     let chunk_size: usize = 1000;
-    let max_new_per_chunk = max_new_creatures / (creatures.len() as u32 / chunk_size as u32);
+
+    let max_new_per_chunk = match creatures.len() as u32 / chunk_size as u32 {
+        x if x == 0 => 2,
+        x => max_new_creatures / x,
+    };
+
     creatures.chunks(chunk_size)
         .collect::<Vec<&[Creature]>>()  // have to turn into a type Rayon can use
         .into_par_iter()
@@ -328,7 +333,11 @@ mod tests {
             HashMap::from([("x".to_string(), 20.0), ("y".to_string(), 758.0144333664495)]),
         ];
         let target = String::from("y");
-        let model = Evolution::new(target, &parabola_data, 5000, 7, 3);
+        let model = Evolution::new(target, &parabola_data, 5000, 7, 2);
+
+        for creature in &model.best_creatures {
+            assert!(creature.num_layers() <= 2);  // Light check on max_layers
+        }
 
         let output_data: Vec<f32> = (-20..=20)
             .map(|x| model.predict_point(HashMap::from([("x".to_string(), x as f32)])))

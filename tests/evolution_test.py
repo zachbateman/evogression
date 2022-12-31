@@ -1,5 +1,4 @@
 import unittest
-import os
 import sys
 sys.path.insert(1, '..')
 import evogression
@@ -24,45 +23,21 @@ class TestPredictionMethods(unittest.TestCase):
             test_passed = False
         self.assertTrue(test_passed)
 
-    def test_max_layers(self):
-        evolution = evogression.Evolution('y', linear_data, max_layers=2, num_creatures=10000, num_cycles=1, use_multip=False)
-        single_layer, double_layer = 0, 0
-        for cr in evolution.creatures:
-            if cr.layers == 1:
-                single_layer += 1
-            elif cr.layers == 2:
-                double_layer += 1
-            else:
-                print(cr.layers)
-        print(f'{single_layer}')
-        print(f'{double_layer}')
-        print(single_layer+double_layer)
-        self.assertTrue(max((cr.layers for cr in evolution.creatures)) <= 2)
-
     def test_param_usage_counts(self):
         evolution = evogression.Evolution('Target', many_d_data, num_creatures=300, num_cycles=30, use_multip=False, optimize=False)
         pp(evolution.parameter_usefulness_count)
         d = dict(evolution.parameter_usefulness_count)
         self.assertTrue(len(d) > 1)
         self.assertTrue(sum(d.values()) > 3)
-        self.assertTrue(True)
 
-    def test_bad_data_N(self):
-        self.assertRaises(evogression.evolution.InputDataFormatError,
-            evogression.Evolution, 'a', [{'a': 5, 'b': 5, 'N': 6}, {'a': 6, 'b': 6, 'N': 7}])
-
-    def test_bad_data_T(self):
-        self.assertRaises(evogression.evolution.InputDataFormatError,
-            evogression.Evolution, 'a', [{'a': 5, 'b': 5, 'T': 6}, {'a': 6, 'b': 6, 'T': 7}])
-
-    def test_save_and_load(self):
-        evolution = evogression.Evolution('y', linear_data, num_creatures=1000, num_cycles=5, use_multip=False)
-        prediction1 = evolution.predict({'x': 5.2})
-        evolution.save('linear_model')
-        loaded_model = evogression.Evolution.load('linear_model')
-        os.remove('linear_model.pkl')
-        prediction2 = loaded_model.predict({'x': 5.2})
-        self.assertTrue(prediction1 == prediction2)
+    # def test_save_and_load(self):
+        # evolution = evogression.Evolution('y', linear_data, num_creatures=1000, num_cycles=5, use_multip=False)
+        # prediction1 = evolution.predict({'x': 5.2})
+        # evolution.save('linear_model')
+        # loaded_model = evogression.Evolution.load('linear_model')
+        # os.remove('linear_model.pkl')
+        # prediction2 = loaded_model.predict({'x': 5.2})
+        # self.assertTrue(prediction1 == prediction2)
 
 
 

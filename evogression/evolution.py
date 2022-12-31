@@ -24,7 +24,7 @@ class Evolution():
                  all_data: Union[List[Dict[str, float]], DataFrame],
                  num_creatures: int=10000,
                  num_cycles: int=10,
-                 max_layers: int=10,
+                 max_layers: int=3,
                  max_cpu: int=max(os.cpu_count()-1, 1),  # by default use all but one core
                  **kwargs) -> None:
 
@@ -79,13 +79,8 @@ class Evolution():
         Save this Evolution Python object/model in a pickle file.
         Also removes non-essential data to reduce file size.
         '''
-        # Clearing or shrinking these attributes provides a smaller file size.
-        self.best_creatures[-10:]
-        self.creatures = [self.best_creature]
+        # Clearing or shrinking unneeded attributes provides a smaller file size.
         self.all_data = None
-        self.standardized_all_data = None
-        self.standardizer.all_data = None
-        self.standardizer.standardized_data = None
 
         with open(filename if '.' in filename else filename + '.pkl', 'wb') as f:
             pickle.dump(self, f)
@@ -118,38 +113,23 @@ class Evolution():
             data = data.to_dict('records')  # will get processed as list
 
         if isinstance(data, list):  # DataFrames also get processed here (previously converted to a list)
-            # make any None values the previously calculated median from the training data
             for d in data:
                 for param, val in d.items():
-                    if not val:
+                    if not val:  # make any None values the previously calculated median from the training data
                         d[param] = self.param_medians.get(param, 0.0)
+                clean = {k: v for k, v in d.items() if not isinstance(v, str)}
+                d[prediction_key] = self.model.predict_point(clean)
 
-            if not standardized_data and self.standardize:
-                data = [self.standardizer.convert_parameter_dict_to_standardized(d) for d in data]
-            parameter_example = self.best_creature.full_parameter_example
-            for d in data:
-                # errors result if leave in key:values not used in training (string split categories for example), so next line ensures minimum data is fed to .calc_target
-                clean_d = {key: value for key, value in d.items() if key in parameter_example}
-                d[prediction_key] = self.model.predict_point(clean_d)
-
-            if self.standardize:
-                unstandardized_data = []
-                for d in data:
-                    unstandardized_d = {}
-                    for param, value in d.items():
-                        unstandardized_d[param] = self.standardizer.unstandardize_value(target_param if param == prediction_key else param, value)
-                    unstandardized_data.append(unstandardized_d)
-            else:
-                unstandardized_data = data
             if is_dataframe:
-                unstandardized_data = DataFrame(unstandardized_data)
-            return unstandardized_data
+                data = DataFrame(data)
+            return data
 
         elif isinstance(data, dict):
             # make any None values the previously calculated median from the training data
             for param, val in data.items():
                 if not val:
                     data[param] = self.param_medians.get(param, 0.0)
+            data = {k: v for k, v in data.items() if not isinstance(v, str)}
             data[prediction_key] = self.model.predict_point(data)
             return data
         else:

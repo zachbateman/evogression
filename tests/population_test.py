@@ -14,7 +14,7 @@ random.seed(10)  # for reproducing the same plot
 class TestPopulationCateogry(unittest.TestCase):
 
     def test_population_category_2d(self):
-        population = evogression.Population('y', categorical_data, split_parameter='cat', optimize=3)
+        population = evogression.Population('y', categorical_data, split_parameter='cat', num_creatures=3000)
         y_test = [population.predict(d, 'pred')['pred'] for d in categorical_data]
 
         plt.scatter([pd['x'] for pd in categorical_data], [pd['y'] for pd in categorical_data], s=100)
@@ -38,7 +38,7 @@ class TestPopulationCateogry(unittest.TestCase):
 
 
     def test_population_continuous_3d(self):
-        population = evogression.Population('z', surface_3d_data, num_creatures=5000, num_cycles=10, group_size=5, optimize=5, split_parameter='y', category_or_continuous='continuous')
+        population = evogression.Population('z', surface_3d_data, num_creatures=5000, num_cycles=7, group_size=5, split_parameter='y', category_or_continuous='continuous')
         data = population.predict(surface_3d_data, 'z_predicted')
 
         fig = plt.figure()

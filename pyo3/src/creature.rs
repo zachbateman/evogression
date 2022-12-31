@@ -6,6 +6,7 @@ use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::ops;
 use std::cmp;
+use itertools::izip;
 use rayon::prelude::*;
 use pyo3::prelude::*;
 
@@ -32,6 +33,26 @@ pub struct Creature {
     pub generation: u8,
     #[pyo3(get)]
     pub offspring: u8,
+}
+
+impl PartialEq for Creature {
+    fn eq(&self, other: &Self) -> bool {
+        if self.generation != other.generation {
+            return false
+        }
+        if self.offspring != other.offspring {
+            return false
+        }
+        if self.equation.len() != other.equation.len() {
+            return false
+        }
+        for (cr1_mods, cr2_mods) in izip!(&self.equation, &other.equation) {
+            if cr1_mods != cr2_mods {
+             return false
+            }
+        }
+        true
+    }
 }
 
 #[derive(Clone)]
@@ -364,7 +385,7 @@ impl Creature {
                     let c1 = coeff.c * coeff.b.powf(2.0);
                     let c2 = 2.0 * coeff.c * coeff.z * coeff.b;
                     let c3 = coeff.c * coeff.z.powf(2.0);
-                    format!("    T += {:.4} * {} ** 2 + {:.4} * {} + {:.4}\n", c1, value, c2, value, c3)
+                    format!("    T += {c1:.4} * {value} ** 2 + {c2:.4} * {value} + {c3:.4}\n")
                 },
                 // default calculation that the above matches simplify/expand
                 _ => format!("    T += {:.4} * ({:.4} * {} + {:.4}) ** {:.2}\n", coeff.c, coeff.b, value, coeff.z, coeff.x),
@@ -415,6 +436,7 @@ impl fmt::Display for Creature {
 /// The "layer_bias" field is a bias added to the layer's calculation.
 #[derive(Clone)]
 #[derive(Debug)]
+#[derive(PartialEq)]
 struct LayerModifiers {
     modifiers: HashMap<String, Coefficients>,
     previous_layer_coefficients: Option<Coefficients>,
@@ -464,6 +486,7 @@ impl fmt::Display for LayerModifiers {
 /// Value = C * (B * param + Z) ^ X
 #[derive(Clone)]
 #[derive(Debug)]
+#[derive(PartialEq)]
 struct Coefficients { c: f32, b: f32, z: f32, x: u8 }
 
 impl Coefficients {
@@ -541,7 +564,7 @@ mod tests {
     use std::time::Instant;
 
     #[test]
-    fn creature_creation() {
+    fn creature_creation_and_calculation() {
         let param_options = vec!["width", "height", "weight"];
         let creature = Creature::new(&param_options, 3);
         println!("\n\n{}\n", creature);
@@ -589,17 +612,31 @@ mod tests {
         println!("Multiple Threads: {:.2?}", multi);
 
         println!("Multicore Speed: {:.1}x\n", single.as_millis() as f32 / multi.as_millis() as f32);
+        assert!(multi < single);
+
+        for cr in Creature::create_many_parallel(100000, &param_options, 2) {
+            assert!(cr.num_layers() <= 2);
+        }
     }
 
     #[test]
     fn check_mutation() {
         let param_options = vec!["width", "height", "weight"];
         let creature = Creature::new(&param_options, 3);
-
         let mutant1 = creature.mutate(MutateSpeed::Fast);
         let mutant2 = creature.mutate(MutateSpeed::Fine);
-        let mut_bias = mutant1.equation[0].layer_bias + mutant2.equation[0].layer_bias;
-        assert!(mut_bias != (creature.equation[0].layer_bias * 2.0));
+        assert!((mutant1 != creature) && (mutant2 != creature));
+    }
+
+    #[test]
+    fn creature_addition() {
+        let param_options = vec!["x", "y"];
+        for _ in 0..1000 {
+            let cr1 = Creature::new(&param_options, 3);
+            let cr2 = Creature::new(&param_options, 3);
+            let offspring = &cr1 + &cr2;
+            assert!(offspring.num_layers() > 0);
+        }
     }
 
     #[test]

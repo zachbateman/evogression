@@ -5,32 +5,18 @@ from typing import List, Dict, Union
 import random
 from math import log
 from collections import defaultdict
-import easy_multip
 import pandas
 from pandas import DataFrame
 from .evolution import Evolution
 
 
 
-def evolution_group(target_param: str, data: Union[List[Dict[str, float]], DataFrame], num_creatures: int=10000, num_cycles: int=10, group_size: int=4, num_cpu: int=0, **kwargs) -> List[Evolution]:
+def evolution_group(target_param: str, data: Union[List[Dict[str, float]], DataFrame], num_creatures: int=10000, num_cycles: int=10, group_size: int=4, max_cpu: int=0, **kwargs) -> List[Evolution]:
     '''
     Generate a list of fully initialized Evolution objects.
     Any Evolution kwargs may be provided.
     '''
-    if 'use_multip' in kwargs:
-        del kwargs['use_multip']
-        print('Disabling use_multip for Evolution generation in evolution_group.  Using multip for separate Evolution initializations.')
-    arg_groups = [(target_param, data, num_creatures, num_cycles, kwargs) for _ in range(group_size)]
-    return easy_multip.map(calculate_single_evolution, arg_groups, num_cpu=num_cpu)
-
-
-def calculate_single_evolution(arg_group: tuple) -> Evolution:
-    '''
-    Fully initialize and return a single Evolution object.
-    Module-level function for arg to easy_multip.
-    '''
-    target_param, data, num_cr, num_cy, kwargs = arg_group
-    return Evolution(target_param, data, num_creatures=num_cr, num_cycles=num_cy, clear_creatures=True, verbose=False, **kwargs)
+    return [Evolution(target_param, data, num_creatures=num_creatures, num_cycles=num_cycles, clear_creatures=True,  max_cpu=max_cpu, **kwargs) for _ in range(group_size)]
 
 
 def output_group_regression_funcs(group: list):
@@ -39,7 +25,7 @@ def output_group_regression_funcs(group: list):
     best regressions to a "regression_modules" subdir.
     '''
     for cr_ev in group:
-        cr_ev.output_best_regression()
+        cr_ev.output_best_regression(directory='regression_modules', add_error_value=True)
 
 
 def parameter_usage(group: list) -> Dict[str, int]:
@@ -170,7 +156,7 @@ class Population():
             # Use bin_size arg (or generate if not provided) to determine how to split out data into different bins of the split_parameter.
             split_values = sorted(d[split_parameter] for d in data)
             if not bin_size:
-                bin_size = (max(split_values) - min(split_values)) / 10
+                bin_size = (max(split_values) - min(split_values)) / 5
 
             bins = []
             binned_data = {}
@@ -182,12 +168,12 @@ class Population():
                 cutoff_upper = upper + bin_size * 0.5
                 binned_data[(lower, upper)] = [d for d in data if cutoff_lower <= d[split_parameter] < cutoff_upper]
                 lower, upper = upper, upper + bin_size
+            self.bins = bins
 
             self.evo_sets = {}
             for bin in bins:
-                # self.evo_sets[bin] = [Evolution(target_param, binned_data[bin], num_creatures=num_creatures, num_cycles=num_cycles, clear_creatures=True, use_multip=use_multip, **kwargs) for _ in range(group_size)]
                 self.evo_sets[bin] = evolution_group(target_param, binned_data[bin], num_creatures=num_creatures, num_cycles=num_cycles, group_size=group_size, **kwargs)
-            self.bins = bins
+
 
 
     def predict(self, data: Union[Dict[str, float], List[Dict[str, float]], DataFrame], prediction_key: str=''):
