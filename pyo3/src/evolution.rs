@@ -119,7 +119,10 @@ impl Evolution {
             .iter()
             .find(|creature| creature.cached_error_sum == Some(min_error))
             .expect("Error matching min_error to a creature!");
-        let optimized_creature = optimize_creature(best_creature, &standardized_data, &target, 30);
+        // Next line calculates number of mutants per each optimization loop
+        // Want to use less than 500 if small num_creatures so that runs faster
+        let optimize_count = ((num_creatures / 7) as u16).clamp(30, 500);
+        let optimized_creature = optimize_creature(best_creature, &standardized_data, &target, 30, optimize_count);
 
         print_optimize_data(best_creature.cached_error_sum.unwrap(),
                             optimized_creature.cached_error_sum.unwrap(),
@@ -139,7 +142,8 @@ impl Evolution {
 fn optimize_creature(creature: &Creature,
     data_points: &Vec<HashMap<String, f32>>,
     target: &str,
-    iterations: u16) -> Creature {
+    iterations: u16,
+    optimize_count: u16) -> Creature {
 
     let mut errors = Vec::new();
     let mut best_error = creature.cached_error_sum.unwrap();
@@ -147,7 +151,7 @@ fn optimize_creature(creature: &Creature,
     let mut best_creature = creature.clone();
     for i in 0..=iterations {
         let mut creatures = vec![best_creature.clone()];
-        creatures.extend((0..500).map(|_| best_creature.mutate(speed.clone())).collect::<Vec<Creature>>());
+        creatures.extend((0..optimize_count).map(|_| best_creature.mutate(speed.clone())).collect::<Vec<Creature>>());
 
         creatures.par_iter_mut().for_each(|creature| {
             if creature.cached_error_sum.is_none() {

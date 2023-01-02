@@ -11,12 +11,12 @@ from .evolution import Evolution
 
 
 
-def evolution_group(target_param: str, data: Union[List[Dict[str, float]], DataFrame], num_creatures: int=10000, num_cycles: int=10, group_size: int=4, max_cpu: int=0, **kwargs) -> List[Evolution]:
+def evolution_group(target_param: str, data: Union[List[Dict[str, float]], DataFrame], num_creatures: int=10000, num_cycles: int=10, max_layers: int=3, group_size: int=4, max_cpu: int=0, **kwargs) -> List[Evolution]:
     '''
     Generate a list of fully initialized Evolution objects.
     Any Evolution kwargs may be provided.
     '''
-    return [Evolution(target_param, data, num_creatures=num_creatures, num_cycles=num_cycles, clear_creatures=True,  max_cpu=max_cpu, **kwargs) for _ in range(group_size)]
+    return [Evolution(target_param, data, num_creatures=num_creatures, num_cycles=num_cycles, max_layers=max_layers,  max_cpu=max_cpu, **kwargs) for _ in range(group_size)]
 
 
 def output_group_regression_funcs(group: list):
