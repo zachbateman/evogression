@@ -26,6 +26,7 @@ class Evolution():
                  num_cycles: int=10,
                  max_layers: int=3,
                  max_cpu: int=max(os.cpu_count()-1, 1),  # by default use all but one core
+                 optimize: bool=True,
                  **kwargs) -> None:
 
         self.target_parameter = target_parameter
@@ -33,22 +34,31 @@ class Evolution():
         if isinstance(all_data, DataFrame):
             all_data = all_data.to_dict('records')
 
-        data.data_checks(all_data)
-
         self.param_medians = data.calc_param_medians(all_data, target_parameter)
         self.all_data = data.fill_none_with_median(all_data, target_parameter, self.param_medians)
+
+        data.data_checks(self.all_data)
 
         self.num_creatures = int(num_creatures)
         self.num_cycles = int(num_cycles)
         self.max_layers = int(max_layers)
 
         os.environ['RAYON_NUM_THREADS'] = str(max_cpu)
-        self.model = rust_evogression.run_evolution(target_parameter, self.all_data, num_creatures, num_cycles, max_layers)
+        self.model = rust_evogression.run_evolution(target_parameter, self.all_data, num_creatures, num_cycles, max_layers, optimize)
 
         self.parameter_usefulness_count: dict = defaultdict(int)
         for creature in self.model.best_creatures:
             for param in creature.used_parameters():
                 self.parameter_usefulness_count[param] += 1
+
+
+    @property
+    def best_creature(self):
+        return self.model.best_creature
+
+    @property
+    def best_error(self):
+        return self.model.best_error()
 
 
     def output_best_regression(self, output_filename='regression_function', directory: str='.', add_error_value=False) -> None:

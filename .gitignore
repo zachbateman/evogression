@@ -14,9 +14,9 @@ MANIFEST
 *.profile
 *.html
 *.csv
+*.bat
 *regression_function*
 
-
-pyo3/target/
+target/
 .vs/
 *.lock

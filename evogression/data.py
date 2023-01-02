@@ -25,11 +25,6 @@ def data_checks(data_to_check: list[dict]) -> None:
         print(f'\nERROR!  NAN values detected in {data_name}!')
         print(f'Index: {i}  key: {key}  value: {val}  type: {type(val).__name__}')
 
-    if 'N' in data_to_check[0]:
-        raise InputDataFormatError('ERROR!  Parameter "N" detected in data.  Cannot use "N" or "T" as parameters.')
-    if 'T' in data_to_check[0]:
-        raise InputDataFormatError('ERROR!  Parameter "T" detected in data.  Cannot use "N" or "T" as parameters.')
-
 
 def calc_param_medians(data: list[dict], target: str) -> dict:
      # Remove any data points that have None for the target/result parameter

@@ -29,12 +29,15 @@ impl Standardizer {
         Standardizer { standardizers }
     }
 
+    #[inline]
     pub fn standardized_value(&self, data: &HashMap<String, f32>) -> HashMap<String, f32> {
         let mut standardized = HashMap::new();
         for (key, value) in data {
-            standardized.insert(key.to_string(), self.standardizers.get(key)
-                    .expect("Did not have a ParamStandardizer for a given key?")
-                    .standardize(value));
+            let std_value = match self.standardizers.get(key) {
+                Some(p_std) => p_std.standardize(value),
+                None => *value,  // if key doesn't have a ParamStandardizer... just leave value as is (likely not in regression equation...)
+            };
+            standardized.insert(key.to_string(), std_value);
         }
         standardized
     }
@@ -42,13 +45,7 @@ impl Standardizer {
     pub fn standardized_values(&self, data: &[HashMap<String, f32>]) -> Vec<HashMap<String, f32>> {
         let mut compiled = Vec::new();
         for row in data {
-            let mut new_row = HashMap::new();
-            for (key, value) in row {
-                new_row.insert(key.to_string(), self.standardizers.get(key)
-                        .expect("Did not have a ParamStandardizer for a given key?")
-                        .standardize(value));
-            }
-            compiled.push(new_row);
+            compiled.push(self.standardized_value(row));
         }
         compiled
     }

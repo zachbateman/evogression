@@ -20,8 +20,9 @@ fn run_evolution(target: String,
                  num_creatures: u32,
                  num_cycles: u16,
                  max_layers: u8,
+                 optimize: bool,
                 ) -> evolution::Evolution {
-    evolution::Evolution::new(target, &data, num_creatures, num_cycles, max_layers)
+    evolution::Evolution::new(target, &data, num_creatures, num_cycles, max_layers, optimize)
 }
 
 

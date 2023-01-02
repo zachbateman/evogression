@@ -642,7 +642,7 @@ mod tests {
     #[test]
     fn num_layer_bounds() {
         let layers: Vec<u8> = (0..10000).map(|_| num_layers()).collect();
-        assert_eq!(*layers.iter().min().unwrap(), 1 as u8);
-        assert_eq!(*layers.iter().max().unwrap(), 3 as u8);
+        assert_eq!(*layers.iter().min().unwrap(), 1);
+        assert_eq!(*layers.iter().max().unwrap(), 3);
     }
 }

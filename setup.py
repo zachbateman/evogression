@@ -1,17 +1,10 @@
 from setuptools import setup, find_packages
-from setuptools.extension import Extension
-from Cython.Build import cythonize
+from setuptools_rust import Binding, RustExtension
 from evogression import __version__
 
 
 with open('README.md', 'r') as f:
     long_description = f.read()
-
-extensions = [
-    Extension('evogression.calc_target_cython', ['evogression/calc_target_cython.pyx']),
-    Extension('evogression.generate_parameter_coefficients_calc', ['evogression/generate_parameter_coefficients_calc.pyx']),
-    Extension('evogression.calc_error_sum', ['evogression/calc_error_sum.pyx']),
-]
 
 
 setup(name='evogression',
@@ -26,12 +19,11 @@ setup(name='evogression',
       download_url='https://github.com/zachbateman/evogression/archive/v_' + __version__ + '.tar.gz',
       keywords=['REGRESSION', 'MACHINE', 'LEARNING', 'EVOLUTION'],
       install_requires=['tqdm', 'easy_multip'],
-      classifiers=['Development Status :: 3 - Alpha',
+      classifiers=['Development Status :: 4 - Beta',
                     'License :: OSI Approved :: MIT License',
-                    'Programming Language :: Python :: 3',
-                    'Programming Language :: Python :: 3.7',
-                    'Programming Language :: Python :: 3.8',
                     'Programming Language :: Python :: 3.9',
+                    'Programming Language :: Python :: 3.10',
+                    'Programming Language :: Python :: 3.11',
                     ],
-    ext_modules=cythonize(extensions, compiler_directives={'language_level': '3'}) # + [Extension('evogression.calc_target_c', ['evogression/calc_target_c.c'])]
+    rust_extensions=[RustExtension("evogression.rust_evogression", binding=Binding.PyO3)]
 )

@@ -11,12 +11,13 @@ from .evolution import Evolution
 
 
 
-def evolution_group(target_param: str, data: Union[List[Dict[str, float]], DataFrame], num_creatures: int=10000, num_cycles: int=10, max_layers: int=3, group_size: int=4, max_cpu: int=0, **kwargs) -> List[Evolution]:
+def evolution_group(target_param: str, data: Union[List[Dict[str, float]], DataFrame], num_creatures: int=10000, num_cycles: int=10,
+                    max_layers: int=3, group_size: int=4, max_cpu: int=0, optimize=True, **kwargs) -> List[Evolution]:
     '''
     Generate a list of fully initialized Evolution objects.
     Any Evolution kwargs may be provided.
     '''
-    return [Evolution(target_param, data, num_creatures=num_creatures, num_cycles=num_cycles, max_layers=max_layers,  max_cpu=max_cpu, **kwargs) for _ in range(group_size)]
+    return [Evolution(target_param, data, num_creatures=num_creatures, num_cycles=num_cycles, max_layers=max_layers,  max_cpu=max_cpu, optimize=optimize, **kwargs) for _ in range(group_size)]
 
 
 def output_group_regression_funcs(group: list):
@@ -103,7 +104,7 @@ def parameter_pruned_evolution_group(target_param: str, data: list, max_paramete
 
     num_parameters = len(data[0].keys()) - 1
     while num_parameters > max_parameters:
-        group = evolution_group(target_param, data, int(num_creatures // 1.6), int(num_cycles // 1.6), group_size, optimize=False)
+        group = evolution_group(target_param, data, int(num_creatures // 1.6), int(num_cycles // 1.6), group_size=group_size, optimize=False)
 
         current_parameter_usage = [(param, count) for param, count in parameter_usage(group).items()]
         random.shuffle(current_parameter_usage)  # so below filter ignores previous order for equally-ranked parameters
@@ -116,7 +117,7 @@ def parameter_pruned_evolution_group(target_param: str, data: list, max_paramete
                 del data_point[param]
         num_parameters = len(data[0].keys()) - 1
 
-    final_group = evolution_group(target_param, data, num_creatures, num_cycles, group_size)
+    final_group = evolution_group(target_param, data, num_creatures, num_cycles, group_size=group_size)
     print('parameter_pruned_evolution_group complete.  Final Parameter usage counts below:')
     for param, count in parameter_usage(final_group).items():
         print(f'  {count}: {param}')

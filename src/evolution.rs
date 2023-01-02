@@ -1,5 +1,6 @@
 use rand::prelude::*;
 use std::collections::HashMap;
+use std::time::Instant;
 use crate::standardize::Standardizer;
 use crate::creature::{Creature, MutateSpeed};
 use rayon::prelude::*;
@@ -55,6 +56,7 @@ impl Evolution {
         num_creatures: u32,
         num_cycles: u16,
         max_layers: u8,
+        optimize: bool,
     ) -> Evolution {
         assert!(num_creatures > 0);
         assert!(num_cycles > 0);
@@ -70,6 +72,10 @@ impl Evolution {
 
         let mut creatures = Creature::create_many_parallel(num_creatures, &param_options, max_layers);
         let mut best_creatures = Vec::new();
+        let mut total_best_error = 999_999_999.0;
+        let mut new_best_creature;
+
+        let mut start = Instant::now();
 
         for cycle in 1..=num_cycles {
             creatures.par_iter_mut().for_each(|creature| {
@@ -79,14 +85,28 @@ impl Evolution {
                 }
             });
 
+            new_best_creature = false;
             let (min_error, median_error) = error_results_with_median(&creatures);
+            if min_error < total_best_error {
+                total_best_error = min_error;
+                new_best_creature = true;
+            }
 
             let best_creature = creatures
                 .iter()
                 .find(|creature| creature.cached_error_sum == Some(min_error))
                 .expect("Error matching min_error to a creature!");
             best_creatures.push(best_creature.clone());
-            print_cycle_data(cycle, median_error, best_creature);
+
+            // Only print output at most every 0.1 seconds.
+            // This should improve performance with less prints.
+            // Typically should only affect very low num_creatures runs
+            // where running lots quickly and the output isn't important.
+            let duration = start.elapsed();
+            if duration.as_millis() > 100 {
+                start = Instant::now();
+                print_cycle_data(cycle, median_error, best_creature, new_best_creature);
+            }
 
             creatures = kill_weak_creatures(creatures, &median_error);
             creatures.append(&mut mutated_top_creatures(&creatures, &min_error, &median_error));
@@ -119,14 +139,19 @@ impl Evolution {
             .iter()
             .find(|creature| creature.cached_error_sum == Some(min_error))
             .expect("Error matching min_error to a creature!");
-        // Next line calculates number of mutants per each optimization loop
-        // Want to use less than 500 if small num_creatures so that runs faster
-        let optimize_count = ((num_creatures / 7) as u16).clamp(30, 500);
-        let optimized_creature = optimize_creature(best_creature, &standardized_data, &target, 30, optimize_count);
 
-        print_optimize_data(best_creature.cached_error_sum.unwrap(),
-                            optimized_creature.cached_error_sum.unwrap(),
-                            &optimized_creature);
+        let optimized_creature = if optimize {
+            // Next line calculates number of mutants per each optimization loop
+            // Want to use less than 500 if small num_creatures so that runs faster
+            let optimize_count = ((num_creatures / 5) as u16).clamp(30, 500);
+            let optimized_creature = optimize_creature(best_creature, &standardized_data, &target, 30, optimize_count);
+            print_optimize_data(best_creature.cached_error_sum.unwrap(),
+                                optimized_creature.cached_error_sum.unwrap(),
+                                &optimized_creature);
+            optimized_creature
+        } else {
+            best_creature.clone()
+        };
 
         Evolution {
             target,
@@ -185,19 +210,25 @@ fn print_optimize_data(start_error: f32, end_error: f32, best_creature: &Creatur
     println!("{}", best_creature);
 }
 
-fn print_cycle_data(cycle: u16, median_error: f32, best_creature: &Creature) {
+fn print_cycle_data(cycle: u16, median_error: f32, best_creature: &Creature, new_best_creature: bool) {
     println!("---------------------------------------");
     println!("Cycle - {} -", cycle);
     println!("Median error: {}", median_error);
-    println!("Best Creature:");
-    println!("  Generation: {}  Offspring: {}  Error: {}", best_creature.generation, best_creature.offspring, best_creature.cached_error_sum.unwrap());
-    println!("{}", best_creature);
+    if new_best_creature {
+        println!("New Best Creature:");
+        println!("  Generation: {}  Offspring: {}  Error: {}", best_creature.generation, best_creature.offspring, best_creature.cached_error_sum.unwrap());
+        println!("{}", best_creature);
+    }
 }
 
 fn error_results_with_median(creatures: &[Creature]) -> (f32, f32) {
     let mut errors = Vec::new();
     for creature in creatures.iter() {
-        errors.push(creature.cached_error_sum.unwrap());
+        // Now DON'T include any anomalous NaN calculations in resulting errors!
+        match creature.cached_error_sum.unwrap() {
+            x if !x.is_nan() => errors.push(x),
+            _ => (),
+        }
     }
     errors.sort_by(|a, b| a.total_cmp(b));
     let median_error = errors[errors.len() / 2];
@@ -208,7 +239,11 @@ fn error_results_with_median(creatures: &[Creature]) -> (f32, f32) {
 fn error_results(creatures: &[Creature]) -> f32 {
     let mut errors = Vec::new();
     for creature in creatures.iter() {
-        errors.push(creature.cached_error_sum.unwrap());
+        // Now DON'T include any anomalous NaN calculations in resulting errors!
+        match creature.cached_error_sum.unwrap() {
+            x if !x.is_nan() => errors.push(x),
+            _ => (),
+        }
     }
     errors.sort_by(|a, b| a.total_cmp(b));
     errors[0]
@@ -287,7 +322,7 @@ mod tests {
             HashMap::from([("target_param".to_string(), 9.4), ("p2".to_string(), -2.6), ("p3".to_string(), 13.0)]),
         ];
 
-        let evo = Evolution::new(target.into(), &data, 10000, 10, 3);
+        let evo = Evolution::new(target.into(), &data, 10000, 10, 3, true);
         assert!(evo.num_creatures == 10000);
     }
 
@@ -337,7 +372,7 @@ mod tests {
             HashMap::from([("x".to_string(), 20.0), ("y".to_string(), 758.0144333664495)]),
         ];
         let target = String::from("y");
-        let model = Evolution::new(target, &parabola_data, 5000, 7, 2);
+        let model = Evolution::new(target, &parabola_data, 5000, 7, 2, true);
 
         for creature in &model.best_creatures {
             assert!(creature.num_layers() <= 2);  // Light check on max_layers

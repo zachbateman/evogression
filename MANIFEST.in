@@ -1,3 +1,4 @@
 include README.md
 include LICENSE.txt
-include evogression/*.pyx
+include Cargo.toml
+recursive-include src *
