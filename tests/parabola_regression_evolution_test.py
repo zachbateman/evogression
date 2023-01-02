@@ -3,10 +3,8 @@ import cProfile
 import sys
 sys.path.insert(1, '..')
 import evogression
-import easy_multip
 from test_data import parabola_data
-from pprint import pprint as pp
-import matplotlib
+
 import matplotlib.pyplot as plt
 
 

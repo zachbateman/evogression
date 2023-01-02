@@ -4,11 +4,7 @@ sys.path.insert(1, '..')
 import evogression
 from test_data import categorical_data, surface_3d_data
 from pprint import pprint as pp
-import matplotlib
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import axes3d
-import random
-random.seed(10)  # for reproducing the same plot
 
 
 class TestPopulationCateogry(unittest.TestCase):

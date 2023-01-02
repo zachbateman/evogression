@@ -3,15 +3,11 @@ import cProfile
 import sys
 sys.path.insert(1, '..')
 import evogression
-import easy_multip
 from test_data_many_dimensions import data as many_d_data
-from pprint import pprint as pp
-import matplotlib
-import matplotlib.pyplot as plt
+
 
 
 class TestManyDimensionParameterPruningRegression(unittest.TestCase):
-
     def test_best_creature_parabola_regression_evolution(self):
         pruned_evolution_group = evogression.groups.parameter_pruned_evolution_group('Target', many_d_data, max_parameters=15, num_creatures=1000, num_cycles=10, group_size=3)
         evogression.groups.output_group_regression_funcs(pruned_evolution_group)

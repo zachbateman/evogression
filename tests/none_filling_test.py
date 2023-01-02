@@ -3,7 +3,6 @@ import sys
 sys.path.insert(1, '..')
 import evogression
 from test_data import linear_data
-import math
 
 
 class TestNoneFilling(unittest.TestCase):
