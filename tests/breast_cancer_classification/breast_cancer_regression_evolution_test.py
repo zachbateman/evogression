@@ -1,18 +1,13 @@
 import unittest
-import sys
-sys.path.insert(1, '..')
-sys.path.insert(1, '..\\..')
+# import sys
+# sys.path.insert(1, '..')
+# sys.path.insert(1, '..\\..')
 import evogression
-from test_data import surface_3d_data
 from pprint import pprint as pp
-import matplotlib
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import axes3d
 import pandas
 
 
 class TestBreastCancerDetectionRegression(unittest.TestCase):
-
     def test_breast_cancer_detection(self):
         df = pandas.read_csv('breast-cancer-wisconsin.data')
         df.drop('id_num', axis=1, inplace=True)
@@ -27,13 +22,11 @@ class TestBreastCancerDetectionRegression(unittest.TestCase):
             except:
                 print(f'ERROR column: {col}')
 
-        regression_data = df.to_dict('records')
-        evolution = evogression.Evolution('benign2_or_malignant4', regression_data, target_num_creatures=5000, num_cycles=10)
-        evolution.best_creature.output_python_regression_module()
+        evolution = evogression.Evolution('benign2_or_malignant4', df, target_num_creatures=10000, num_cycles=10)
+        evolution.output_best_regression()
 
-        output_data = evolution.add_predictions_to_data(regression_data)
-        output_df = pandas.DataFrame(output_data)
-        output_df.to_excel('BreastCancerPredictions.xlsx')
+        output_data = evolution.predict(df)
+        output_data.to_excel('BreastCancerPredictions_new.xlsx')
 
 
 

@@ -498,7 +498,6 @@ impl Coefficients {
         let mut rng = thread_rng();
         let tri_a = Triangular::new(0.0, 2.0, 1.0).unwrap();
         let tri_b = Triangular::new(-2.0, 2.0, 0.0).unwrap();
-        // let norm = Normal::new(0.0, 0.1).unwrap();
 
         let mut c = if rng.gen::<f64>() < 0.4 { 1.0 } else { rng.sample(tri_a) };
         let mut b = if rng.gen::<f64>() < 0.3 { 1.0 } else { rng.sample(tri_a) };
@@ -509,7 +508,7 @@ impl Coefficients {
 
         let x = match rng.gen::<f64>() {
             x if x <= 0.4 => 1,
-            x if (0.4..=0.75).contains(&x) => 2,
+            x if x <= 0.75 => 2,
             _ => 3,
         };
         Coefficients { c, b, z, x }

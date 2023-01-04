@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 
 class TestLinearRegressionEvolution(unittest.TestCase):
     def test_best_creature_evolution(self):
-        evolution = evogression.Evolution('y', linear_data, num_creatures=10000, num_cycles=3, optimize=5)
+        evolution = evogression.Evolution('y', linear_data, num_creatures=10000, num_cycles=3)
 
         predictions = [{'x': i / 2} for i in range(6, 25)]
         predictions = evolution.predict(predictions)

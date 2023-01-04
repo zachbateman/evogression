@@ -36,6 +36,7 @@ class Evolution():
 
         self.param_medians = data.calc_param_medians(all_data, target_parameter)
         self.all_data = data.fill_none_with_median(all_data, target_parameter, self.param_medians)
+        self.full_parameter_example = self.all_data[0]
 
         data.data_checks(self.all_data)
 
@@ -114,11 +115,13 @@ class Evolution():
         Add best_creature predictions to data arg as f'{target}_PREDICTED' new key.
         Return unstandardized dict or list of dicts or DataFrame depending on provided arg.
         '''
-        target_param = self.target_parameter  # local variable for speed
-        if prediction_key == '':
-            prediction_key = f'{target_param}_PREDICTED'
+        param_medians = self.param_medians  # local variable for speed
+        param_example = self.full_parameter_example  # local variable for speed
 
-        is_dataframe = True if type(data) == DataFrame else False
+        if prediction_key == '':
+            prediction_key = f'{self.target_parameter}_PREDICTED'
+
+        is_dataframe = True if isinstance(data, DataFrame) else False
         if is_dataframe:
             data = data.to_dict('records')  # will get processed as list
 
@@ -126,8 +129,9 @@ class Evolution():
             for d in data:
                 for param, val in d.items():
                     if not val:  # make any None values the previously calculated median from the training data
-                        d[param] = self.param_medians.get(param, 0.0)
-                clean = {k: v for k, v in d.items() if not isinstance(v, str)}
+                        d[param] = param_medians.get(param, 0.0)
+                # Now remove any keys in data not in training data as will not be in regression and can cause issues.  Also don't want string values.
+                clean = {k: v for k, v in d.items() if k in param_example and not isinstance(v, str)}
                 d[prediction_key] = self.model.predict_point(clean)
 
             if is_dataframe:
@@ -138,9 +142,11 @@ class Evolution():
             # make any None values the previously calculated median from the training data
             for param, val in data.items():
                 if not val:
-                    data[param] = self.param_medians.get(param, 0.0)
-            data = {k: v for k, v in data.items() if not isinstance(v, str)}
+                    data[param] = param_medians.get(param, 0.0)
+            # Now remove any keys in data not in training data as will not be in regression and can cause issues.  Also don't want string values.
+            data = {k: v for k, v in data.items() if k in param_example and not isinstance(v, str)}
             data[prediction_key] = self.model.predict_point(data)
             return data
+
         else:
             print('Error!  "data" arg provided to .predict() must be a dict or list of dicts or DataFrame.')

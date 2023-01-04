@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 class TestGroupComposite(unittest.TestCase):
     def test_evolution_group(self):
         group = evogression.evolution_group('y', linear_data, num_creatures=25, group_size=100,
-            num_cycles=5, optimize=1, progressbar=False)
+            num_cycles=5, progressbar=False)
 
         calculation_x_values = [i / 2 for i in range(6, 27)]
         for evo in group:

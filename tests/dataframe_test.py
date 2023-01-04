@@ -13,7 +13,7 @@ class TestDataFrame(unittest.TestCase):
         Test ability of Evolution class to handle pandas DataFrames.
         '''
         df = pandas.DataFrame(surface_3d_data)
-        evolution = evogression.Evolution('z', df, num_creatures=500, num_cycles=5, use_multip=False, optimize=3)
+        evolution = evogression.Evolution('z', df, num_creatures=500, num_cycles=5, use_multip=False)
         predicted = evolution.predict(df)
         self.assertTrue(type(predicted) == pandas.DataFrame)
         self.assertTrue(len(predicted.columns) == 4)
