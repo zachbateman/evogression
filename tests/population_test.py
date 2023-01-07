@@ -34,7 +34,7 @@ class TestPopulationCateogry(unittest.TestCase):
 
 
     def test_population_continuous_3d(self):
-        population = evogression.Population('z', surface_3d_data, num_creatures=5000, num_cycles=7, group_size=5, split_parameter='y', category_or_continuous='continuous')
+        population = evogression.Population('z', surface_3d_data, num_creatures=3000, num_cycles=5, group_size=3, split_parameter='y', category_or_continuous='continuous')
         data = population.predict(surface_3d_data, 'z_predicted')
 
         fig = plt.figure()

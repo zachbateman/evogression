@@ -30,14 +30,14 @@ class TestPredictionMethods(unittest.TestCase):
         self.assertTrue(len(d) > 1)
         self.assertTrue(sum(d.values()) > 3)
 
-    # def test_save_and_load(self):
-        # evolution = evogression.Evolution('y', linear_data, num_creatures=1000, num_cycles=5, use_multip=False)
-        # prediction1 = evolution.predict({'x': 5.2})
-        # evolution.save('linear_model')
-        # loaded_model = evogression.Evolution.load('linear_model')
-        # os.remove('linear_model.pkl')
-        # prediction2 = loaded_model.predict({'x': 5.2})
-        # self.assertTrue(prediction1 == prediction2)
+    def test_save_and_load(self):
+        evolution = evogression.Evolution('y', linear_data, num_creatures=1000, num_cycles=5, use_multip=False)
+        prediction1 = evolution.predict({'x': 5.2})
+        evolution.save('linear_model')
+        loaded_model = evogression.Evolution.load('linear_model')
+        os.remove('linear_model.pkl')
+        prediction2 = loaded_model.predict({'x': 5.2})
+        self.assertTrue(prediction1 == prediction2)
 
 
 

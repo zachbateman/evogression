@@ -1,12 +1,11 @@
 '''
 Module containing evolution algorithms for regression.
 '''
-from typing import List, Dict, Union
 from collections import defaultdict
 import os
 import pickle
 from pandas import DataFrame
-from . import data
+from . import data as data_funcs
 from . import rust_evogression
 
 
@@ -21,24 +20,25 @@ class Evolution():
     '''
     def __init__(self,
                  target_parameter: str,
-                 all_data: Union[List[Dict[str, float]], DataFrame],
+                 all_data: list[dict[str, float]] | DataFrame,
                  num_creatures: int=10000,
                  num_cycles: int=10,
                  max_layers: int=3,
                  max_cpu: int=max(os.cpu_count()-1, 1),  # by default use all but one core
                  optimize: bool=True,
-                 **kwargs) -> None:
+                 ) -> None:
 
         self.target_parameter = target_parameter
 
         if isinstance(all_data, DataFrame):
             all_data = all_data.to_dict('records')
 
-        self.param_medians = data.calc_param_medians(all_data, target_parameter)
-        self.all_data = data.fill_none_with_median(all_data, target_parameter, self.param_medians)
+        all_data = data_funcs.remove_blank_targets(all_data, target_parameter)
+        self.param_medians = data_funcs.calc_param_medians(all_data, target_parameter)
+        self.all_data = data_funcs.fill_none_with_median(all_data, target_parameter, self.param_medians)
         self.full_parameter_example = self.all_data[0]
 
-        data.data_checks(self.all_data)
+        data_funcs.data_checks(self.all_data)
 
         self.num_creatures = int(num_creatures)
         self.num_cycles = int(num_cycles)
@@ -110,43 +110,38 @@ class Evolution():
                 return pickle.load(f)
 
 
-    def predict(self, data: Union[Dict[str, float], List[Dict[str, float]], DataFrame], prediction_key: str='', standardized_data: bool=False):
+    def predict(self, data: dict[str, float] | list[dict[str, float]] | DataFrame, prediction_key: str='', noprint: bool=True):
         '''
         Add best_creature predictions to data arg as f'{target}_PREDICTED' new key.
         Return unstandardized dict or list of dicts or DataFrame depending on provided arg.
         '''
-        param_medians = self.param_medians  # local variable for speed
+        target = self.target_parameter  # local variable for speed
         param_example = self.full_parameter_example  # local variable for speed
+        prediction_key = prediction_key if prediction_key != '' else f'{target}_PREDICTED'
 
-        if prediction_key == '':
-            prediction_key = f'{self.target_parameter}_PREDICTED'
-
-        is_dataframe = True if isinstance(data, DataFrame) else False
-        if is_dataframe:
-            data = data.to_dict('records')  # will get processed as list
-
-        if isinstance(data, list):  # DataFrames also get processed here (previously converted to a list)
+        def generate_clean_data(data: list[dict]) -> list[dict]:
+            clean_data = []
             for d in data:
-                for param, val in d.items():
-                    if not val:  # make any None values the previously calculated median from the training data
-                        d[param] = param_medians.get(param, 0.0)
-                # Now remove any keys in data not in training data as will not be in regression and can cause issues.  Also don't want string values.
+                # Remove any keys in data not in training data as will not be in regression and could cause issues.  Also don't want string values.
                 clean = {k: v for k, v in d.items() if k in param_example and not isinstance(v, str)}
-                d[prediction_key] = self.model.predict_point(clean)
+                # Add in any missing keys with the median value for that parameter
+                for key in param_example:
+                    if key not in clean and key != target:
+                        clean[key] = None
+                clean_data.append(clean)
+            return data_funcs.fill_none_with_median(clean_data, target, self.param_medians, noprint=noprint)
 
-            if is_dataframe:
-                data = DataFrame(data)
-            return data
-
-        elif isinstance(data, dict):
-            # make any None values the previously calculated median from the training data
-            for param, val in data.items():
-                if not val:
-                    data[param] = param_medians.get(param, 0.0)
-            # Now remove any keys in data not in training data as will not be in regression and can cause issues.  Also don't want string values.
-            data = {k: v for k, v in data.items() if k in param_example and not isinstance(v, str)}
-            data[prediction_key] = self.model.predict_point(data)
-            return data
-
-        else:
-            print('Error!  "data" arg provided to .predict() must be a dict or list of dicts or DataFrame.')
+        match data:
+            case DataFrame():
+                data = data.to_dict('records')  # will get processed as list
+                for d, clean_row in zip(data, generate_clean_data(data)):
+                    d[prediction_key] = self.model.predict_point(clean_row)
+                data = DataFrame(data)  # convert back into a DataFrame
+            case list():
+                for d, clean_row in zip(data, generate_clean_data(data)):
+                    d[prediction_key] = self.model.predict_point(clean_row)
+            case dict():
+                data[prediction_key] = self.model.predict_point(generate_clean_data([data])[0])
+            case _:
+                print('Error!  "data" arg provided to .predict() must be a dict or list of dicts or DataFrame.')
+        return data

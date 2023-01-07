@@ -1,7 +1,6 @@
 '''
 Module containing high-level evogression functionality to fit and summarize regressions.
 '''
-from typing import List, Dict, Union
 import random
 from math import log
 from collections import defaultdict
@@ -11,16 +10,17 @@ from .evolution import Evolution
 
 
 
-def evolution_group(target_param: str, data: Union[List[Dict[str, float]], DataFrame], num_creatures: int=10000, num_cycles: int=10,
-                    max_layers: int=3, group_size: int=4, max_cpu: int=0, optimize=True, **kwargs) -> List[Evolution]:
+def evolution_group(target_param: str, data: list[dict[str, float]] | DataFrame, num_creatures: int=10000, num_cycles: int=10,
+                    max_layers: int=3, group_size: int=4, max_cpu: int=0, optimize=True, **kwargs) -> list[Evolution]:
     '''
     Generate a list of fully initialized Evolution objects.
     Any Evolution kwargs may be provided.
     '''
-    return [Evolution(target_param, data, num_creatures=num_creatures, num_cycles=num_cycles, max_layers=max_layers,  max_cpu=max_cpu, optimize=optimize, **kwargs) for _ in range(group_size)]
+    return [Evolution(target_param, data, num_creatures=num_creatures, num_cycles=num_cycles, max_layers=max_layers,  max_cpu=max_cpu, optimize=optimize, **kwargs)
+                for _ in range(group_size)]
 
 
-def output_group_regression_funcs(group: list):
+def output_group_regression_funcs(group: list) -> None:
     '''
     Take list of Evolution objects and output their
     best regressions to a "regression_modules" subdir.
@@ -29,7 +29,7 @@ def output_group_regression_funcs(group: list):
         cr_ev.output_best_regression(directory='regression_modules', add_error_value=True)
 
 
-def parameter_usage(group: list) -> Dict[str, int]:
+def parameter_usage(group: list[Evolution]) -> dict[str, int]:
     '''
     Combine each Evolution's .parameter_usefulness_count dicts to see which attributes are important.
     '''
@@ -40,7 +40,7 @@ def parameter_usage(group: list) -> Dict[str, int]:
     return combined_parameter_usefulness
 
 
-def output_usage(group: list, filename: str='ParameterUsage.xlsx'):
+def output_usage(group: list[Evolution], filename: str='ParameterUsage.xlsx') -> None:
     usage = parameter_usage(group)
     usage = pandas.DataFrame.from_dict(usage, orient='index')
     usage.reset_index(inplace=True)
@@ -49,7 +49,8 @@ def output_usage(group: list, filename: str='ParameterUsage.xlsx'):
     usage.to_excel(filename if '.' in filename else filename + '.xlsx', index=False)
 
 
-def generate_parameter_usage_file(data, column: str, num_models: int=100, num_creatures: int=5000, num_cycles: int=3, num_cpu: int=1, filename: str='ParameterUsage.xlsx'):
+def generate_parameter_usage_file(data: DataFrame, column: str, num_models: int=100, num_creatures: int=5000,
+                                  num_cycles: int=3,num_cpu: int=1, filename: str='ParameterUsage.xlsx') -> None:
     '''
     Generate many models using subsets of possible input data columns so as to
     not overweight usage of the few best columns.
@@ -75,7 +76,8 @@ def generate_parameter_usage_file(data, column: str, num_models: int=100, num_cr
     output_usage(models, filename)
 
 
-def parameter_pruned_evolution_group(target_param: str, data: list, max_parameters: int=10, num_creatures: int=10000, num_cycles: int=10, group_size: int=4) -> List[Evolution]:
+def parameter_pruned_evolution_group(target_param: str, data: list, max_parameters: int=10, num_creatures: int=10000,
+                                     num_cycles: int=10, group_size: int=4) -> list[Evolution]:
     '''
     Generate successive groups of Evolution objects and prune least-used
     parameters from the input data each round until only the most useful parameters remain.
@@ -124,7 +126,7 @@ def parameter_pruned_evolution_group(target_param: str, data: list, max_paramete
     return final_group
 
 
-def random_population(target_param: str, data: list, num_creatures: int=10000, num_cycles: int=10, group_size: int=4, **kwargs) -> List[Evolution]:
+def random_population(target_param: str, data: list[dict[str, float]], num_creatures: int=10000, num_cycles: int=10, group_size: int=4, **kwargs) -> list[Evolution]:
     '''
     Generate a list of Evolution objects (same as evolution_group) but use randomly sampled data subsets for training.
     The goal is to generate a "Random Population" in a similar manner as a Random Forest concept.
@@ -138,7 +140,8 @@ def random_population(target_param: str, data: list, num_creatures: int=10000, n
 
 
 class Population():
-    def __init__(self, target_param: str, data: list, num_creatures=300, num_cycles: int=3, group_size: int=4, split_parameter=None, category_or_continuous='category', bin_size=None, num_cpu=1, **kwargs):
+    def __init__(self, target_param: str, data: list[dict[str, float]], num_creatures=300, num_cycles: int=3, group_size: int=4,
+                 split_parameter=None, category_or_continuous='category', bin_size=None, **kwargs):
         self.target_parameter = target_param
 
         if type(data) == DataFrame:
@@ -151,7 +154,7 @@ class Population():
             data_sets = {cat: [{k: v for k, v in d.items() if k != split_parameter} for d in data if d[split_parameter] == cat] for cat in categories}
             self.evo_sets = {}
             for cat, data_subset in data_sets.items():
-                self.evo_sets[cat] = [Evolution(target_param, data_subset, num_creatures=num_creatures, num_cycles=num_cycles, clear_creatures=True, num_cpu=num_cpu, **kwargs) for _ in range(group_size)]
+                self.evo_sets[cat] = [Evolution(target_param, data_subset, num_creatures=num_creatures, num_cycles=num_cycles, **kwargs) for _ in range(group_size)]
 
         elif split_parameter and category_or_continuous == 'continuous':
             # Use bin_size arg (or generate if not provided) to determine how to split out data into different bins of the split_parameter.
@@ -177,7 +180,7 @@ class Population():
 
 
 
-    def predict(self, data: Union[Dict[str, float], List[Dict[str, float]], DataFrame], prediction_key: str=''):
+    def predict(self, data: dict[str, float] | list[dict[str, float]] | DataFrame, prediction_key: str=''):
         '''
         Generate predictions with same interface as BaseEvolution.predict.
         '''
@@ -221,7 +224,7 @@ class Population():
                 # Now generate weighted-average prediction by giving more weight to closer bins and less to further ones
                 total_prediction = 0.0
                 for bin, dist in bin_distances:
-                    predictions = sorted(evo.predict(data_point, 'pred')['pred'] for evo in self.evo_sets[bin])
+                    predictions = sorted(evo.predict(data_point, 'pred', noprint=True)['pred'] for evo in self.evo_sets[bin])
                     bin_pred = sum(predictions[1:-1]) / (len(predictions) - 2)  # kick out max/min (outlyer) predictions
                     total_prediction += bin_pred * (dist / total_dists)
 
