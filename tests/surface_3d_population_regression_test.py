@@ -3,18 +3,12 @@ import sys
 sys.path.insert(1, '..')
 import evogression
 from test_data import surface_3d_data
-from pprint import pprint as pp
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import axes3d
-
-import random
-random.seed(10)  # for reproducing the same plot
 
 
 class Test3DSurfaceRegression(unittest.TestCase):
-
     def test_best_creature_3d(self):
-        evolutions = evogression.random_population('z', surface_3d_data, num_creatures=5000, num_cycles=5, group_size=15)
+        evolutions = evogression.random_population('z', surface_3d_data, num_creatures=25000, num_cycles=7, group_size=5)
         z_test = [sum(e.predict(d, 'pred')['pred'] for e in evolutions) / len(evolutions) for d in surface_3d_data]
 
         fig = plt.figure()
@@ -31,7 +25,6 @@ class Test3DSurfaceRegression(unittest.TestCase):
         ax.set_ylabel('y')
         ax.set_zlabel('z')
         plt.title('Surface Regression - Random Population Test')
-
         plt.show()
 
 

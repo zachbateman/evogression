@@ -2,7 +2,7 @@ import unittest
 import sys
 sys.path.insert(1, '..')
 import evogression
-from test_data import surface_3d_data
+from test_data import linear_data, surface_3d_data
 import pandas
 
 
@@ -37,6 +37,18 @@ class TestDataFrame(unittest.TestCase):
         model = evogression.Evolution('z', data2, num_creatures=500, num_cycles=5)
         predicted = model.predict(data2)
         self.assertTrue('z_PREDICTED' in predicted[0])
+
+    def test_none_fill(self):
+        '''
+        Test ability to handle None values in input data
+        by filling them with the median of populated values.
+        '''
+        test_data = linear_data
+        test_data[1] = {'x': 5, 'y': None}
+        test_data[4] = {'x': None, 'y': 11.2}
+        test_data[5] = {'x': float('nan'), 'y': 11.2}
+        test_data[6] = {'x': None, 'y': float('nan')}
+        evogression.Evolution('y', test_data)
 
 
 

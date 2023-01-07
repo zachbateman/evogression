@@ -46,7 +46,7 @@ def output_usage(group: list[Evolution], filename: str='ParameterUsage.xlsx') ->
     usage.reset_index(inplace=True)
     usage.columns = ['PARAMETER', 'USAGE']
     usage.sort_values('USAGE', ascending=False, inplace=True)
-    usage.to_excel(filename if '.' in filename else filename + '.xlsx', index=False)
+    usage.to_excel(filename if '.' in filename else filename + '.xlsx', index=False, sheet_name='Param Usage')
 
 
 def generate_parameter_usage_file(data: DataFrame, column: str, num_models: int=100, num_creatures: int=5000,
@@ -135,7 +135,7 @@ def random_population(target_param: str, data: list[dict[str, float]], num_creat
     evolutions = []
     for _ in range(group_size):
         data_subset = random.choices(data, k=data_subset_size)
-        evolutions.append(Evolution(target_param, data_subset, num_creatures=num_creatures, num_cycles=num_cycles, clear_creatures=True, **kwargs))
+        evolutions.append(Evolution(target_param, data_subset, num_creatures=num_creatures, num_cycles=num_cycles, **kwargs))
     return evolutions
 
 
