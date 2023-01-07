@@ -6,20 +6,6 @@ pub struct Standardizer {
 }
 
 impl Standardizer {
-    pub fn to_py_dicts(&self) -> HashMap<String, HashMap<String, f32>> {
-        let mut output = HashMap::new();
-        for (key, param_stand) in &self.standardizers {
-            let param_map = HashMap::from([
-                ("mean".to_string(), param_stand.mean),
-                ("stdev".to_string(), param_stand.stdev),
-            ]);
-            output.insert(key.to_string(), param_map);
-        }
-        output
-    }
-}
-
-impl Standardizer {
     pub fn new(data: &[HashMap<String, f32>]) -> Standardizer {
         let mut standardizers = HashMap::new();
         for key in data[0].keys() {
