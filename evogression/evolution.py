@@ -52,7 +52,6 @@ class Evolution():
             for param in creature.used_parameters():
                 self.parameter_usefulness_count[param] += 1
 
-
     @property
     def best_creature(self):
         return self.model.best_creature
@@ -83,31 +82,6 @@ class Evolution():
         with open(output_filename, 'w') as f:
             f.write(output_str)
         print('Evogression model saved as a Python module.')
-
-
-    def save(self, filename='evolution_model') -> None:
-        '''
-        Save this Evolution Python object/model in a pickle file.
-        Also removes non-essential data to reduce file size.
-        '''
-        # Clearing or shrinking unneeded attributes provides a smaller file size.
-        self.all_data = None
-
-        with open(filename if '.' in filename else filename + '.pkl', 'wb') as f:
-            pickle.dump(self, f)
-
-
-    @classmethod
-    def load(cls, filename):
-        '''
-        Load an Evolution object from a saved, pickle file.
-        '''
-        try:
-            with open(filename, 'rb') as f:
-                return pickle.load(f)
-        except:
-            with open(filename + '.pkl', 'rb') as f:
-                return pickle.load(f)
 
 
     def predict(self, data: dict[str, float] | list[dict[str, float]] | DataFrame, prediction_key: str='', noprint: bool=True):

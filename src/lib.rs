@@ -2,9 +2,7 @@ mod creature;
 mod standardize;
 mod evolution;
 use std::collections::HashMap;
-
 use pyo3::prelude::*;
-
 
 
 #[pyfunction]

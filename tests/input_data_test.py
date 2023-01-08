@@ -8,9 +8,7 @@ import pandas
 
 class TestDataFrame(unittest.TestCase):
     def test_load_and_predict(self):
-        '''
-        Test ability of Evolution class to handle pandas DataFrames.
-        '''
+        '''Test ability of Evolution class to handle pandas DataFrames'''
         df = pandas.DataFrame(surface_3d_data)
         evolution = evogression.Evolution('z', df, num_creatures=500, num_cycles=5)
         predicted = evolution.predict(df)

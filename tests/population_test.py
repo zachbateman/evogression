@@ -3,12 +3,10 @@ import sys
 sys.path.insert(1, '..')
 import evogression
 from test_data import categorical_data, surface_3d_data
-from pprint import pprint as pp
 import matplotlib.pyplot as plt
 
 
 class TestPopulationCateogry(unittest.TestCase):
-
     def test_population_category_2d(self):
         population = evogression.Population('y', categorical_data, split_parameter='cat', num_creatures=3000)
         y_test = [population.predict(d, 'pred')['pred'] for d in categorical_data]
@@ -29,7 +27,6 @@ class TestPopulationCateogry(unittest.TestCase):
         plt.text(1, 17, 'Category A')
         plt.text(10.5, 17, 'Category B')
         plt.title('Category Regression - Population Test')
-
         plt.show()
 
 
@@ -52,7 +49,6 @@ class TestPopulationCateogry(unittest.TestCase):
         ax.set_ylabel('y')
         ax.set_zlabel('z')
         plt.title('Surface Regression - Continuous Population Test')
-
         plt.show()
 
 
