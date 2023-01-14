@@ -71,7 +71,7 @@ def generate_robust_param_usage_file(target: str, data: list[dict[str, float]] |
     models = []
     for _ in range(num_models):
         col_subset = set(random.sample(columns, num_col_per_sample) + [target])  # need to ensure prediction column in the data
-        data_subset = data[col_subset]
+        data_subset = data[list(col_subset)]  # need to pass in list instead of a set
         models.append(Evolution(target, data_subset, creatures=creatures, cycles=cycles, optimize=False))
     EvoGroup(models).output_param_usage(filename=filename)
 
@@ -164,29 +164,21 @@ class Population:
                 self.evo_sets[cat] = evolution_group(target, data_subset, creatures=creatures, cycles=cycles, group_size=group_size, **kwargs)
 
         elif split_parameter and category_or_continuous == 'continuous':
-            # Use bin_size arg (or generate if not provided) to determine how to split out data into different bins of the split_parameter.
             split_values = sorted(d[split_parameter] for d in data)
-            if not bin_size:
+            if not bin_size:  # Use bin_size arg (or generate if not provided) to determine how to split out data into different bins of the split_parameter.
                 bin_size = (max(split_values) - min(split_values)) / 5
 
-            bins = []
-            binned_data = {}
+            self.bins, self.evo_sets = [], {}
             lower = min(split_values)
             upper = lower + bin_size
             while lower < max(split_values):
-                bins.append((lower, upper))
-                cutoff_lower = lower - bin_size * 0.5
-                cutoff_upper = upper + bin_size * 0.5
-                binned_data[(lower, upper)] = [d for d in data if cutoff_lower <= d[split_parameter] < cutoff_upper]
+                self.bins.append((lower, upper))
+                cutoff_lower, cutoff_upper = lower - bin_size * 0.5, upper + bin_size * 0.5
+                self.evo_sets[self.bins[-1]] = evolution_group(target, [d for d in data if cutoff_lower <= d[split_parameter] < cutoff_upper], creatures=creatures, cycles=cycles, group_size=group_size, **kwargs)
                 lower, upper = upper, upper + bin_size
-            self.bins = bins
-
-            self.evo_sets = {}
-            for bin in bins:
-                self.evo_sets[bin] = evolution_group(target, binned_data[bin], creatures=creatures, cycles=cycles, group_size=group_size, **kwargs)
 
 
-    def predict(self, data: dict[str, float] | list[dict[str, float]] | DataFrame, prediction_key: str=''):
+    def predict(self, data: dict[str, float] | list[dict[str, float]] | DataFrame, prediction_key: str='', smooth: bool=True):
         '''Generate predictions with same interface as Evolution.predict.'''
         if prediction_key == '':
             prediction_key = f'{self.target}_PREDICTED'
@@ -208,22 +200,23 @@ class Population:
                 case DataFrame():  # process as a list
                     data = DataFrame(self.predict(data.to_dict('records'), prediction_key=prediction_key))
                 case list():
-                    bin_dist = lambda val, bin: abs(val - (bin[1]+bin[0]) / 2)
-                    for data_point in data:
-                        bin_distances = sorted([(bin, bin_dist(data_point[self.split_parameter], bin)) for bin in self.bins], key=lambda tup: tup[1])
-                        min_dist = bin_distances[0][1] if bin_distances[0][1] > 0 else bin_distances[1][1]
-                        bin_distances = [(t[0], t[1] + min_dist) for t in bin_distances]  # decrease distance sensitivity a hair (still include other weight is closest is almost exactly the value)
-                        bin_distances = bin_distances[:-2 * int(len(bin_distances) / 3)]  # remove furthest 2/3 of bins from consideration
-                        total_dists = sum(t[1] for t in bin_distances)
-
-                        # Now generate weighted-average prediction by giving more weight to closer bins and less to further ones
-                        total_prediction = 0.0
-                        for bin, dist in bin_distances:
-                            predictions = sorted(model.predict(data_point, 'pred', noprint=True)['pred'] for model in self.evo_sets[bin].models)
-                            bin_pred = sum(predictions[1:-1]) / (len(predictions) - 2)  # kick out max/min (outlier) predictions
-                            total_prediction += bin_pred * (dist / total_dists)
-
-                        data_point[prediction_key] = total_prediction
+                    evos = self.evo_sets  # local for speed
+                    split_p = self.split_parameter  # local for speed
+                    if smooth:
+                        bin_dist = lambda val, bin: abs(val - (bin[0]+bin[1]) / 2)
+                        for row in data:
+                            # Get closest 2 bins with their distance to current point
+                            (bin1, b1_dist), (bin2, b2_dist) = sorted([(bin, bin_dist(row[split_p], bin)) for bin in self.bins], key=lambda tup: tup[1])[:2]
+                            total_dist = b1_dist + b2_dist
+                            # Generate weighted-average prediction by giving more weight to closer bin and less to farther one
+                            row[prediction_key] = evos[bin1].predict(row, 'pred')['pred'] * (1 - b1_dist / total_dist) + evos[bin2].predict(row, 'pred')['pred'] * (1 - b2_dist / total_dist)
+                    else:
+                        for row in data:
+                            bin_val = row[split_p]
+                            for bin in self.bins:
+                                if bin[0] <= bin_val <= bin[1]:
+                                    row[prediction_key] = evos[bin].predict(row, prediction_key)[prediction_key]
+                                    break
                 case dict():  # process as a list
                     data = self.predict([data], prediction_key=prediction_key)[0]
 

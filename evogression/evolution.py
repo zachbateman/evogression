@@ -1,5 +1,5 @@
 '''
-Module containing evolution algorithms for regression.
+Module containing evolution algorithm for regression.
 '''
 from collections import defaultdict
 import os
@@ -15,7 +15,7 @@ class Evolution:
     Evolves creatures by killing off the worst performers in
     each cycle and then randomly generating many new creatures.
 
-    Input data must have all numeric values (or None).
+    Input "all_data must have all numeric values (or None).
     '''
     def __init__(self,
                  target: str,
@@ -26,35 +26,25 @@ class Evolution:
                  max_cpu: int=max(os.cpu_count()-1, 1),  # by default use all but one core
                  optimize: bool=True,
                  ) -> None:
-
-        self.target = target
+        self.target, self.creatures, self.cycles, self.max_layers = target, int(creatures), int(cycles), int(max_layers)
 
         if isinstance(all_data, DataFrame):
             all_data = all_data.to_dict('records')
-
         all_data = data_funcs.remove_blank_targets(all_data, target)
         self.param_medians = data_funcs.calc_param_medians(all_data, target)
         self.all_data = data_funcs.fill_none_with_median(all_data, target, self.param_medians)
         self.full_parameter_example = self.all_data[0]
         data_funcs.data_checks(self.all_data)
 
-        self.creatures, self.cycles, self.max_layers = int(creatures), int(cycles), int(max_layers)
-
         os.environ['RAYON_NUM_THREADS'] = str(max_cpu)
         self.model = rust_evogression.run_evolution(target, self.all_data, creatures, cycles, max_layers, optimize)
+        self.best_creature = self.model.best_creature
+        self.best_error = self.model.best_error()
 
         self.parameter_usefulness_count: dict = defaultdict(int)
         for creature in self.model.best_creatures:
             for param in creature.used_parameters():
                 self.parameter_usefulness_count[param] += 1
-
-    @property
-    def best_creature(self):
-        return self.model.best_creature
-
-    @property
-    def best_error(self):
-        return self.model.best_error()
 
 
     def output_regression(self, output_filename='regression_function', directory: str='.', add_error_value=False) -> None:
@@ -80,9 +70,9 @@ class Evolution:
         print('Evogression model saved as a Python module.')
 
 
-    def predict(self, data: dict[str, float] | list[dict[str, float]] | DataFrame, prediction_key: str='', noprint: bool=True):
+    def predict(self, data: dict[str, float] | list[dict[str, float]] | DataFrame, prediction_key: str='', noprint: bool=True) -> dict[str, float] | list[dict[str, float]] | DataFrame:
         '''
-        Add best_creature predictions to data arg as f'{target}_PREDICTED' new key.
+        Add best_creature predictions to data arg as f'{target}_PREDICTED' new key (or as prediction_key kwarg).
         Return unstandardized dict or list of dicts or DataFrame depending on provided arg.
         '''
         target = self.target  # local variable for speed

@@ -14,7 +14,7 @@ class TestPredictionMethods(unittest.TestCase):
         print(evolution.predict([{'x': -3.8}, {'x': 2.9}, {'x': 12.4}]))
 
     def test_param_usage_counts(self):
-        evolution = evogression.Evolution('Target', many_dimension_data, creatures=300, cycles=30)
+        evolution = evogression.Evolution('Target', many_dimension_data, creatures=1500, cycles=15)
         print(evolution.parameter_usefulness_count)
         self.assertTrue(len(evolution.parameter_usefulness_count) > 1)
         self.assertTrue(sum(evolution.parameter_usefulness_count.values()) > 3)
@@ -61,7 +61,6 @@ class TestData(unittest.TestCase):
         test_data[5] = {'x': float('nan'), 'y': 11.2}
         test_data[6] = {'x': None, 'y': float('nan')}
         evogression.Evolution('y', test_data)
-
 
 
 if __name__ == '__main__':

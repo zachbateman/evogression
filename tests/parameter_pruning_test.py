@@ -16,7 +16,6 @@ class TestManyDimensionParameterPruningRegression(unittest.TestCase):
         evogression.generate_robust_param_usage_file('Target', many_dimension_data)
 
 
-
 if __name__ == '__main__':
     # have to do the below magic to make cProfile work with unittest
     suite = unittest.TestLoader().discover('.')

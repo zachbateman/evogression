@@ -10,23 +10,19 @@ class Test3DSurfaceRegression(unittest.TestCase):
     def test_best_creature_3d(self):
         evolutions = evogression.random_population('z', surface_3d_data, creatures=25000, cycles=7, group_size=5)
         z_test = [d['pred'] for d in evolutions.predict(surface_3d_data, 'pred')]
-
-        fig = plt.figure()
-        ax = fig.add_subplot(111, projection='3d')
-
         x = [point_dict['x'] for point_dict in surface_3d_data]
         y = [point_dict['y'] for point_dict in surface_3d_data]
         z = [point_dict['z'] for point_dict in surface_3d_data]
 
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
         ax.scatter3D(x, y, z)
         ax.scatter3D(x, y, z_test)
-
         ax.set_xlabel('x')
         ax.set_ylabel('y')
         ax.set_zlabel('z')
         plt.title('Surface Regression - Random Population Test')
         plt.show()
-
 
 
 if __name__ == '__main__':
