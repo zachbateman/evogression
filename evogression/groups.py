@@ -8,48 +8,55 @@ from pandas import DataFrame
 from .evolution import Evolution
 
 
+class EvoGroup:
+    def __init__(self, models: list[Evolution]):
+        self.models: list[Evolution] = models
+
+    def output_regression(self, directory: str='regression_modules') -> None:
+        '''Output each Evolution's regression as a new Python module.'''
+        for model in self.models:
+            model.output_regression(directory=directory, add_error_value=True)
+
+    @property
+    def parameter_usage(self) -> dict[str, int]:
+        '''Combine each Evolution's .parameter_usefulness_count dicts to see which attributes are important.'''
+        combined_parameter_usefulness = defaultdict(int)
+        for model in self.models:
+            for param, count in model.parameter_usefulness_count.items():
+                combined_parameter_usefulness[param] += count
+        return combined_parameter_usefulness
+
+    def output_param_usage(self, filename: str='ParameterUsage.xlsx') -> None:
+        '''Save an Excel file with Parameter Usage data.'''
+        usage = DataFrame.from_dict(self.parameter_usage, orient='index').reset_index().rename(columns={'index': 'PARAMETER', 0: 'USAGE'})
+        usage.sort_values('USAGE', ascending=False, inplace=True)
+        usage.to_excel(filename if '.' in filename else filename + '.xlsx', index=False, sheet_name='Parameter Usage')
+
+    def predict(self, data: dict[str, float] | list[dict[str, float]] | DataFrame, prediction_key: str=''):
+        '''Predict like Evogression.predict() but average this group's predictions.'''
+        match data:
+            case DataFrame():  # will get processed as a list
+                return DataFrame(self.predict(data.to_dict('records'), prediction_key=prediction_key))
+            case list():
+                for row in data:
+                    row[prediction_key] = sum(model.predict(row, prediction_key)[prediction_key] for model in self.models) / len(self.models)
+            case dict():
+                data[prediction_key] = sum(model.predict(data, prediction_key)[prediction_key] for model in self.models) / len(self.models)
+            case _:
+                print('Error!  "data" arg provided to .predict() must be a dict or list of dicts or DataFrame.')
+        return data
+
 
 def evolution_group(target: str, data: list[dict[str, float]] | DataFrame, num_creatures: int=10000, num_cycles: int=10,
-                    max_layers: int=3, group_size: int=4, max_cpu: int=0, optimize=True, **kwargs) -> list[Evolution]:
-    '''
-    Generate a list of fully initialized Evolution objects.
-    Any Evolution kwargs may be provided.
-    '''
-    return [Evolution(target, data, num_creatures=num_creatures, num_cycles=num_cycles, max_layers=max_layers,  max_cpu=max_cpu, optimize=optimize, **kwargs)
+                    max_layers: int=3, group_size: int=4, max_cpu: int=0, optimize=True, **kwargs) -> EvoGroup:
+    '''Generate an EvoGroup containing multiple fully initialized Evolution objects.  Any Evolution kwargs may be provided.'''
+    group = [Evolution(target, data, num_creatures=num_creatures, num_cycles=num_cycles, max_layers=max_layers,  max_cpu=max_cpu, optimize=optimize, **kwargs)
                 for _ in range(group_size)]
+    return EvoGroup(group)
 
 
-def output_group_regression_funcs(group: list[Evolution]) -> None:
-    '''
-    Take list of Evolution objects and output their
-    best regressions to a "regression_modules" subdir.
-    '''
-    for cr_ev in group:
-        cr_ev.output_best_regression(directory='regression_modules', add_error_value=True)
-
-
-def parameter_usage(group: list[Evolution]) -> dict[str, int]:
-    '''
-    Combine each Evolution's .parameter_usefulness_count dicts to see which attributes are important.
-    '''
-    combined_parameter_usefulness = defaultdict(int)
-    for cr_ev in group:
-        for param, count in cr_ev.parameter_usefulness_count.items():
-            combined_parameter_usefulness[param] += count
-    return combined_parameter_usefulness
-
-
-def output_usage(group: list[Evolution], filename: str='ParameterUsage.xlsx') -> None:
-    usage = parameter_usage(group)
-    usage = DataFrame.from_dict(usage, orient='index')
-    usage.reset_index(inplace=True)
-    usage.columns = ['PARAMETER', 'USAGE']
-    usage.sort_values('USAGE', ascending=False, inplace=True)
-    usage.to_excel(filename if '.' in filename else filename + '.xlsx', index=False, sheet_name='Param Usage')
-
-
-def generate_parameter_usage_file(target: str, data: list[dict[str, float]] | DataFrame, num_models: int=100, num_creatures: int=5000,
-                                  num_cycles: int=3,num_cpu: int=1, filename: str='ParameterUsage.xlsx') -> None:
+def generate_robust_param_usage_file(target: str, data: list[dict[str, float]] | DataFrame, num_models: int=100, num_creatures: int=5000,
+                                     num_cycles: int=3, filename: str='RobustParameterUsage.xlsx') -> None:
     '''
     Generate many models using subsets of possible input data columns so as to
     not overweight usage of the few best columns.
@@ -59,24 +66,18 @@ def generate_parameter_usage_file(target: str, data: list[dict[str, float]] | Da
         data = DataFrame(data)
 
     columns = list(data.columns)
-    if len(columns) <= 4:
-        num_col_per_sample = len(columns)
-    else:
-        num_col_per_sample = int(7 * log(len(columns)) - 8) + 1
+    num_col_per_sample = len(columns) if len(columns) <= 4 else int(7 * log(len(columns)) - 8) + 1
 
     models = []
     for _ in range(num_models):
-        col_subset = random.sample(columns, num_col_per_sample)
-        if target not in col_subset:  # need prediction column in the data
-            col_subset.append(target)
+        col_subset = set(random.sample(columns, num_col_per_sample) + [target])  # need to ensure prediction column in the data
         data_subset = data[col_subset]
-        model = Evolution(target, data_subset, num_creatures=num_creatures, num_cycles=num_cycles, optimize=False)
-        models.append(model)
-    output_usage(models, filename)
+        models.append(Evolution(target, data_subset, num_creatures=num_creatures, num_cycles=num_cycles, optimize=False))
+    EvoGroup(models).output_param_usage(filename=filename)
 
 
 def parameter_pruned_evolution_group(target: str, data: list[dict[str, float]] | DataFrame, max_parameters: int=10, num_creatures: int=10000,
-                                     num_cycles: int=10, group_size: int=4) -> list[Evolution]:
+                                     num_cycles: int=10, group_size: int=4) -> EvoGroup:
     '''
     Generate successive groups of Evolution objects and prune least-used
     parameters from the input data each round until only the most useful parameters remain.
@@ -110,7 +111,7 @@ def parameter_pruned_evolution_group(target: str, data: list[dict[str, float]] |
     while num_parameters > max_parameters:
         group = evolution_group(target, data, int(num_creatures // 1.6), int(num_cycles // 1.6), group_size=group_size, optimize=False)
 
-        current_parameter_usage = [(param, count) for param, count in parameter_usage(group).items()]
+        current_parameter_usage = [(param, count) for param, count in group.parameter_usage.items()]
         random.shuffle(current_parameter_usage)  # so below filter ignores previous order for equally-ranked parameters
         ranked_parameters = sorted(current_parameter_usage, key=lambda tup: tup[1])
         print(ranked_parameters)
@@ -123,12 +124,12 @@ def parameter_pruned_evolution_group(target: str, data: list[dict[str, float]] |
 
     final_group = evolution_group(target, data, num_creatures, num_cycles, group_size=group_size)
     print('parameter_pruned_evolution_group complete.  Final Parameter usage counts below:')
-    for param, count in parameter_usage(final_group).items():
+    for param, count in final_group.parameter_usage.items():
         print(f'  {count}: {param}')
     return final_group
 
 
-def random_population(target: str, data: list[dict[str, float]], num_creatures: int=10000, num_cycles: int=10, group_size: int=4, **kwargs) -> list[Evolution]:
+def random_population(target: str, data: list[dict[str, float]], num_creatures: int=10000, num_cycles: int=10, group_size: int=4, **kwargs) -> EvoGroup:
     '''
     Generate a list of Evolution objects (same as evolution_group) but use randomly sampled data subsets for training.
     The goal is to generate a "Random Population" in a similar manner as a Random Forest concept.
@@ -138,15 +139,19 @@ def random_population(target: str, data: list[dict[str, float]], num_creatures: 
     for _ in range(group_size):
         data_subset = random.choices(data, k=data_subset_size)
         evolutions.append(Evolution(target, data_subset, num_creatures=num_creatures, num_cycles=num_cycles, **kwargs))
-    return evolutions
+    return EvoGroup(evolutions)
 
 
-class Population():
+class Population:
     def __init__(self, target: str, data: list[dict[str, float]] | DataFrame, num_creatures=300, num_cycles: int=3, group_size: int=4,
                  split_parameter=None, category_or_continuous='category', bin_size=None, **kwargs):
         self.target = target
 
-        if type(data) == DataFrame:
+        if category_or_continuous not in ['category', 'continuous']:
+            print('ERROR! Population category_or_continuous kwarg must be either "category" or "continuous"!')
+            return
+
+        if isinstance(data, DataFrame):
             data = data.to_dict('records')
 
         self.split_parameter = split_parameter
@@ -156,7 +161,7 @@ class Population():
             data_sets = {cat: [{k: v for k, v in d.items() if k != split_parameter} for d in data if d[split_parameter] == cat] for cat in categories}
             self.evo_sets = {}
             for cat, data_subset in data_sets.items():
-                self.evo_sets[cat] = [Evolution(target, data_subset, num_creatures=num_creatures, num_cycles=num_cycles, **kwargs) for _ in range(group_size)]
+                self.evo_sets[cat] = evolution_group(target, data_subset, num_creatures=num_creatures, num_cycles=num_cycles, group_size=group_size, **kwargs)
 
         elif split_parameter and category_or_continuous == 'continuous':
             # Use bin_size arg (or generate if not provided) to determine how to split out data into different bins of the split_parameter.
@@ -182,58 +187,44 @@ class Population():
 
 
     def predict(self, data: dict[str, float] | list[dict[str, float]] | DataFrame, prediction_key: str=''):
-        '''
-        Generate predictions with same interface as BaseEvolution.predict.
-        '''
+        '''Generate predictions with same interface as Evolution.predict.'''
         if prediction_key == '':
             prediction_key = f'{self.target}_PREDICTED'
 
-        is_dataframe = True if isinstance(data, DataFrame) else False
-        if is_dataframe:
-            data = data.to_dict('records')  # will get processed as a list
-
         if self.category_or_continuous == 'category':
-            if isinstance(data, list):  # dataframes also get processed here
-                for d in data:
-                    predictions = [evo.predict(d, 'pred')['pred'] for evo in self.evo_sets[d[self.split_parameter]]]
-                    d[prediction_key] = sum(predictions) / len(predictions)
-                return DataFrame(data) if is_dataframe else data
-            elif isinstance(data, dict):
-                predictions = [evo.predict(data, 'pred')['pred'] for evo in self.evo_sets[data[self.split_parameter]]]
-                data[prediction_key] = sum(predictions) / len(predictions)
-                return data
-            else:
-                print('Error!  "data" arg provided to .predict() must be a dict or list of dicts or DataFrame.')
-
+            match data:
+                case DataFrame():  # process as a list
+                    data = DataFrame(self.predict(data.to_dict('records'), prediction_key=prediction_key))
+                case list():
+                    for d in data:
+                        d[prediction_key] = self.evo_sets[d[self.split_parameter]].predict(d, prediction_key)[prediction_key]
+                case dict():
+                    data[prediction_key] = self.evo_sets[data[self.split_parameter]].predict(data, prediction_key)[prediction_key]
+                case _:
+                    print('Error!  "data" arg provided to .predict() must be a dict or list of dicts or DataFrame.')
 
         elif self.category_or_continuous == 'continuous':
-            if isinstance(data, list):  # dataframes also get processed here
-                data_points = data
-                is_dict = False
-            elif isinstance(data, dict):
-                data_points = [data]
-                is_dict = True
+            match data:
+                case DataFrame():  # process as a list
+                    data = DataFrame(self.predict(data.to_dict('records'), prediction_key=prediction_key))
+                case list():
+                    bin_dist = lambda val, bin: abs(val - (bin[1]+bin[0]) / 2)
+                    for data_point in data:
+                        bin_distances = sorted([(bin, bin_dist(data_point[self.split_parameter], bin)) for bin in self.bins], key=lambda tup: tup[1])
+                        min_dist = bin_distances[0][1] if bin_distances[0][1] > 0 else bin_distances[1][1]
+                        bin_distances = [(t[0], t[1] + min_dist) for t in bin_distances]  # decrease distance sensitivity a hair (still include other weight is closest is almost exactly the value)
+                        bin_distances = bin_distances[:-2 * int(len(bin_distances) / 3)]  # remove furthest 2/3 of bins from consideration
+                        total_dists = sum(t[1] for t in bin_distances)
 
-            bin_dist = lambda val, bin: abs(val - (bin[1]+bin[0]) / 2)
-            for data_point in data_points:
-                bin_distances = sorted([(bin, bin_dist(data_point[self.split_parameter], bin)) for bin in self.bins], key=lambda tup: tup[1])
-                min_dist = bin_distances[0][1] if bin_distances[0][1] > 0 else bin_distances[1][1]
-                bin_distances = [(t[0], t[1] + min_dist) for t in bin_distances]  # decrease distance sensitivity a hair (still include other weight is closest is almost exactly the value)
-                bin_distances = bin_distances[:-2 * int(len(bin_distances) / 3)]  # remove furthest 2/3 of bins from consideration
-                total_dists = sum(t[1] for t in bin_distances)
+                        # Now generate weighted-average prediction by giving more weight to closer bins and less to further ones
+                        total_prediction = 0.0
+                        for bin, dist in bin_distances:
+                            predictions = sorted(model.predict(data_point, 'pred', noprint=True)['pred'] for model in self.evo_sets[bin].models)
+                            bin_pred = sum(predictions[1:-1]) / (len(predictions) - 2)  # kick out max/min (outlier) predictions
+                            total_prediction += bin_pred * (dist / total_dists)
 
-                # Now generate weighted-average prediction by giving more weight to closer bins and less to further ones
-                total_prediction = 0.0
-                for bin, dist in bin_distances:
-                    predictions = sorted(evo.predict(data_point, 'pred', noprint=True)['pred'] for evo in self.evo_sets[bin])
-                    bin_pred = sum(predictions[1:-1]) / (len(predictions) - 2)  # kick out max/min (outlyer) predictions
-                    total_prediction += bin_pred * (dist / total_dists)
+                        data_point[prediction_key] = total_prediction
+                case dict():  # process as a list
+                    data = self.predict([data], prediction_key=prediction_key)[0]
 
-                data_point[prediction_key] = total_prediction
-
-            if is_dict:
-                return data_points[0]
-            elif is_dataframe:
-                return DataFrame(data_points)
-            else:
-                return data_points
+        return data

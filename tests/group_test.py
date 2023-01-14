@@ -2,8 +2,37 @@ import unittest
 import sys
 sys.path.insert(1, '..')
 import evogression
-from test_data import categorical_data, surface_3d_data
+from data_examples import linear_data, categorical_data, surface_3d_data, many_dimension_data
 import matplotlib.pyplot as plt
+
+
+class TestGroupFunctions(unittest.TestCase):
+    def test_parameter_usage_count(self):
+        group = evogression.evolution_group('Target', many_dimension_data, num_creatures=500, num_cycles=5, group_size=10)
+        for model in group.models:
+            print(model.parameter_usefulness_count)
+            self.assertTrue(len(model.parameter_usefulness_count) > 0)
+        print(group.parameter_usage)
+        self.assertTrue(len(group.parameter_usage) > 0)
+
+
+class TestGroupComposite(unittest.TestCase):
+    def test_evolution_group(self):
+        group = evogression.evolution_group('y', linear_data, num_creatures=3000, group_size=30, num_cycles=10)
+
+        calculation_x_values = [i / 2 for i in range(6, 27)]
+        for evo in group.models:
+            calculated_y_values = [evo.predict({'x': x}, 'pred')['pred'] for x in calculation_x_values]
+            plt.plot(calculation_x_values, calculated_y_values, alpha=0.1)
+
+        calculated_y_values = [group.predict({'x': x}, 'pred')['pred'] for x in calculation_x_values]
+        plt.plot(calculation_x_values, calculated_y_values,  'g--', alpha=1.0)
+        plt.scatter([d['x'] for d in linear_data], [d['y'] for d in linear_data])
+
+        plt.xlabel('x')
+        plt.ylabel('y')
+        plt.title('Linear Regression - Group Composite Prediction Test')
+        plt.show()
 
 
 class TestPopulationCateogry(unittest.TestCase):
@@ -54,4 +83,4 @@ class TestPopulationCateogry(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    unittest.main()
+    unittest.main(buffer=True)

@@ -8,7 +8,7 @@ from . import data as data_funcs
 from . import rust_evogression
 
 
-class Evolution():
+class Evolution:
     '''
     EVOLUTION ALOGORITHM
 
@@ -102,11 +102,8 @@ class Evolution():
             return data_funcs.fill_none_with_median(clean_data, target, self.param_medians, noprint=noprint)
 
         match data:
-            case DataFrame():
-                data = data.to_dict('records')  # will get processed as list
-                for d, clean_row in zip(data, generate_clean_data(data)):
-                    d[prediction_key] = self.model.predict_point(clean_row)
-                data = DataFrame(data)  # convert back into a DataFrame
+            case DataFrame():  # process as a list
+                data = DataFrame(self.predict(data.to_dict('records'), prediction_key=prediction_key, noprint=noprint))
             case list():
                 for d, clean_row in zip(data, generate_clean_data(data)):
                     d[prediction_key] = self.model.predict_point(clean_row)
