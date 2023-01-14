@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 
 class Test3DSurfaceRegression(unittest.TestCase):
     def test_best_creature_3d(self):
-        evolutions = evogression.random_population('z', surface_3d_data, num_creatures=25000, num_cycles=7, group_size=5)
+        evolutions = evogression.random_population('z', surface_3d_data, creatures=25000, cycles=7, group_size=5)
         z_test = [d['pred'] for d in evolutions.predict(surface_3d_data, 'pred')]
 
         fig = plt.figure()

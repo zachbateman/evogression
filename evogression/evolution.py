@@ -20,8 +20,8 @@ class Evolution:
     def __init__(self,
                  target: str,
                  all_data: list[dict[str, float]] | DataFrame,
-                 num_creatures: int=10000,
-                 num_cycles: int=10,
+                 creatures: int=10000,
+                 cycles: int=10,
                  max_layers: int=3,
                  max_cpu: int=max(os.cpu_count()-1, 1),  # by default use all but one core
                  optimize: bool=True,
@@ -38,10 +38,10 @@ class Evolution:
         self.full_parameter_example = self.all_data[0]
         data_funcs.data_checks(self.all_data)
 
-        self.num_creatures, self.num_cycles, self.max_layers = int(num_creatures), int(num_cycles), int(max_layers)
+        self.creatures, self.cycles, self.max_layers = int(creatures), int(cycles), int(max_layers)
 
         os.environ['RAYON_NUM_THREADS'] = str(max_cpu)
-        self.model = rust_evogression.run_evolution(target, self.all_data, num_creatures, num_cycles, max_layers, optimize)
+        self.model = rust_evogression.run_evolution(target, self.all_data, creatures, cycles, max_layers, optimize)
 
         self.parameter_usefulness_count: dict = defaultdict(int)
         for creature in self.model.best_creatures:

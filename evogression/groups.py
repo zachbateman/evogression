@@ -47,16 +47,16 @@ class EvoGroup:
         return data
 
 
-def evolution_group(target: str, data: list[dict[str, float]] | DataFrame, num_creatures: int=10000, num_cycles: int=10,
+def evolution_group(target: str, data: list[dict[str, float]] | DataFrame, creatures: int=10000, cycles: int=10,
                     max_layers: int=3, group_size: int=4, max_cpu: int=0, optimize=True, **kwargs) -> EvoGroup:
     '''Generate an EvoGroup containing multiple fully initialized Evolution objects.  Any Evolution kwargs may be provided.'''
-    group = [Evolution(target, data, num_creatures=num_creatures, num_cycles=num_cycles, max_layers=max_layers,  max_cpu=max_cpu, optimize=optimize, **kwargs)
+    group = [Evolution(target, data, creatures=creatures, cycles=cycles, max_layers=max_layers,  max_cpu=max_cpu, optimize=optimize, **kwargs)
                 for _ in range(group_size)]
     return EvoGroup(group)
 
 
-def generate_robust_param_usage_file(target: str, data: list[dict[str, float]] | DataFrame, num_models: int=100, num_creatures: int=5000,
-                                     num_cycles: int=3, filename: str='RobustParameterUsage.xlsx') -> None:
+def generate_robust_param_usage_file(target: str, data: list[dict[str, float]] | DataFrame, num_models: int=100, creatures: int=5000,
+                                     cycles: int=3, filename: str='RobustParameterUsage.xlsx') -> None:
     '''
     Generate many models using subsets of possible input data columns so as to
     not overweight usage of the few best columns.
@@ -72,23 +72,23 @@ def generate_robust_param_usage_file(target: str, data: list[dict[str, float]] |
     for _ in range(num_models):
         col_subset = set(random.sample(columns, num_col_per_sample) + [target])  # need to ensure prediction column in the data
         data_subset = data[col_subset]
-        models.append(Evolution(target, data_subset, num_creatures=num_creatures, num_cycles=num_cycles, optimize=False))
+        models.append(Evolution(target, data_subset, creatures=creatures, cycles=cycles, optimize=False))
     EvoGroup(models).output_param_usage(filename=filename)
 
 
-def parameter_pruned_evolution_group(target: str, data: list[dict[str, float]] | DataFrame, max_parameters: int=10, num_creatures: int=10000,
-                                     num_cycles: int=10, group_size: int=4) -> EvoGroup:
+def parameter_pruned_evolution_group(target: str, data: list[dict[str, float]] | DataFrame, max_parameters: int=10, creatures: int=10000,
+                                     cycles: int=10, group_size: int=4) -> EvoGroup:
     '''
     Generate successive groups of Evolution objects and prune least-used
     parameters from the input data each round until only the most useful parameters remain.
     Finally, run a full-blown evolution cycles with the remaining parameters
     for the saved regression modules.
 
-    USE LARGE >>> num_cycles <<< TO INTEGRATE MORE STATISTICALLY VALID PARAMETER USAGE NUMBERS BEFORE REMOVING PARAMETERS
+    USE LARGE >>> cycles <<< TO INTEGRATE MORE STATISTICALLY VALID PARAMETER USAGE NUMBERS BEFORE REMOVING PARAMETERS
     '''
-    if num_creatures < 1000 or num_cycles < 10:
-        print('\n> ERROR!  parameter_pruned_evolution_group() can be unstable (infinite loop)\n  if num_creatures and/or num_cycles args are too small.')
-        print('  Please use a minimum num_creatures of 1000 and a minimum num_cycles of 10.\n  Higher values num_cycles are encouraged!\n')
+    if creatures < 1000 or cycles < 10:
+        print('\n> ERROR!  parameter_pruned_evolution_group() can be unstable (infinite loop)\n  if creatures and/or cycles args are too small.')
+        print('  Please use a minimum creatures of 1000 and a minimum ncycles of 10.\n  Higher values cycles are encouraged!\n')
         return
 
     def num_param_to_eliminate(num_extra_param: int) -> int:
@@ -109,7 +109,7 @@ def parameter_pruned_evolution_group(target: str, data: list[dict[str, float]] |
 
     num_parameters = len(data[0].keys()) - 1
     while num_parameters > max_parameters:
-        group = evolution_group(target, data, int(num_creatures // 1.6), int(num_cycles // 1.6), group_size=group_size, optimize=False)
+        group = evolution_group(target, data, int(creatures // 1.6), int(cycles // 1.6), group_size=group_size, optimize=False)
 
         current_parameter_usage = [(param, count) for param, count in group.parameter_usage.items()]
         random.shuffle(current_parameter_usage)  # so below filter ignores previous order for equally-ranked parameters
@@ -122,14 +122,14 @@ def parameter_pruned_evolution_group(target: str, data: list[dict[str, float]] |
                 del data_point[param]
         num_parameters = len(data[0].keys()) - 1
 
-    final_group = evolution_group(target, data, num_creatures, num_cycles, group_size=group_size)
+    final_group = evolution_group(target, data, creatures, cycles, group_size=group_size)
     print('parameter_pruned_evolution_group complete.  Final Parameter usage counts below:')
     for param, count in final_group.parameter_usage.items():
         print(f'  {count}: {param}')
     return final_group
 
 
-def random_population(target: str, data: list[dict[str, float]], num_creatures: int=10000, num_cycles: int=10, group_size: int=4, **kwargs) -> EvoGroup:
+def random_population(target: str, data: list[dict[str, float]], creatures: int=10000, cycles: int=10, group_size: int=4, **kwargs) -> EvoGroup:
     '''
     Generate a list of Evolution objects (same as evolution_group) but use randomly sampled data subsets for training.
     The goal is to generate a "Random Population" in a similar manner as a Random Forest concept.
@@ -138,12 +138,12 @@ def random_population(target: str, data: list[dict[str, float]], num_creatures: 
     evolutions = []
     for _ in range(group_size):
         data_subset = random.choices(data, k=data_subset_size)
-        evolutions.append(Evolution(target, data_subset, num_creatures=num_creatures, num_cycles=num_cycles, **kwargs))
+        evolutions.append(Evolution(target, data_subset, creatures=creatures, cycles=cycles, **kwargs))
     return EvoGroup(evolutions)
 
 
 class Population:
-    def __init__(self, target: str, data: list[dict[str, float]] | DataFrame, num_creatures=300, num_cycles: int=3, group_size: int=4,
+    def __init__(self, target: str, data: list[dict[str, float]] | DataFrame, creatures=300, cycles: int=3, group_size: int=4,
                  split_parameter=None, category_or_continuous='category', bin_size=None, **kwargs):
         self.target = target
 
@@ -161,7 +161,7 @@ class Population:
             data_sets = {cat: [{k: v for k, v in d.items() if k != split_parameter} for d in data if d[split_parameter] == cat] for cat in categories}
             self.evo_sets = {}
             for cat, data_subset in data_sets.items():
-                self.evo_sets[cat] = evolution_group(target, data_subset, num_creatures=num_creatures, num_cycles=num_cycles, group_size=group_size, **kwargs)
+                self.evo_sets[cat] = evolution_group(target, data_subset, creatures=creatures, cycles=cycles, group_size=group_size, **kwargs)
 
         elif split_parameter and category_or_continuous == 'continuous':
             # Use bin_size arg (or generate if not provided) to determine how to split out data into different bins of the split_parameter.
@@ -183,7 +183,7 @@ class Population:
 
             self.evo_sets = {}
             for bin in bins:
-                self.evo_sets[bin] = evolution_group(target, binned_data[bin], num_creatures=num_creatures, num_cycles=num_cycles, group_size=group_size, **kwargs)
+                self.evo_sets[bin] = evolution_group(target, binned_data[bin], creatures=creatures, cycles=cycles, group_size=group_size, **kwargs)
 
 
     def predict(self, data: dict[str, float] | list[dict[str, float]] | DataFrame, prediction_key: str=''):

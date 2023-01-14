@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 
 class TestParabolaRegression(unittest.TestCase):
     def test_best_creature_parabola_regression_evolution(self):
-        model = evogression.Evolution('y', parabola_data, num_creatures=10000, num_cycles=10)
+        model = evogression.Evolution('y', parabola_data, creatures=10000, cycles=10)
         model.output_regression(directory='regression_modules', add_error_value=True)
 
         x_values = list(range(-20, 21))

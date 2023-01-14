@@ -9,12 +9,12 @@ import pandas
 class TestPredictionMethods(unittest.TestCase):
     def test_predict(self):
         '''Test ability of Evolution class to add target variable predictions to data samples.'''
-        evolution = evogression.Evolution('y', linear_data, num_creatures=1000, num_cycles=5)
+        evolution = evogression.Evolution('y', linear_data, creatures=1000, cycles=5)
         print(evolution.predict({'x': 5.2}))
         print(evolution.predict([{'x': -3.8}, {'x': 2.9}, {'x': 12.4}]))
 
     def test_param_usage_counts(self):
-        evolution = evogression.Evolution('Target', many_dimension_data, num_creatures=300, num_cycles=30)
+        evolution = evogression.Evolution('Target', many_dimension_data, creatures=300, cycles=30)
         print(evolution.parameter_usefulness_count)
         self.assertTrue(len(evolution.parameter_usefulness_count) > 1)
         self.assertTrue(sum(evolution.parameter_usefulness_count.values()) > 3)
@@ -24,7 +24,7 @@ class TestData(unittest.TestCase):
     def test_load_and_predict(self):
         '''Test ability of Evolution class to handle pandas DataFrames'''
         df = pandas.DataFrame(surface_3d_data)
-        evolution = evogression.Evolution('z', df, num_creatures=500, num_cycles=5)
+        evolution = evogression.Evolution('z', df, creatures=500, cycles=5)
         predicted = evolution.predict(df)
         self.assertTrue(isinstance(predicted, pandas.DataFrame))
         self.assertTrue(len(predicted.columns) == 4)
@@ -46,7 +46,7 @@ class TestData(unittest.TestCase):
             {'x': 9, 'y': float('nan'), 'z': 0.87},
             {'x': 11, 'y': 3.1, 'z': 0.91},
         ]
-        model = evogression.Evolution('z', data2, num_creatures=500, num_cycles=5)
+        model = evogression.Evolution('z', data2, creatures=500, cycles=5)
         predicted = model.predict(data2)
         self.assertTrue('z_PREDICTED' in predicted[0])
 

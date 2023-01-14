@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 
 class TestGroupFunctions(unittest.TestCase):
     def test_parameter_usage_count(self):
-        group = evogression.evolution_group('Target', many_dimension_data, num_creatures=500, num_cycles=5, group_size=10)
+        group = evogression.evolution_group('Target', many_dimension_data, creatures=500, cycles=5, group_size=10)
         for model in group.models:
             print(model.parameter_usefulness_count)
             self.assertTrue(len(model.parameter_usefulness_count) > 0)
@@ -18,7 +18,7 @@ class TestGroupFunctions(unittest.TestCase):
 
 class TestGroupComposite(unittest.TestCase):
     def test_evolution_group(self):
-        group = evogression.evolution_group('y', linear_data, num_creatures=3000, group_size=30, num_cycles=10)
+        group = evogression.evolution_group('y', linear_data, creatures=3000, group_size=30, cycles=10)
 
         calculation_x_values = [i / 2 for i in range(6, 27)]
         for evo in group.models:
@@ -37,7 +37,7 @@ class TestGroupComposite(unittest.TestCase):
 
 class TestPopulationCateogry(unittest.TestCase):
     def test_population_category_2d(self):
-        population = evogression.Population('y', categorical_data, split_parameter='cat', num_creatures=3000)
+        population = evogression.Population('y', categorical_data, split_parameter='cat', creatures=3000)
         y_test = [population.predict(d, 'pred')['pred'] for d in categorical_data]
 
         plt.scatter([pd['x'] for pd in categorical_data], [pd['y'] for pd in categorical_data], s=100)
@@ -60,7 +60,7 @@ class TestPopulationCateogry(unittest.TestCase):
 
 
     def test_population_continuous_3d(self):
-        population = evogression.Population('z', surface_3d_data, num_creatures=3000, num_cycles=5, group_size=3, split_parameter='y', category_or_continuous='continuous')
+        population = evogression.Population('z', surface_3d_data, creatures=3000, cycles=5, group_size=3, split_parameter='y', category_or_continuous='continuous')
         data = population.predict(surface_3d_data, 'z_predicted')
 
         fig = plt.figure()

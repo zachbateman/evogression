@@ -22,7 +22,7 @@ class TestBreastCancerDetectionRegression(unittest.TestCase):
             except:
                 print(f'ERROR column: {col}')
 
-        evolution = evogression.Evolution('benign2_or_malignant4', df, target_num_creatures=10000, num_cycles=10)
+        evolution = evogression.Evolution('benign2_or_malignant4', df, target_num_creatures=10000, cycles=10)
         evolution.output_best_regression()
 
         output_data = evolution.predict(df)
