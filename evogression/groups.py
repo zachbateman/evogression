@@ -12,6 +12,9 @@ class EvoGroup:
     def __init__(self, models: list[Evolution]):
         self.models: list[Evolution] = models
 
+    def __iter__(self):
+        return (model for model in self.models)
+
     def output_regression(self, directory: str='regression_modules') -> None:
         '''Output each Evolution's regression as a new Python module.'''
         for model in self.models:

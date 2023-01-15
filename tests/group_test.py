@@ -8,17 +8,21 @@ import matplotlib.pyplot as plt
 
 class TestGroup(unittest.TestCase):
     def test_parameter_usage_count(self):
-        group = evogression.evolution_group('Target', many_dimension_data, creatures=500, cycles=5, group_size=10)
-        for model in group.models:
+        group_size = 10
+        group = evogression.evolution_group('Target', many_dimension_data, creatures=500, cycles=5, group_size=group_size)
+        i = 0
+        for model in group:
             print(model.parameter_usefulness_count)
             self.assertTrue(len(model.parameter_usefulness_count) > 0)
+            i += 1
+        self.assertTrue(i == group_size)
         print(group.parameter_usage)
         self.assertTrue(len(group.parameter_usage) > 0)
 
     def test_evolution_group(self):
         group = evogression.evolution_group('y', linear_data, creatures=3000, group_size=30, cycles=10)
         calculation_x_values = [i / 2 for i in range(6, 27)]
-        for evo in group.models:
+        for evo in group:
             calculated_y_values = [evo.predict({'x': x}, 'pred')['pred'] for x in calculation_x_values]
             plt.plot(calculation_x_values, calculated_y_values, alpha=0.1)
         calculated_y_values = [group.predict({'x': x}, 'pred')['pred'] for x in calculation_x_values]
@@ -34,7 +38,6 @@ class TestGroup(unittest.TestCase):
 class TestPopulationCateogry(unittest.TestCase):
     def test_population_category_2d(self):
         population = evogression.Population('y', categorical_data, split_parameter='cat', creatures=3000)
-        y_test = [population.predict(d, 'pred')['pred'] for d in categorical_data]
         x_test_A = [i / 10 for i in range(0, 55)]
         y_test_A = [population.predict({'cat': 'A', 'x': x}, 'pred')['pred'] for x in x_test_A]
         x_test_B = [i / 10 for i in range(87, 135)]
