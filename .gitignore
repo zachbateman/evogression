@@ -16,6 +16,7 @@ MANIFEST
 *.html
 *.csv
 *.bat
+*.json
 *.prof
 *regression_function*
 

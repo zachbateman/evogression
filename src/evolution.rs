@@ -231,9 +231,18 @@ fn error_results_with_median(creatures: &[Creature]) -> (f32, f32) {
         }
     }
     errors.sort_by(|a, b| a.total_cmp(b));
-    let median_error = errors[errors.len() / 2];
-    let min_error = errors[0];
-    (min_error, median_error)
+
+    match errors.len() {
+        x if x > 0 => {
+            let median_error = errors[errors.len() / 2];
+            let min_error = errors[0];
+            (min_error, median_error)
+        },
+        _ => {  // if an issue of no errors (very rare), throw huge errors instead of a panic
+            (99999.9, 99999.9)
+        }
+    }
+
 }
 
 fn error_results(creatures: &[Creature]) -> f32 {
@@ -246,7 +255,12 @@ fn error_results(creatures: &[Creature]) -> f32 {
         }
     }
     errors.sort_by(|a, b| a.total_cmp(b));
-    errors[0]
+    match errors.len() {
+        x if x > 0 => {
+            errors[0]
+        },
+        _ => 99999.9  // if an issue of no errors (very rare), throw huge errors instead of a panic
+    }
 }
 
 fn kill_weak_creatures(creatures: Vec<Creature>, median_error: &f32) -> Vec<Creature> {
