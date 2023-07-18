@@ -28,6 +28,8 @@ fn run_evolution(target: String,
 fn rust_evogression(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(standardize_data, m)?)?;
     m.add_function(wrap_pyfunction!(run_evolution, m)?)?;
+    m.add_function(wrap_pyfunction!(evolution::load_evolution_from_json, m)?)?;
+    m.add_function(wrap_pyfunction!(creature::load_creature_from_json, m)?)?;
     m.add_class::<creature::Creature>()?;
     m.add_class::<evolution::Evolution>()?;
     Ok(())

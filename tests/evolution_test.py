@@ -1,3 +1,4 @@
+import copy
 import unittest
 import sys
 sys.path.insert(1, '..')
@@ -61,6 +62,15 @@ class TestData(unittest.TestCase):
         test_data[5] = {'x': float('nan'), 'y': 11.2}
         test_data[6] = {'x': None, 'y': float('nan')}
         evogression.Evolution('y', test_data)
+
+    def test_save_and_load(self):
+        test_data = copy.deepcopy(linear_data)
+        evo = evogression.Evolution('y', test_data)
+        evo.save("test_save_data")
+
+        loaded_evo = evogression.load("test_save_data.evo")
+        prediction = loaded_evo.predict(test_data[0])
+        print(prediction)
 
 
 if __name__ == '__main__':

@@ -8,6 +8,7 @@ use std::ops;
 use std::cmp;
 use itertools::izip;
 use rayon::prelude::*;
+use serde::{Serialize, Deserialize};
 use pyo3::prelude::*;
 
 use crate::standardize::Standardizer;
@@ -19,6 +20,12 @@ fn num_layers() -> u8 {
 }
 
 
+#[pyfunction]
+pub fn load_creature_from_json(json: &str) -> Creature {
+    serde_json::from_str(&json).unwrap()
+}
+
+
 /**
 A "Creature" is essentially a randomly generated function.
 The equation of a creature can be one or more Coefficients in one or more
@@ -26,6 +33,7 @@ LayerModifiers which function as one or more layers for a simple neural network.
 */
 #[pyclass]
 #[derive(Clone)]
+#[derive(Serialize, Deserialize)]
 pub struct Creature {
     equation: Vec<LayerModifiers>,
     pub cached_error_sum: Option<f32>,
@@ -347,6 +355,10 @@ impl Creature {
         }
         total
     }
+
+    fn to_json(&self) -> String {
+        serde_json::to_string(&self).unwrap()
+    }
 }
 
 impl Creature {
@@ -434,9 +446,9 @@ impl fmt::Display for Creature {
 /// "modifiers" is a collection of Coefficents applied to certain input parameters.
 /// The "previous_layer_coefficients" field is Coefficients applied to a previous layer's output, if applicable.
 /// The "layer_bias" field is a bias added to the layer's calculation.
-#[derive(Clone)]
-#[derive(Debug)]
-#[derive(PartialEq)]
+
+#[derive(Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize)]
 struct LayerModifiers {
     modifiers: HashMap<String, Coefficients>,
     previous_layer_coefficients: Option<Coefficients>,
@@ -484,9 +496,8 @@ impl fmt::Display for LayerModifiers {
 /// A "Coefficients" struct contains 4 values which
 /// are used to form the following equation given input "param":
 /// Value = C * (B * param + Z) ^ X
-#[derive(Clone)]
-#[derive(Debug)]
-#[derive(PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize)]
 struct Coefficients { c: f32, b: f32, z: f32, x: u8 }
 
 impl Coefficients {

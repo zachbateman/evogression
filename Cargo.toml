@@ -14,6 +14,8 @@ rayon = "1.6.0"
 rand = "0.8.5"
 rand_distr = "0.4.3"
 itertools = "0.10.5"
+serde = { version = "1.0.171", features = ["derive"] }
+serde_json = "1.0.103"
 
 
 [dependencies.pyo3]

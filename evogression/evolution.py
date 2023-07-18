@@ -3,6 +3,7 @@ Module containing evolution algorithm for regression.
 '''
 from collections import defaultdict
 import os
+import pickle
 from pandas import DataFrame
 from . import data as data_funcs
 from . import rust_evogression
@@ -102,3 +103,30 @@ class Evolution:
             case _:
                 print('Error!  "data" arg provided to .predict() must be a dict or list of dicts or DataFrame.')
         return data
+
+    def save(self, filename: str="model.evo") -> None:
+        self._model_serialized = self.model.to_json()
+        self.model = None  # Delete actual Rust object as can't pickle it
+
+        self._best_creature_serialized = self.best_creature.to_json()
+        self.best_creature = None  # Delete actual Rust object as can't pickle it
+
+        self.all_data = None  # Shrink object size - full data is not needed once initialized
+
+        cleaned_name = filename + '.evo' if '.' not in filename else filename
+
+        with open(cleaned_name, 'wb') as file:
+            pickle.dump(self, file)
+
+
+def load(filename: str="model.evo") -> Evolution:
+    cleaned_name = filename + '.evo' if '.' not in filename else filename
+
+    try:
+        with open(cleaned_name, 'rb') as file:
+            evo = pickle.load(file)
+        evo.model = rust_evogression.load_evolution_from_json(evo._model_serialized)
+        evo.best_creature = rust_evogression.load_creature_from_json(evo._best_creature_serialized)
+        return evo
+    except FileNotFoundError:
+        print(f'Saved model not found.  Please check that it is spelled correctly: "{filename}"')

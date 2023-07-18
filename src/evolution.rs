@@ -4,9 +4,11 @@ use std::time::Instant;
 use crate::standardize::Standardizer;
 use crate::creature::{Creature, MutateSpeed};
 use rayon::prelude::*;
+use serde::{Serialize, Deserialize};
 use pyo3::prelude::*;
 
 #[pyclass]
+#[derive(Serialize, Deserialize)]
 pub struct Evolution {
     #[pyo3(get)]
     target: String,
@@ -40,7 +42,17 @@ impl Evolution {
     fn python_regression_module_string(&self) -> String {
         self.generate_python_regression_module_string()
     }
+
+    fn to_json(&self) -> String {
+        serde_json::to_string(&self).unwrap()
+    }
 }
+
+#[pyfunction]
+pub fn load_evolution_from_json(json: &str) -> Evolution {
+    serde_json::from_str(&json).unwrap()
+}
+
 impl Evolution {
     // Have this non-pymethods function as passing in &self.standardizer
     // was causing issues in the pymethods impl block

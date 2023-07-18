@@ -1,6 +1,8 @@
 use std::collections::HashMap;
+use serde::{Serialize, Deserialize};
 
 
+#[derive(Serialize, Deserialize)]
 pub struct Standardizer {
     pub standardizers: HashMap<String, ParamStandardizer>,
 }
@@ -49,6 +51,7 @@ impl Standardizer {
 }
 
 #[derive(Debug)]
+#[derive(Serialize, Deserialize)]
 pub struct ParamStandardizer {
     pub mean: f32,
     pub stdev: f32,

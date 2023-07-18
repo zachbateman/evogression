@@ -19,6 +19,7 @@ MANIFEST
 *.json
 *.prof
 *regression_function*
+*.evo
 
 target/
 .vs/
