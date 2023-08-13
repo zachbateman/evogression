@@ -17,7 +17,7 @@ As of version 0.7.0, the core calculations are rewritten in Rust for much improv
     import evogression
 
     evolution = evogression.Evolution('target_variable_key', data, num_creatures=10000, num_cycles=10)
-    evolution.output_best_regression()
+    evolution.output_regression()
     ```
   - At this point, there will be a "regression_function.py" file within a newly-created "regression_modules" directory.  The "regression" function within this Python module can be imported and used with a dictionary of inputs to generate an estimated output value.
 

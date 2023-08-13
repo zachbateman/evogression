@@ -104,6 +104,7 @@ class Evolution:
                 print('Error!  "data" arg provided to .predict() must be a dict or list of dicts or DataFrame.')
         return data
 
+
     def save(self, filename: str="model.evo") -> None:
         self._model_serialized = self.model.to_json()
         self.model = None  # Delete actual Rust object as can't pickle it
