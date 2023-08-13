@@ -31,12 +31,13 @@ impl Standardizer {
     }
 
     pub fn standardized_values(&self, data: &[HashMap<String, f32>]) -> Vec<HashMap<String, f32>> {
-        let mut compiled = Vec::new();
+        let mut compiled = Vec::with_capacity(data.len());
         for row in data {
             compiled.push(self.standardized_value(row));
         }
         compiled
     }
+
     pub fn unstandardize_value(&self, param: &str, value: f32) -> f32 {
         self.standardizers.get(param)
             .unwrap_or_else(|| panic!("Unable to find ParamStandardizer for {}", param))

@@ -83,7 +83,7 @@ impl Evolution {
                                    .collect();
 
         let mut creatures = Creature::create_many_parallel(num_creatures, &param_options, max_layers);
-        let mut best_creatures = Vec::new();
+        let mut best_creatures = Vec::with_capacity(10);  // Usually will have at least 10 of these
         let mut total_best_error = 999_999_999.0;
         let mut new_best_creature;
 
@@ -182,13 +182,14 @@ fn optimize_creature(creature: &Creature,
     iterations: u16,
     optimize_count: u16) -> Creature {
 
-    let mut errors = Vec::new();
+    let mut errors = Vec::with_capacity(iterations as usize);
     let mut best_error = creature.cached_error_sum.unwrap();
     let mut speed = MutateSpeed::Fast;
     let mut best_creature = creature.clone();
     for i in 0..=iterations {
-        let mut creatures = vec![best_creature.clone()];
-        creatures.extend((0..optimize_count).map(|_| best_creature.mutate(speed.clone())).collect::<Vec<Creature>>());
+        let mut creatures = Vec::with_capacity(51);
+        creatures.push(best_creature.clone());
+        creatures.extend((0..optimize_count).map(|_| best_creature.mutate(speed.clone())));
 
         creatures.par_iter_mut().for_each(|creature| {
             if creature.cached_error_sum.is_none() {
@@ -234,7 +235,7 @@ fn print_cycle_data(cycle: u16, median_error: f32, best_creature: &Creature, new
 }
 
 fn error_results_with_median(creatures: &[Creature]) -> (f32, f32) {
-    let mut errors = Vec::new();
+    let mut errors = Vec::with_capacity(creatures.len());
     for creature in creatures.iter() {
         // Now DON'T include any anomalous NaN calculations in resulting errors!
         match creature.cached_error_sum.unwrap() {
@@ -258,7 +259,7 @@ fn error_results_with_median(creatures: &[Creature]) -> (f32, f32) {
 }
 
 fn error_results(creatures: &[Creature]) -> f32 {
-    let mut errors = Vec::new();
+    let mut errors = Vec::with_capacity(creatures.len());
     for creature in creatures.iter() {
         // Now DON'T include any anomalous NaN calculations in resulting errors!
         match creature.cached_error_sum.unwrap() {

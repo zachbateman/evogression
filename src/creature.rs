@@ -71,13 +71,12 @@ pub enum MutateSpeed {
 
 impl Creature {
     pub fn new(parameter_options: &Vec<&str>, max_layers: u8) -> Self {
-        let mut equation = Vec::new();
-
         let mut layer_limit = num_layers();
         if layer_limit > max_layers {
             layer_limit = max_layers;
         }
 
+        let mut equation = Vec::with_capacity(layer_limit as usize);
         for layer in 0..layer_limit {
             equation.push(LayerModifiers::new(
                 layer == 0,
@@ -115,9 +114,8 @@ impl Creature {
     }
 
     pub fn create_many(num_creatures: u32, parameter_options: &Vec<&str>, max_layers: u8) -> Vec<Creature> {
-        let creatures: Vec<Creature> = (0..num_creatures)
-            .map(|_| Creature::new(parameter_options, max_layers))
-            .collect();
+        let mut creatures = Vec::with_capacity(num_creatures as usize);
+        creatures.extend((0..num_creatures).map(|_| Creature::new(parameter_options, max_layers)));
         creatures
     }
 
@@ -138,7 +136,7 @@ impl Creature {
         let mut rng = thread_rng();
         let norm = Normal::new(0.0, modify_value).unwrap();
 
-        let mut new_equation: Vec<LayerModifiers> = Vec::new();
+        let mut new_equation: Vec<LayerModifiers> = Vec::with_capacity(self.equation.len());
         for layer_mods in &self.equation {
             let layer_bias = match rng.gen::<f64>() {
                 x if x < 0.5 => layer_mods.layer_bias + rng.sample(norm),
@@ -204,7 +202,7 @@ impl ops::Add for &Creature {
             }
         }
 
-        let mut new_equation = Vec::new();
+        let mut new_equation = Vec::with_capacity(new_layers);
 
         // Generate new, mutated coefficients
         //for (layer_mods_1, layer_mods_2) in zip(&self.equation, &other.equation) {
