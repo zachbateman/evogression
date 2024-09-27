@@ -96,7 +96,7 @@ impl Creature {
             // for each parameter that is used in the curret layer's modifiers.
             for (param, param_value) in parameters {
                 if let Some(coefficients) = layer_modifiers.modifiers.get(param) {
-                    inner_total += coefficients.calculate(param_value);
+                    inner_total += coefficients.calculate(*param_value);
                 }
             }
 
@@ -104,7 +104,7 @@ impl Creature {
             // Since "total" is updated at the end of each full layer, that same "total"
             // is the resulf of the prevous layer used as an input parameter.
             if let Some(t_coefficients) = &layer_modifiers.previous_layer_coefficients {
-                inner_total += t_coefficients.calculate(&total);
+                inner_total += t_coefficients.calculate(total);
             }
 
             // Add in the bias "layer_bias" to the current layer's calculation.
@@ -337,7 +337,7 @@ impl Creature {
             // for each parameter that is used in the curret layer's modifiers.
             for (param, param_value) in &parameters {
                 if let Some(coefficients) = layer_modifiers.modifiers.get(param) {
-                    inner_total += coefficients.calculate(param_value);
+                    inner_total += coefficients.calculate(*param_value);
                 }
             }
 
@@ -345,7 +345,7 @@ impl Creature {
             // Since "total" is updated at the end of each full layer, that same "total"
             // is the resulf of the prevous layer used as an input parameter.
             if let Some(t_coefficients) = &layer_modifiers.previous_layer_coefficients {
-                inner_total += t_coefficients.calculate(&total);
+                inner_total += t_coefficients.calculate(total);
             }
 
             // Add in the bias "layer_bias" to the current layer's calculation.
@@ -499,7 +499,7 @@ impl fmt::Display for LayerModifiers {
 struct Coefficients { c: f32, b: f32, z: f32, x: u8 }
 
 impl Coefficients {
-    fn calculate(&self, &param_value: &f32) -> f32 {
+    fn calculate(&self, param_value: f32) -> f32 {
         self.c * (self.b * param_value + self.z).powi(self.x as i32)
     }
 
