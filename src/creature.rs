@@ -109,6 +109,7 @@ impl Creature {
 
             // Add in the bias "layer_bias" to the current layer's calculation.
             total = inner_total + layer_modifiers.layer_bias;
+            inner_total = 0.0;
         }
         total
     }
@@ -350,6 +351,7 @@ impl Creature {
 
             // Add in the bias "layer_bias" to the current layer's calculation.
             total = inner_total + layer_modifiers.layer_bias;
+            inner_total = 0.0;
         }
         total
     }
