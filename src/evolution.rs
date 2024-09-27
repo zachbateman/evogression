@@ -50,7 +50,7 @@ impl Evolution {
 
 #[pyfunction]
 pub fn load_evolution_from_json(json: &str) -> Evolution {
-    serde_json::from_str(&json).unwrap()
+    serde_json::from_str(json).unwrap()
 }
 
 impl Evolution {
@@ -189,7 +189,7 @@ fn optimize_creature(creature: &Creature,
     for i in 0..=iterations {
         let mut creatures = Vec::with_capacity(51);
         creatures.push(best_creature.clone());
-        creatures.extend((0..optimize_count).map(|_| best_creature.mutate(speed.clone())));
+        creatures.extend((0..optimize_count).map(|_| best_creature.mutate(speed)));
 
         creatures.par_iter_mut().for_each(|creature| {
             if creature.cached_error_sum.is_none() {
@@ -290,11 +290,11 @@ fn mutated_top_creatures(creatures: &Vec<Creature>, min_error: &f32, median_erro
              .collect()
 }
 
-fn mate_creatures(creatures: &Vec<Creature>, max_new_creatures: u32) -> Vec<Creature> {
+fn mate_creatures(creatures: &[Creature], max_new_creatures: u32) -> Vec<Creature> {
     let chunk_size: usize = 1000;
 
     let max_new_per_chunk = match creatures.len() as u32 / chunk_size as u32 {
-        x if x == 0 => 2,
+        0 => 2,
         x => max_new_creatures / x,
     };
 

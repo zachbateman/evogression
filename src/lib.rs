@@ -1,3 +1,16 @@
+// #![forbid(unsafe_code)]
+// #![deny(
+//     clippy::indexing_slicing,
+//     clippy::unwrap_used,
+//     clippy::expect_used,
+//     clippy::panic,
+// )]
+// TODO: Enable the above when the code is more mature
+#![allow(
+    clippy::manual_map,
+)]
+
+
 mod creature;
 mod standardize;
 mod evolution;

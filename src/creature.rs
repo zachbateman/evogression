@@ -22,7 +22,7 @@ fn num_layers() -> u8 {
 
 #[pyfunction]
 pub fn load_creature_from_json(json: &str) -> Creature {
-    serde_json::from_str(&json).unwrap()
+    serde_json::from_str(json).unwrap()
 }
 
 
@@ -63,7 +63,7 @@ impl PartialEq for Creature {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub enum MutateSpeed {
     Fine,
     Fast,
