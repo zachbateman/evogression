@@ -25,7 +25,7 @@ fn run_evolution(target: String,
 
 
 #[pymodule]
-fn rust_evogression(_py: Python, m: &PyModule) -> PyResult<()> {
+fn rust_evogression(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(standardize_data, m)?)?;
     m.add_function(wrap_pyfunction!(run_evolution, m)?)?;
     m.add_function(wrap_pyfunction!(evolution::load_evolution_from_json, m)?)?;
